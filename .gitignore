@@ -1,3 +1,43 @@
+# Project specific
+repositories
+data
+*.txt
+*.csv
+ignore/
+*.ignore
+*_ignore.ipynb
+!requirements.txt
+
+# Images
+*.png
+*.jpg
+*.jpeg
+*.gif
+
+# Generated
+bin
+*.dll
+*.exe
+*.dot
+
+# SQLite
+*.db
+
+# Models
+*.h5
+*.hdf5
+*.pkl
+*.joblib
+
+# Distribution / packaging
+
+# Visual Studio Code
+.vscode
+
+# PyCharm
+.idea
+
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
@@ -70,6 +110,9 @@ instance/
 
 # Sphinx documentation
 docs/_build/
+docs/sphinx/_build/
+docs/sphinx/source/
+docs/sphinx/tests/
 
 # PyBuilder
 target/

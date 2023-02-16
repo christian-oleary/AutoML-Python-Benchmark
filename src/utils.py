@@ -54,7 +54,7 @@ class Utils:
                     column = column.set_index(timestamps)
 
                     df = pd.concat([df, column], axis=1)
-                    df.to_csv(csv_path)
+                df.to_csv(csv_path)
             else:
                 print(csv_path, pd.read_csv(csv_path).shape, 'already exists. Skipping...')
 

@@ -10,6 +10,15 @@ sh ./shell/download_forecasting_datasets.sh # download forecasting datasets
 sh ./shell/line_counts.sh # download repositories and count lines of code
 ```
 
+## Tests
+
+Download repositories and datasets first! Then run tests with:
+
+```bash
+pip install -r ./tests/requirements.txt
+python -m pytest tests
+```
+
 ## Contact
 
 Please feel free to get in touch at christian.oleary@mtu.ie

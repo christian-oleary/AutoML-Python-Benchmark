@@ -11,6 +11,7 @@ class Utils:
 
     # Maps from: https://github.com/rakshitha123/TSForecasting/
     FREQUENCY_MAP = {
+        '4_seconds': '4S',
         'minutely': '1min',
         '10_minutes': '10min',
         'half_hourly': '30min',

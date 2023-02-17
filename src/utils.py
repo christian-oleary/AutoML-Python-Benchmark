@@ -35,14 +35,21 @@ class Utils:
             tsf_files = [tsf_files[0]]
 
         # Parse .tsf files sequentially
+        meta_data = { 'file': [], 'frequency': [], 'horizon': [], 'has_nans': [], 'equal_length': [], 'num_cols': [] }
         for tsf_file in tsf_files:
             csv_path = os.path.join(data_dir, f'{tsf_file.split(".")[0]}.csv')
+            meta_data['file'].append(tsf_file)
 
             if not os.path.exists(csv_path):
                 print(f'Parsing {tsf_file}')
                 # Parse .tsf files and output dataframe
                 data, freq, horizon, has_nans, equal_length = convert_tsf_to_dataframe(
                     os.path.join(data_dir, tsf_file), 'NaN', 'value')
+                meta_data['horizon'].append(horizon)
+                meta_data['frequency'].append(freq)
+                meta_data['has_nans'].append(has_nans)
+                meta_data['equal_length'].append(equal_length)
+                meta_data['num_cols'].append(len(data))
 
                 # Determine frequency
                 if freq is not None:
@@ -85,8 +92,12 @@ class Utils:
                     # Join to main dataframe
                     df = pd.concat([df, column], axis=1)
                 df.to_csv(csv_path)
-            # else:
-            #     print(csv_path, pd.read_csv(csv_path).shape, 'already exists. Skipping...')
+            else:
+                print(csv_path, pd.read_csv(csv_path).shape, 'already exists. Skipping...')
+
+        # Save dataset-specific metadata
+        metadata_df = pd.DataFrame(meta_data)
+        metadata_df.to_csv(os.path.join(data_dir, '0_metadata.csv'), index=False)
 
 
     @staticmethod

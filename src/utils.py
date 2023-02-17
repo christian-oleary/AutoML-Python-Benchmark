@@ -1,5 +1,6 @@
 from datetime import datetime
 import os
+import logging
 import zipfile
 
 import pandas as pd
@@ -61,19 +62,34 @@ class Utils:
                     else:
                         start_timestamp = Utils.default_start_timestamp
 
-
                     # Format and apply date range index
                     column = pd.DataFrame({series_name: values})
-                    timestamps = pd.date_range(start=start_timestamp, periods=len(column), freq=freq)
-                    column = column.set_index(timestamps)
+                    for i in range(len(column)):
+                        try:
+                            timestamps = pd.date_range(start=start_timestamp, periods=len(column)-i, freq=freq)
+
+                            if i > 0: # Truncating if too far into future
+                                # Truncate by one extra period
+                                timestamps = pd.date_range(start=start_timestamp, periods=len(column)-(i+1), freq=freq)
+                                logging.warn(f'Truncating {series_name} from {len(column)} to {len(column)-(i+1)}')
+                                column = column.head(len(column)-(i+1))
+                            column = column.set_index(timestamps)
+                            break
+                        except pd._libs.tslibs.np_datetime.OutOfBoundsDatetime as e:
+                            if i == len(column)-1:
+                                logging.error(series_name, start_timestamp, len(column), freq)
+                                raise ValueError('Dates too far into the future for pandas to process')
+
+                    column.to_csv('column.csv')
 
                     # Join to main dataframe
                     df = pd.concat([df, column], axis=1)
                 df.to_csv(csv_path)
-            else:
-                print(csv_path, pd.read_csv(csv_path).shape, 'already exists. Skipping...')
+            # else:
+            #     print(csv_path, pd.read_csv(csv_path).shape, 'already exists. Skipping...')
 
 
+    @staticmethod
     def extract_forecasting_data(data_dir, debug=False):
         """Read zip files from directory and
 
@@ -107,3 +123,74 @@ class Utils:
 
         tsf_files = [ f for f in os.listdir(data_dir) if f.endswith('tsf') ]
         return tsf_files
+
+
+    @staticmethod
+    def format_anomaly_data(data_dir, debug=False):
+        """Format anomaly detection datasets
+
+        :param data_dir: Path to directory of datasets
+        :param debug: Used during testing, defaults to False
+        """
+
+        Utils.format_3W_data(data_dir, debug)
+        Utils.format_falling_data(data_dir, debug)
+        Utils.format_BETH_data(data_dir, debug)
+        Utils.format_HAI_data(data_dir, debug)
+        Utils.format_NAB_data(data_dir, debug)
+        Utils.format_SKAB_data(data_dir, debug)
+
+
+    @staticmethod
+    def format_3W_data(data_dir, debug=False):
+        """Format 3W data
+
+        :param data_dir: Path to directory of datasets
+        :param debug: Used during testing, defaults to False
+        """
+        subdir = os.path.join(data_dir, '3W')
+
+
+    @staticmethod
+    def format_falling_data(data_dir, debug=False):
+        """Format falling data
+
+        :param data_dir: Path to directory of datasets
+        :param debug: Used during testing, defaults to False
+        """
+
+
+    @staticmethod
+    def format_BETH_data(data_dir, debug=False):
+        """Format 3W data
+
+        :param data_dir: Path to directory of datasets
+        :param debug: Used during testing, defaults to False
+        """
+
+
+    @staticmethod
+    def format_HAI_data(data_dir, debug=False):
+        """Format HAI Security Dataset data
+
+        :param data_dir: Path to directory of datasets
+        :param debug: Used during testing, defaults to False
+        """
+
+
+    @staticmethod
+    def format_NAB_data(data_dir, debug=False):
+        """Format Numenta Anomaly detection Benchmark data
+
+        :param data_dir: Path to directory of datasets
+        :param debug: Used during testing, defaults to False
+        """
+
+
+    @staticmethod
+    def format_SKAB_data(data_dir, debug=False):
+        """Format Skoltech Anomaly Benchmark data
+
+        :param data_dir: Path to directory of datasets
+        :param debug: Used during testing, defaults to False
+        """

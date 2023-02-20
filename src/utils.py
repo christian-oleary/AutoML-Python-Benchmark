@@ -1,3 +1,7 @@
+"""
+Miscellaneous utility functions
+"""
+
 from datetime import datetime
 import os
 import logging
@@ -9,6 +13,7 @@ from src.data_loader import convert_tsf_to_dataframe
 
 
 class Utils:
+    """General utility functions"""
 
     # Maps from: https://github.com/rakshitha123/TSForecasting/
     FREQUENCY_MAP = {
@@ -26,13 +31,17 @@ class Utils:
 
     default_start_timestamp = datetime.strptime('1970-01-01 00-00-00', '%Y-%m-%d %H-%M-%S')
 
+    logger = logging.getLogger('Benchmark')
+
     @staticmethod
     def format_forecasting_data(data_dir, debug=False):
+        """Prepare forecasting data for modelling from zip files"""
 
         tsf_files = Utils.extract_forecasting_data(data_dir, debug)
 
         if debug: # Testing occurs with one file
             tsf_files = [tsf_files[0]]
+        # tsf_files = sorted(tsf_files, reverse=True)
 
         # Parse .tsf files sequentially
         meta_data = { 'file': [], 'frequency': [], 'horizon': [], 'has_nans': [], 'equal_length': [], 'num_cols': [] }
@@ -41,7 +50,7 @@ class Utils:
             meta_data['file'].append(tsf_file)
 
             if not os.path.exists(csv_path):
-                print(f'Parsing {tsf_file}')
+                Utils.logger.info(f'Parsing {tsf_file}')
                 # Parse .tsf files and output dataframe
                 data, freq, horizon, has_nans, equal_length = convert_tsf_to_dataframe(
                     os.path.join(data_dir, tsf_file), 'NaN', 'value')
@@ -58,42 +67,9 @@ class Utils:
                     freq = '1Y'
 
                 # Parse data one variable at time
-                df = pd.DataFrame()
-                for row in range(len(data)):
-                    series = data.iloc[row, :]
-                    # Find series name, values and starting timestamp
-                    series_name = series.loc['series_name']
-                    values = series.loc['value']
-                    if 'start_timestamp' in data.columns:
-                        start_timestamp = series.loc['start_timestamp']
-                    else:
-                        start_timestamp = Utils.default_start_timestamp
-
-                    # Format and apply date range index
-                    column = pd.DataFrame({series_name: values})
-                    for i in range(len(column)):
-                        try:
-                            timestamps = pd.date_range(start=start_timestamp, periods=len(column)-i, freq=freq)
-
-                            if i > 0: # Truncating if too far into future
-                                # Truncate by one extra period
-                                timestamps = pd.date_range(start=start_timestamp, periods=len(column)-(i+1), freq=freq)
-                                logging.warn(f'Truncating {series_name} from {len(column)} to {len(column)-(i+1)}')
-                                column = column.head(len(column)-(i+1))
-                            column = column.set_index(timestamps)
-                            break
-                        except pd._libs.tslibs.np_datetime.OutOfBoundsDatetime as e:
-                            if i == len(column)-1:
-                                logging.error(series_name, start_timestamp, len(column), freq)
-                                raise ValueError('Dates too far into the future for pandas to process')
-
-                    column.to_csv('column.csv')
-
-                    # Join to main dataframe
-                    df = pd.concat([df, column], axis=1)
-                df.to_csv(csv_path)
+                Utils.format_to_csv(data, freq, csv_path)
             else:
-                print(csv_path, pd.read_csv(csv_path).shape, 'already exists. Skipping...')
+                Utils.logger.info(f'{csv_path} {pd.read_csv(csv_path).shape} already exists. Skipping...')
 
         # Save dataset-specific metadata
         metadata_df = pd.DataFrame(meta_data)
@@ -105,16 +81,16 @@ class Utils:
         """Read zip files from directory and
 
         :param data_dir: Path to data directory of zip files
-        :param debug: _description_, defaults to False
-        :raises NotADirectoryError: _description_
-        :raises IOError: _description_
-        :return: _description_
+        :param debug: If true, only use one file for testing, defaults to False
+        :raises NotADirectoryError: occurs if non-directory passed as parameter
+        :raises IOError: occurs if no zip files found
+        :return: list of paths (str) to extracted .tsf files
         """
         # Validate input directory path
         try:
             zip_files = [ f for f in os.listdir(data_dir) if f.endswith('zip') ]
         except NotADirectoryError as e:
-            raise NotADirectoryError('\nProvide a path to a directory of zip files (of forecasting data)')
+            raise NotADirectoryError('\nProvide a path to a directory of zip files (of forecasting data)') from e
 
         if len(zip_files) == 0:
             raise IOError(f'\nNo zip files found in "{data_dir}"')
@@ -124,16 +100,62 @@ class Utils:
 
         # Extract zip files
         for filename in zip_files:
-            zip_file = zipfile.ZipFile(os.path.join(data_dir, filename))
-            files = zip_file.namelist()
-            error_msg = 'Zip files expected to contain exactly one .tsf file'
-            assert len(files) == 1 and files[0].endswith('tsf'), error_msg
-            output_file = os.path.join(data_dir, files[0])
-            if not os.path.exists(output_file) and not debug:
-                zip_file.extractall(data_dir)
+            with zipfile.ZipFile(os.path.join(data_dir, filename)) as zip_file:
+                files = zip_file.namelist()
+                error_msg = 'Zip files expected to contain exactly one .tsf file'
+                assert len(files) == 1 and files[0].endswith('tsf'), error_msg
+                output_file = os.path.join(data_dir, files[0])
+                if not os.path.exists(output_file) and not debug:
+                    zip_file.extractall(data_dir)
 
         tsf_files = [ f for f in os.listdir(data_dir) if f.endswith('tsf') ]
         return tsf_files
+
+
+    @staticmethod
+    def format_to_csv(data, freq, csv_path):
+        """Extract data from .tsf to .csv tabular format
+
+        :param data: Data read from .tsf file
+        :param freq: Frequency of data (str)
+        :param csv_path: Path to output CSV file (str)
+        :raises ValueError: occurs if timestamps extend too far into future for pandas to process (year >= )
+        """
+        df = pd.DataFrame()
+
+        for row in range(len(data)):
+            series = data.iloc[row, :]
+            # Find series name, values and starting timestamp
+            series_name = series.loc['series_name']
+            values = series.loc['value']
+            if 'start_timestamp' in data.columns:
+                start_timestamp = series.loc['start_timestamp']
+            else:
+                start_timestamp = Utils.default_start_timestamp
+
+            # Format and apply date range index
+            column = pd.DataFrame({series_name: values})
+            for i in range(len(column)):
+                try:
+                    timestamps = pd.date_range(start=start_timestamp, periods=len(column)-i, freq=freq)
+
+                    if i > 0: # Truncating if too far into future
+                        # Truncate by one extra period
+                        timestamps = pd.date_range(start=start_timestamp, periods=len(column)-(i+1), freq=freq)
+                        Utils.logger.warn(f'Truncating {series_name} from {len(column)} to {len(column)-(i+1)}')
+                        column = column.head(len(column)-(i+1))
+                    column = column.set_index(timestamps)
+                    break
+                except pd._libs.tslibs.np_datetime.OutOfBoundsDatetime as e:
+                    if i == len(column)-1:
+                        Utils.logger.error(series_name, start_timestamp, len(column), freq)
+                        raise ValueError(f'Pandas cannot handle timestamps beyond {pd.Timestamp.max}') from e
+
+            column.to_csv('column.csv')
+
+            # Join to main dataframe
+            df = pd.concat([df, column], axis=1)
+        df.to_csv(csv_path)
 
 
     @staticmethod

@@ -1,7 +1,7 @@
 import os
 import pytest
 
-from src.utils import Utils
+from src.dataset_formatting import Utils
 
 
 def test_utils_extract_forecasting_data():
@@ -9,7 +9,7 @@ def test_utils_extract_forecasting_data():
     debug=True
 
     with pytest.raises(NotADirectoryError):
-        Utils.extract_forecasting_data('README.md', debug=debug)
+        Utils.extract_forecasting_data('README.md', gather_metadata=False, debug=debug)
 
     with pytest.raises(IOError):
         Utils.extract_forecasting_data('shell', debug=debug)

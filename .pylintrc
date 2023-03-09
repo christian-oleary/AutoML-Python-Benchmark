@@ -1,0 +1,10 @@
+[FORMAT]
+max-line-length=120
+max-args=10
+max-attributes=10
+
+[MESSAGES CONTROL]
+disable=C0103
+
+[MASTER]
+ignore=src/data_loader.py

@@ -1,3 +1,7 @@
+"""
+Miscellaneous utility functions
+"""
+
 from datetime import datetime
 import logging
 import os
@@ -9,6 +13,7 @@ from src.TSForecasting.data_loader import convert_tsf_to_dataframe
 
 
 class Utils:
+    """General utility functions"""
 
     # Map from: https://github.com/rakshitha123/TSForecasting/
     FREQUENCY_MAP = {
@@ -26,14 +31,17 @@ class Utils:
 
     default_start_timestamp = datetime.strptime('1970-01-01 00-00-00', '%Y-%m-%d %H-%M-%S')
 
+    logger = logging.getLogger('Benchmark')
 
     @staticmethod
     def format_forecasting_data(data_dir, gather_metadata=False, debug=False):
+        """Prepare forecasting data for modelling from zip files"""
 
         tsf_files = Utils.extract_forecasting_data(data_dir, debug)
 
         if debug: # Testing occurs with one file
             tsf_files = [tsf_files[0]]
+        # tsf_files = sorted(tsf_files, reverse=True)
 
         if gather_metadata:
             meta_data = {
@@ -49,7 +57,7 @@ class Utils:
         for tsf_file in tsf_files:
             csv_path = os.path.join(data_dir, f'{tsf_file.split(".")[0]}.csv')
 
-            print(f'Parsing {tsf_file}')
+            Utils.logger.info(f'Parsing {tsf_file}')
             # Parse .tsf files and output dataframe
             if not os.path.exists(csv_path) or gather_metadata:
                 data, freq, horizon, has_nans, equal_length = convert_tsf_to_dataframe(
@@ -85,7 +93,7 @@ class Utils:
 
                 df.to_csv(csv_path)
             else:
-                print(csv_path, pd.read_csv(csv_path).shape, 'already exists. Skipping...')
+                Utils.logger.info(f'{csv_path} {pd.read_csv(csv_path).shape} already exists. Skipping...')
 
         # Save dataset-specific metadata
         if gather_metadata:
@@ -103,9 +111,6 @@ class Utils:
         :return: Pandas series
         """
 
-        if row_index % 100 == 0:
-            print('process_row', row_index)
-        # print('process_row', current_process(), row_index)
         series = data.iloc[row_index, :]
         # Find series name, values and starting timestamp
         series_name = series.loc['series_name']
@@ -138,16 +143,16 @@ class Utils:
         """Read zip files from directory and
 
         :param data_dir: Path to data directory of zip files
-        :param debug: _description_, defaults to False
-        :raises NotADirectoryError: _description_
-        :raises IOError: _description_
-        :return: _description_
+        :param debug: If true, only use one file for testing, defaults to False
+        :raises NotADirectoryError: occurs if non-directory passed as parameter
+        :raises IOError: occurs if no zip files found
+        :return: list of paths (str) to extracted .tsf files
         """
         # Validate input directory path
         try:
             zip_files = [ f for f in os.listdir(data_dir) if f.endswith('zip') ]
         except NotADirectoryError as e:
-            raise NotADirectoryError('\nProvide a path to a directory of zip files (of forecasting data)')
+            raise NotADirectoryError('\nProvide a path to a directory of zip files (of forecasting data)') from e
 
         if len(zip_files) == 0:
             raise IOError(f'\nNo zip files found in "{data_dir}"')
@@ -157,13 +162,13 @@ class Utils:
 
         # Extract zip files
         for filename in zip_files:
-            zip_file = zipfile.ZipFile(os.path.join(data_dir, filename))
-            files = zip_file.namelist()
-            error_msg = 'Zip files expected to contain exactly one .tsf file'
-            assert len(files) == 1 and files[0].endswith('tsf'), error_msg
-            output_file = os.path.join(data_dir, files[0])
-            if not os.path.exists(output_file) and not debug:
-                zip_file.extractall(data_dir)
+            with zipfile.ZipFile(os.path.join(data_dir, filename)) as zip_file:
+                files = zip_file.namelist()
+                error_msg = 'Zip files expected to contain exactly one .tsf file'
+                assert len(files) == 1 and files[0].endswith('tsf'), error_msg
+                output_file = os.path.join(data_dir, files[0])
+                if not os.path.exists(output_file) and not debug:
+                    zip_file.extractall(data_dir)
 
         tsf_files = [ f for f in os.listdir(data_dir) if f.endswith('tsf') ]
         return tsf_files

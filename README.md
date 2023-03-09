@@ -10,13 +10,20 @@ sh ./shell/download_forecasting_datasets.sh # download forecasting datasets
 sh ./shell/line_counts.sh # download repositories and count lines of code
 ```
 
-## Tests
+## Tests and Linting
 
-Download repositories and datasets first! Then run tests with:
+Download repositories and datasets first. Then run tests with:
 
 ```bash
 pip install -r ./tests/requirements.txt
 python -m pytest tests
+```
+
+Linting:
+
+```bash
+pip install -r ./tests/requirements.txt
+python -m pylint src
 ```
 
 ## Contact

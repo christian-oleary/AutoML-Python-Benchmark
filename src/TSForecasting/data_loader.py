@@ -9,6 +9,19 @@ from distutils.util import strtobool
 
 import pandas as pd
 
+# Map from: https://github.com/rakshitha123/TSForecasting/
+FREQUENCY_MAP = {
+    '4_seconds': '4S',
+    'minutely': '1min',
+    '10_minutes': '10min',
+    'half_hourly': '30min',
+    'hourly': '1H',
+    'daily': '1D',
+    'weekly': '1W',
+    'monthly': '1M',
+    'quarterly': '1Q',
+    'yearly': '1Y'
+}
 
 # Converts the contents in a .tsf file into a dataframe and returns it along with other meta-data of the dataset: frequency, horizon, whether the dataset contains missing values and whether the series have equal lengths
 #

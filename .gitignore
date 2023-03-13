@@ -7,6 +7,7 @@ ignore/
 *.ignore
 *_ignore.ipynb
 !requirements.txt
+tmp
 
 # Images
 *.png

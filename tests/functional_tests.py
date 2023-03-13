@@ -22,6 +22,7 @@ def fixture():
         bike_sharing = fetch_openml('Bike_Sharing_Demand', version=2, as_frame=True)
         df = bike_sharing.frame
         df = df.head(200)
+        df = df.drop(['season', 'holiday', 'workingday', 'weather'], axis=1)
         df.to_csv(forecasting_test_path)
 
     yield forecasting_data_dir, forecasting_test_path

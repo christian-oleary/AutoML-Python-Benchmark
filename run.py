@@ -1,6 +1,7 @@
-import logging
+from datetime import datetime, timedelta
 import os
-import sys
+import time
+
 
 from src.dataset_formatting import DatasetFormatting
 from src.forecasting import Forecasting
@@ -8,15 +9,26 @@ from src.util import Utils
 
 if __name__ == '__main__': # Needed for any multiprocessing
 
+    # Start timer
+    print(f'Started at {datetime.now().strftime("%d-%m-%y %H:%M:%S")}\n')
+    start_time = time.perf_counter()
+
+    # Data directories
     forecasting_data_dir = os.path.join('data', 'forecasting')
     anomaly_data_dir = os.path.join('data', 'anomaly_detection')
 
     # Download data if needed
-    gather_metadata = False # If true, will parse all .tsf files and output a .csv file of dataset descriptors
+    gather_metadata = not os.path.exists('./data/forecasting/0_metadata.csv')
     DatasetFormatting.format_forecasting_data(forecasting_data_dir, gather_metadata=gather_metadata)
     DatasetFormatting.format_anomaly_data(anomaly_data_dir)
 
     # Run forecasting models
     forecasters = Forecasting.get_forecaster_names()
     Utils.logger.info(f'Available forecasting libraries: {forecasters}')
+    # Forecasting.run_forecasting_libraries(forecasters, './tests/data/forecasting/')
     Forecasting.run_forecasting_libraries(forecasters, forecasting_data_dir)
+
+    # Calculate runtime
+    print(f'\nFinished at {datetime.now().strftime("%d-%m-%y %H:%M:%S")}')
+    duration = timedelta(seconds=time.perf_counter()-start_time)
+    print(f'Total time: {duration}')

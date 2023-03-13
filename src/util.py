@@ -11,10 +11,12 @@ logger = logging.getLogger(logger_name)
 logger.addHandler(logging.StreamHandler(sys.stdout))
 logger.setLevel(level=logging.DEBUG)
 
+
 class Utils:
     """Utility functions"""
 
     logger = logging.getLogger(logger_name)
+
 
     @staticmethod
     def get_csv_datasets(datasets_directory):

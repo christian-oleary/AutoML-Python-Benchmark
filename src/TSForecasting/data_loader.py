@@ -23,6 +23,8 @@ FREQUENCY_MAP = {
     'yearly': '1Y'
 }
 
+REVERSE_FREQUENCY_MAP = { v: k for k, v in FREQUENCY_MAP.items() }
+
 # Converts the contents in a .tsf file into a dataframe and returns it along with other meta-data of the dataset: frequency, horizon, whether the dataset contains missing values and whether the series have equal lengths
 #
 # Parameters

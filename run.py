@@ -2,10 +2,11 @@ from datetime import datetime, timedelta
 import os
 import time
 
-
 from src.dataset_formatting import DatasetFormatting
 from src.forecasting import Forecasting
 from src.util import Utils
+
+# os.environ['CUDA_VISIBLE_DEVICES'] = '-1' # Use CPU instead of GPU
 
 if __name__ == '__main__': # Needed for any multiprocessing
 

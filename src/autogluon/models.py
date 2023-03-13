@@ -32,6 +32,10 @@ class AutoGluonForecaster(Forecaster):
         train_data = TimeSeriesDataFrame.from_data_frame(train_df, id_column='ID', timestamp_column='timestamp')
         test_data = TimeSeriesDataFrame.from_data_frame(test_df, id_column='ID', timestamp_column='timestamp')
 
+        # Fill missing values must be called manually first
+        train_data = train_data.fill_missing_values()
+        test_data = test_data.fill_missing_values()
+
         # train_data = TimeSeriesDataFrame.from_data_frame(df, id_column="item_id", timestamp_column="timestamp")
         # test_data = TimeSeriesDataFrame.from_path("https://autogluon.s3.amazonaws.com/datasets/timeseries/m4_hourly_subset/test.csv")
         # target_name = "target"

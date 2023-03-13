@@ -24,55 +24,17 @@ class AutoGluonForecaster(Forecaster):
         """
 
         train_df = train_df.reset_index(names=['timestamp'])
-        # train_df = train_df.reset_index(names=['ID'])
         test_df = test_df.reset_index(names=['timestamp'])
-        # test_df = test_df.reset_index(names=['ID'])
-
         train_df['ID'] = 1
         test_df['ID'] = 1
-
-        # # print(train_df.head(3))
-        # # print(train_df.columns)
-        # # print(target_name)
-        # # print(train_df.shape)
-        # # print(test_df.shape)
-        # # print()
-
-        # limit = 60
 
         # TimeSeriesDataFrame inherits from pandas.DataFrame
         train_data = TimeSeriesDataFrame.from_data_frame(train_df, id_column='ID', timestamp_column='timestamp')
         test_data = TimeSeriesDataFrame.from_data_frame(test_df, id_column='ID', timestamp_column='timestamp')
-        # train_data.to_csv('0_train_data.csv')
-        # test_data.to_csv('0_test_data.csv')
 
-        # print(FREQUENCY_MAP[frequency])
-        # # train_data = train_data.to_regular_index(freq=FREQUENCY_MAP[frequency])
-        # # test_data = test_data.to_regular_index(freq=FREQUENCY_MAP[frequency])
-        # print('train_data.freq', train_data.freq)
-
-        # print(train_data.head(3))
-        # print(train_data.columns)
-        # print(train_data.shape)
-        # print(test_data.shape)
-        # print()
-
-        # import pandas as pd
-        # df = pd.read_csv("https://autogluon.s3.amazonaws.com/datasets/timeseries/m4_hourly_subset/train.csv")
         # train_data = TimeSeriesDataFrame.from_data_frame(df, id_column="item_id", timestamp_column="timestamp")
         # test_data = TimeSeriesDataFrame.from_path("https://autogluon.s3.amazonaws.com/datasets/timeseries/m4_hourly_subset/test.csv")
-        # train_data.to_csv('1_train_data.csv')
-        # test_data.to_csv('1_test_data.csv')
         # target_name = "target"
-        # print(train_data.head(3))
-        # print(train_data.columns)
-        # print(train_data.shape)
-        # print(test_data.shape)
-        # print()
-        # exit()
-
-        # print('horizon', horizon)
-        # print('target_name', target_name)
 
         predictor = TimeSeriesPredictor(prediction_length=horizon, path=tmp_dir, target=target_name,
                                         ignore_time_index=True,

@@ -3,6 +3,7 @@ from autogluon.timeseries import TimeSeriesDataFrame, TimeSeriesPredictor
 
 from src.abstract import Forecaster
 from src.TSForecasting.data_loader import FREQUENCY_MAP
+from src.util import Utils
 
 
 class AutoGluonForecaster(Forecaster):
@@ -32,9 +33,27 @@ class AutoGluonForecaster(Forecaster):
         train_data = TimeSeriesDataFrame.from_data_frame(train_df, id_column='ID', timestamp_column='timestamp')
         test_data = TimeSeriesDataFrame.from_data_frame(test_df, id_column='ID', timestamp_column='timestamp')
 
-        # Fill missing values must be called manually first
+        # If frequency detection failed, fill manually
+        # SUPPORTED_FREQUENCIES = {"D", "W", "M", "Q", "A", "Y", "H", "T", "min", "S"}
+        freq = FREQUENCY_MAP[frequency].replace('1', '')
+        if train_data.freq == None:
+            train_data = train_data.to_regular_index(freq=freq)
+
+        if test_data.freq == None:
+            test_data = test_data.to_regular_index(freq=freq)
+
+        # Attempt to fill missing values
         train_data = train_data.fill_missing_values()
         test_data = test_data.fill_missing_values()
+
+        # If imputation (partially) failed, fill missing data with zeroes
+        if train_data.isna().any().any():
+            train_data = train_data.fillna(0)
+            Utils.logger.warning('Autogluon failed to impute some training data data. Filling with zeros')
+
+        if test_data.isna().any().any():
+            test_data = test_data.fillna(0)
+            Utils.logger.warning('Autogluon failed to impute some test data data. Filling with zeros')
 
         # train_data = TimeSeriesDataFrame.from_data_frame(df, id_column="item_id", timestamp_column="timestamp")
         # test_data = TimeSeriesDataFrame.from_path("https://autogluon.s3.amazonaws.com/datasets/timeseries/m4_hourly_subset/test.csv")
@@ -42,6 +61,7 @@ class AutoGluonForecaster(Forecaster):
 
         predictor = TimeSeriesPredictor(prediction_length=horizon, path=tmp_dir, target=target_name,
                                         ignore_time_index=True,
+                                        verbosity=0,
                                         eval_metric='sMAPE')
 
         # predictor.fit(train_data, presets='best_quality', time_limit=limit)

@@ -49,6 +49,8 @@ class Forecasting():
             horizon = data['horizon'].iloc[0]
             if pd.isna(horizon):
                 horizon = max([1, int(len(df) * .05)])
+            else:
+                horizon = int(horizon) # Some datasets stored this as float
 
             # Run each forecaster on the dataset
             for forecaster_name in forecaster_names:

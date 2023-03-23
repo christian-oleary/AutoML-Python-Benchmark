@@ -1,5 +1,6 @@
 import os
 
+import pandas as pd
 import pytest
 from sklearn.datasets import fetch_openml
 
@@ -24,6 +25,19 @@ def fixture():
         df = df.head(200)
         df = df.drop(['season', 'holiday', 'workingday', 'weather'], axis=1)
         df.to_csv(forecasting_test_path)
+
+    metadata_path = os.path.join(forecasting_data_dir, '0_metadata.csv')
+    if not os.path.exists(metadata_path):
+        metadata = {
+            'file': 'forecasting_data.tsf',
+            'frequency': 'half_hourly',
+            'horizon': 1,
+            'has_nans': False,
+            'equal_length': False,
+            'num_cols': 5,
+        }
+        metadata = pd.DataFrame([metadata])
+        metadata.to_csv(metadata_path, index=False)
 
     yield forecasting_data_dir, forecasting_test_path
 

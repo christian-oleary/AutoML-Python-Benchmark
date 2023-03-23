@@ -24,8 +24,13 @@ class AutoGluonForecaster(Forecaster):
         :param tmp_dir: Path to directory to store temporary files (str)
         """
 
-        train_df = train_df.reset_index(names=['timestamp'])
-        test_df = test_df.reset_index(names=['timestamp'])
+        try:
+            train_df = train_df.reset_index(names=['timestamp'])
+            test_df = test_df.reset_index(names=['timestamp'])
+        except TypeError as e: # Pandas < 1.5.0
+            train_df = train_df.rename_axis('timestamp').reset_index()
+            test_df = test_df.rename_axis('timestamp').reset_index()
+
         train_df['ID'] = 1
         test_df['ID'] = 1
 

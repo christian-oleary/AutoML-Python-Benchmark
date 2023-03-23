@@ -52,6 +52,9 @@ class Forecasting():
             else:
                 horizon = int(horizon) # Some datasets stored this as float
 
+            if pd.isna(frequency) and 'm3_other_dataset.csv' in csv_file:
+                frequency = 'yearly'
+
             # Run each forecaster on the dataset
             for forecaster_name in forecaster_names:
                 # Initialize forecaster and estimate a time/iterations limit

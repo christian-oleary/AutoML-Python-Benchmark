@@ -67,7 +67,7 @@ class AutoGluonForecaster(Forecaster):
         # predictor.fit(train_data, presets='best_quality', time_limit=limit)
         # predictor.fit(train_data, presets='high_quality', time_limit=limit)
         # predictor.fit(train_data, presets='fast_training', time_limit=limit)
-        predictor.fit(train_data, presets='fast_training', time_limit=10)
+        predictor.fit(train_data, presets='fast_training', time_limit=30)
 
         predictions = predictor.predict(train_data) # forecast
         print('predictions', predictions, type(predictions))

@@ -22,10 +22,12 @@ curl https://zenodo.org/record/4656014/files/hospital_dataset.zip?download=1 --o
 curl https://zenodo.org/record/4656664/files/kaggle_web_traffic_weekly_dataset.zip?download=1 --output ./data/forecasting/kaggle_web_traffic_weekly_dataset.zip
 curl https://zenodo.org/record/4656080/files/kaggle_web_traffic_dataset_with_missing_values.zip?download=1 --output ./data/forecasting/kaggle_web_traffic_dataset_with_missing_values.zip
 curl https://zenodo.org/record/4656075/files/kaggle_web_traffic_dataset_without_missing_values.zip?download=1 --output ./data/forecasting/kaggle_web_traffic_dataset_without_missing_values.zip
+curl https://zenodo.org/record/7370977/files/web_traffic_extended_dataset_with_missing_values.zip?download=1 --output ./data/forecasting/kaggle_web_traffic_extended_dataset_with_missing_values.zip
+curl https://zenodo.org/record/7371038/files/web_traffic_extended_dataset_without_missing_values.zip?download=1 --output ./data/forecasting/kaggle_web_traffic_extended_dataset_without_missing_values.zip
 curl https://zenodo.org/record/4656756/files/kdd_cup_2018_dataset_without_missing_values.zip?download=1 --output ./data/forecasting/kdd_cup_2018_dataset_without_missing_values.zip
+
 curl https://zenodo.org/record/4656072/files/london_smart_meters_dataset_with_missing_values.zip?download=1 --output ./data/forecasting/london_smart_meters_dataset_with_missing_values.zip
 curl https://zenodo.org/record/4656091/files/london_smart_meters_dataset_without_missing_values.zip?download=1 --output ./data/forecasting/london_smart_meters_dataset_without_missing_values.zip
-
 curl https://zenodo.org/record/4656159/files/m1_monthly_dataset.zip?download=1 --output ./data/forecasting/m1_monthly_dataset.zip
 curl https://zenodo.org/record/4656154/files/m1_quarterly_dataset.zip?download=1 --output ./data/forecasting/m1_quarterly_dataset.zip
 curl https://zenodo.org/record/4656193/files/m1_yearly_dataset.zip?download=1 --output ./data/forecasting/m1_yearly_dataset.zip
@@ -34,9 +36,9 @@ curl https://zenodo.org/record/4656335/files/m3_other_dataset.zip?download=1 --o
 curl https://zenodo.org/record/4656262/files/m3_quarterly_dataset.zip?download=1 --output ./data/forecasting/m3_quarterly_dataset.zip
 curl https://zenodo.org/record/4656222/files/m3_yearly_dataset.zip?download=1 --output ./data/forecasting/m3_yearly_dataset.zip
 curl https://zenodo.org/record/4656548/files/m4_daily_dataset.zip?download=1 --output ./data/forecasting/m4_daily_dataset.zip
+
 curl https://zenodo.org/record/4656589/files/m4_hourly_dataset.zip?download=1 --output ./data/forecasting/m4_hourly_dataset.zip
 curl https://zenodo.org/record/4656480/files/m4_monthly_dataset.zip?download=1 --output ./data/forecasting/m4_monthly_dataset.zip
-
 curl https://zenodo.org/record/4656410/files/m4_quarterly_dataset.zip?download=1 --output ./data/forecasting/m4_quarterly_dataset.zip
 curl https://zenodo.org/record/4656522/files/m4_weekly_dataset.zip?download=1 --output ./data/forecasting/m4_weekly_dataset.zip
 curl https://zenodo.org/record/4656379/files/m4_yearly_dataset.zip?download=1 --output ./data/forecasting/m4_yearly_dataset.zip
@@ -45,9 +47,9 @@ curl https://zenodo.org/record/4656117/files/nn5_daily_dataset_without_missing_v
 curl https://zenodo.org/record/4656125/files/nn5_weekly_dataset.zip?download=1 --output ./data/forecasting/nn5_weekly_dataset.zip
 curl https://zenodo.org/record/5184708/files/oikolab_weather_dataset.zip?download=1 --output ./data/forecasting/oikolab_weather_dataset.zip
 curl https://zenodo.org/record/4656626/files/pedestrian_counts_dataset.zip?download=1 --output ./data/forecasting/pedestrian_counts_dataset.zip
+
 curl https://zenodo.org/record/5122114/files/rideshare_dataset_with_missing_values.zip?download=1 --output ./data/forecasting/rideshare_dataset_with_missing_values.zip
 curl https://zenodo.org/record/5122232/files/rideshare_dataset_without_missing_values.zip?download=1 --output ./data/forecasting/rideshare_dataset_without_missing_values.zip
-
 curl https://zenodo.org/record/4656058/files/saugeenday_dataset.zip?download=1 --output ./data/forecasting/saugeenday_dataset.zip
 curl https://zenodo.org/record/4656027/files/solar_4_seconds_dataset.zip?download=1 --output ./data/forecasting/solar_4_seconds_dataset.zip
 curl https://zenodo.org/record/4656144/files/solar_10_minutes_dataset.zip?download=1 --output ./data/forecasting/solar_10_minutes_dataset.zip
@@ -56,9 +58,9 @@ curl https://zenodo.org/record/4654773/files/sunspot_dataset_with_missing_values
 curl https://zenodo.org/record/4654722/files/sunspot_dataset_without_missing_values.zip?download=1 --output ./data/forecasting/sunspot_dataset_without_missing_values.zip
 curl https://zenodo.org/record/5129073/files/temperature_rain_dataset_with_missing_values.zip?download=1 --output ./data/forecasting/temperature_rain_dataset_with_missing_values.zip
 curl https://zenodo.org/record/5129091/files/temperature_rain_dataset_without_missing_values.zip?download=1 --output ./data/forecasting/temperature_rain_dataset_without_missing_values.zip
+
 curl https://zenodo.org/record/4656096/files/tourism_monthly_dataset.zip?download=1 --output ./data/forecasting/tourism_monthly_dataset.zip
 curl https://zenodo.org/record/4656093/files/tourism_quarterly_dataset.zip?download=1 --output ./data/forecasting/tourism_quarterly_dataset.zip
-
 curl https://zenodo.org/record/4656132/files/traffic_hourly_dataset.zip?download=1 --output ./data/forecasting/traffic_hourly_dataset.zip
 curl https://zenodo.org/record/4656135/files/traffic_weekly_dataset.zip?download=1 --output ./data/forecasting/traffic_weekly_dataset.zip
 curl https://zenodo.org/record/4656103/files/tourism_yearly_dataset.zip?download=1 --output ./data/forecasting/tourism_yearly_dataset.zip
@@ -66,8 +68,6 @@ curl https://zenodo.org/record/4656049/files/us_births_dataset.zip?download=1 --
 curl https://zenodo.org/record/5122535/files/vehicle_trips_dataset_with_missing_values.zip?download=1 --output ./data/forecasting/vehicle_trips_dataset_with_missing_values.zip
 curl https://zenodo.org/record/5122537/files/vehicle_trips_dataset_without_missing_values.zip?download=1 --output ./data/forecasting/vehicle_trips_dataset_without_missing_values.zip
 curl https://zenodo.org/record/4654822/files/weather_dataset.zip?download=1 --output ./data/forecasting/weather_dataset.zip
-curl https://zenodo.org/record/7370977/files/web_traffic_extended_dataset_with_missing_values.zip?download=1 --output ./data/forecasting/web_traffic_extended_dataset_with_missing_values.zip
-curl https://zenodo.org/record/7371038/files/web_traffic_extended_dataset_without_missing_values.zip?download=1 --output ./data/forecasting/web_traffic_extended_dataset_without_missing_values.zip
 curl https://zenodo.org/record/4656032/files/wind_4_seconds_dataset.zip?download=1 --output ./data/forecasting/wind_4_seconds_dataset.zip
 
 curl https://zenodo.org/record/4654909/files/wind_farms_minutely_dataset_with_missing_values.zip?download=1 --output ./data/forecasting/wind_farms_minutely_dataset_with_missing_values.zip

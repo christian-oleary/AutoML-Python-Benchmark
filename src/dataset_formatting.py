@@ -47,6 +47,9 @@ class DatasetFormatting:
                 data, freq, horizon, has_nans, equal_length = convert_tsf_to_dataframe(
                     os.path.join(data_dir, tsf_file), 'NaN', 'value')
 
+                if horizon == None:
+                    horizon = DatasetFormatting.select_horizon(freq, csv_path)
+
                 if gather_metadata:
                     meta_data['file'].append(tsf_file)
                     meta_data['horizon'].append(horizon)
@@ -85,6 +88,40 @@ class DatasetFormatting:
             metadata_df.to_csv(os.path.join(data_dir, '0_metadata.csv'), index=False)
 
         Utils.logger.info('Forecasting data ready.')
+
+
+    @staticmethod
+    def select_horizon(freq, csv_path):
+        """Select horizon for forecasters for a given dataset
+
+        :param freq: Time series frequency (str)
+        :param csv_path: Path to dataset (str)
+        :raises ValueError: If freq is None or not supported
+        :return: Forecasting horizon (int)
+        """
+        if 'solar_4_seconds_dataset' in csv_path:
+            horizon = 15 * 60 # i.e. 1 hour
+
+        # The following horizons are suggested by Godahewa et al. (2021)
+        elif 'solar_weekly_dataset' in csv_path:
+            horizon = 5
+        elif freq == None:
+            raise ValueError('No frequency or horizon found in file')
+        elif freq == 'monthly':
+            horizon = 12
+        elif freq == 'weekly':
+            horizon = 8
+        elif freq == 'daily':
+            horizon = 30
+        elif freq == 'hourly':
+            horizon = 168 # i.e. one week
+        elif freq == 'half_hourly':
+            horizon = 168 * 2 # i.e. one week
+        elif freq == 'minutely':
+            horizon = 60 * 168 # i.e. one week
+        else:
+            raise ValueError(f'Unclear what horizon to assign for frequency {freq}')
+        return horizon
 
 
     @staticmethod

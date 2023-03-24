@@ -6,6 +6,8 @@ import os
 import time
 
 import pandas as pd
+from sklearn.experimental import enable_iterative_imputer
+from sklearn.impute import IterativeImputer, SimpleImputer
 
 from src.util import Utils
 from src.autogluon.models import AutoGluonForecaster
@@ -19,7 +21,7 @@ class Forecasting():
     forecaster_names = [ 'AutoGluon' ]
 
     @staticmethod
-    def run_forecasting_libraries(forecaster_names, datasets_directory, time_limit=3600):
+    def run_forecasting_libraries(forecaster_names, datasets_directory, time_limit=3600, results_dir='results'):
         """Intended entrypoint to run forecasting libraries on the davailable datasets
 
         :param forecaster_names: List of forecasting library names
@@ -30,10 +32,11 @@ class Forecasting():
         Forecasting._validate_inputs(forecaster_names, datasets_directory, time_limit)
 
         csv_files = Utils.get_csv_datasets(datasets_directory)
-        # csv_files = [ csv_files[0] ] # TODO: For development only. To be removed
+        csv_files = [ csv_files[0] ] # TODO: For development only. To be removed
         metadata = pd.read_csv(os.path.join(datasets_directory, '0_metadata.csv'))
 
         for csv_file in csv_files:
+            # Read dataset
             dataset_path = os.path.join(datasets_directory, csv_file)
             Forecasting.logger.debug(f'Reading dataset {dataset_path}')
             df = pd.read_csv(dataset_path, index_col=0)
@@ -44,7 +47,18 @@ class Forecasting():
 
             # Get dataset metadata
             data = metadata[metadata['file'] == csv_file.replace('csv', 'tsf')]
-            target_name = train_df.columns[0] # Target names not currently known
+            target_name = None
+            # As target names not currently known:
+            for col in train_df.columns:
+                percentage_nan = test_df[col].isnull().sum() * 100 / len(test_df)
+                print(col, percentage_nan, percentage_nan < 0.5)
+                if percentage_nan < 0.5: # i.e. at least 50% values present
+                    target_name = col
+                    break
+
+            if target_name is None:
+                raise ValueError(f'Failed to find suitable forecasting target in {csv_file}')
+
             frequency = data['frequency'].iloc[0]
             horizon = data['horizon'].iloc[0]
             if pd.isna(horizon):
@@ -55,8 +69,16 @@ class Forecasting():
             if pd.isna(frequency) and 'm3_other_dataset.csv' in csv_file:
                 frequency = 'yearly'
 
+            # Interpolate any missing values in the test data
+            if test_df[target_name].isnull().values.any():
+                imputer = IterativeImputer(max_iter=10, random_state=0)
+                # imputer = SimpleImputer()
+                test_df[target_name] = imputer.fit_transform(test_df[[target_name]]).ravel()
+
             # Run each forecaster on the dataset
             for forecaster_name in forecaster_names:
+                results_subdir = os.path.join(results_dir, csv_file.split('.')[0])
+
                 # Initialize forecaster and estimate a time/iterations limit
                 forecaster = Forecasting._init_forecaster(forecaster_name)
                 limit = forecaster.estimate_initial_limit(time_limit)
@@ -66,10 +88,21 @@ class Forecasting():
                 # simulation_valid = False
                 # while not simulation_valid:
                 start_time = time.perf_counter()
-                forecaster.forecast(train_df, test_df, target_name, horizon, limit, frequency)
+                predictions = forecaster.forecast(train_df, test_df, target_name, horizon, limit, frequency)
                 duration = time.perf_counter() - start_time
                 Utils.logger.debug(f'{forecaster.name} took {duration} seconds {csv_file}')
 
+                # Development only
+                # TODO: replace with iterative forecasting
+                test_df[target_name].to_csv('actual.csv')
+                if test_df[target_name].shape[0] > predictions.shape[0]:
+                    actual = test_df[target_name].head(predictions.shape[0])
+                else:
+                    actual = test_df[target_name]
+
+                # Save regression scores and plots
+                scores = Utils.regression_scores(actual, predictions, results_subdir, forecaster_name)
+                Utils.plot_forecast(actual, predictions, results_subdir, forecaster_name)
                     # # Only valid if time limit not exceeded
                     # if duration <= 3600:
                     #     simulation_valid = True

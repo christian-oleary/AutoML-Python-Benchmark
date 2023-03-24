@@ -1,13 +1,16 @@
 # Project specific
-repositories
-data
 *.txt
 *.csv
-ignore/
 *.ignore
 *_ignore.ipynb
+
+data/
+ignore/
+repositories/
+results/
+tmp/
+
 !requirements.txt
-tmp
 
 # Images
 *.png

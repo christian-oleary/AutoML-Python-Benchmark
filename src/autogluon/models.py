@@ -60,26 +60,22 @@ class AutoGluonForecaster(Forecaster):
             test_data = test_data.fillna(0)
             Utils.logger.warning('Autogluon failed to impute some test data data. Filling with zeros')
 
-        # train_data = TimeSeriesDataFrame.from_data_frame(df, id_column="item_id", timestamp_column="timestamp")
-        # test_data = TimeSeriesDataFrame.from_path("https://autogluon.s3.amazonaws.com/datasets/timeseries/m4_hourly_subset/test.csv")
-        # target_name = "target"
-
+        # Create Predictor
         predictor = TimeSeriesPredictor(prediction_length=horizon, path=tmp_dir, target=target_name,
                                         ignore_time_index=True,
                                         verbosity=0,
                                         eval_metric='sMAPE')
 
+        # Train models
         # predictor.fit(train_data, presets='best_quality', time_limit=limit)
         # predictor.fit(train_data, presets='high_quality', time_limit=limit)
+        # predictor.fit(train_data, presets='medium_quality', time_limit=limit)
         # predictor.fit(train_data, presets='fast_training', time_limit=limit)
         predictor.fit(train_data, presets='fast_training', time_limit=30)
 
+        # Get predictions
         predictions = predictor.predict(train_data) # forecast
-        print('predictions', predictions, type(predictions))
-
-        result = predictor.evaluate(test_data)
-        print('result', result, type(result))
-
+        predictions = predictions['mean'] # other values available for probabilistic forecast
         return predictions
 
 

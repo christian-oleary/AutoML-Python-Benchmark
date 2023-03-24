@@ -69,6 +69,7 @@ class DatasetFormatting:
                 df = pd.DataFrame()
                 columns = []
                 for row_index in range(len(data)):
+                    # Convert TSF row to CSV column
                     column = DatasetFormatting.process_row(data, row_index, freq)
                     columns.append(column)
 
@@ -148,18 +149,28 @@ class DatasetFormatting:
         column = pd.DataFrame({series_name: values})
         for i in range(len(column)):
             try:
+                # Create a datetime index
                 timestamps = pd.date_range(start=start_timestamp, periods=len(column)-i, freq=freq)
 
-                if i > 0: # Truncating if too far into future
+                # Truncating if too far into future
+                if i > 0:
                     # Truncate by one extra period
                     timestamps = pd.date_range(start=start_timestamp, periods=len(column)-(i+1), freq=freq)
                     logging.warning(f'Truncating {series_name} from {len(column)} to {len(column)-(i+1)}')
                     column = column.head(len(column)-(i+1))
-                return column.set_index(timestamps)
+
+                column = column.set_index(timestamps)
+                break
             except pd.errors.OutOfBoundsDatetime as e:
                 if i == len(column)-1:
                     logging.error(series_name, start_timestamp, len(column), freq)
                     raise ValueError('Dates too far into the future for pandas to process') from e
+
+        # Aggregate rows where timestamp index is apart by 1 second in hourly data
+        if freq == '1H':
+            column = column.resample('1H').mean()
+
+        return column
 
 
     @staticmethod

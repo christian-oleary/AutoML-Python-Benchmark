@@ -62,9 +62,7 @@ class Forecasting():
             frequency = data['frequency'].iloc[0]
             horizon = data['horizon'].iloc[0]
             if pd.isna(horizon):
-                horizon = max([1, int(len(df) * .05)])
-            else:
-                horizon = int(horizon) # Some datasets stored this as float
+                raise ValueError(f'Missing horizon in 0_metadata.csv for {csv_file}')
 
             # TODO: revise frequencies, determine and data formatting stage
             if pd.isna(frequency) and 'm3_other_dataset.csv' in csv_file:

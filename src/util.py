@@ -131,13 +131,18 @@ class Utils:
         :param results_subdir: Path to output directory (str)
         :param forecaster_name: Model name (str)
         """
+        # Create plot
         plt.figure(figsize=(20, 3))
         plt.plot(actual.values, label='actual')
         plt.plot(predicted.values, label='predicted')
 
+        # Add title and legend
+        plt.title(forecaster_name)
+        plt.legend(loc='upper left')
+
         output_dir = os.path.join(results_subdir, 'plots')
         os.makedirs(output_dir, exist_ok=True)
-        plt.savefig(os.path.join(output_dir, f'{forecaster_name}.png'))
+        plt.savefig(os.path.join(output_dir, f'{forecaster_name}.png'), bbox_inches='tight')
 
 
     @staticmethod

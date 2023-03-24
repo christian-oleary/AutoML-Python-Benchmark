@@ -31,7 +31,7 @@ def fixture():
         metadata = {
             'file': 'forecasting_data.tsf',
             'frequency': 'half_hourly',
-            'horizon': 1,
+            'horizon': 6,
             'has_nans': False,
             'equal_length': False,
             'num_cols': 5,

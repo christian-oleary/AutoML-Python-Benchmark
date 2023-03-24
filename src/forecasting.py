@@ -32,7 +32,7 @@ class Forecasting():
         Forecasting._validate_inputs(forecaster_names, datasets_directory, time_limit)
 
         csv_files = Utils.get_csv_datasets(datasets_directory)
-        csv_files = [ csv_files[0] ] # TODO: For development only. To be removed
+        # csv_files = [ csv_files[0] ] # TODO: For development only. To be removed
         metadata = pd.read_csv(os.path.join(datasets_directory, '0_metadata.csv'))
 
         for csv_file in csv_files:
@@ -49,7 +49,7 @@ class Forecasting():
             data = metadata[metadata['file'] == csv_file.replace('csv', 'tsf')]
             target_name = None
             # As target names not currently known:
-            for col in train_df.columns:
+            for col in test_df.columns:
                 percentage_nan = test_df[col].isnull().sum() * 100 / len(test_df)
                 print(col, percentage_nan, percentage_nan < 0.5)
                 if percentage_nan < 0.5: # i.e. at least 50% values present
@@ -66,6 +66,7 @@ class Forecasting():
             else:
                 horizon = int(horizon) # Some datasets stored this as float
 
+            # TODO: revise frequencies, determine and data formatting stage
             if pd.isna(frequency) and 'm3_other_dataset.csv' in csv_file:
                 frequency = 'yearly'
 
@@ -86,7 +87,9 @@ class Forecasting():
                 # Run forecaster and record total runtime
                 Forecasting.logger.info(f'Applying {forecaster.name} to {dataset_path}')
                 # simulation_valid = False
-                # while not simulation_valid:
+                # attempts = 0
+                # while not simulation_valid and attempts < 10:
+                    # attempts += 1
                 start_time = time.perf_counter()
                 predictions = forecaster.forecast(train_df, test_df, target_name, horizon, limit, frequency)
                 duration = time.perf_counter() - start_time
@@ -102,7 +105,7 @@ class Forecasting():
 
                 # Save regression scores and plots
                 scores = Utils.regression_scores(actual, predictions, results_subdir, forecaster_name)
-                Utils.plot_forecast(actual, predictions, results_subdir, forecaster_name)
+                Utils.plot_forecast(actual, predictions, results_subdir, f'{round(scores["R2"], 2)}_{forecaster_name}')
                     # # Only valid if time limit not exceeded
                     # if duration <= 3600:
                     #     simulation_valid = True

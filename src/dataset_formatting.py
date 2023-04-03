@@ -34,7 +34,8 @@ class DatasetFormatting:
                 'horizon': [],
                 'has_nans': [],
                 'equal_length': [],
-                'num_cols': []
+                'num_rows': [],
+                'num_cols': [],
                 }
 
         # Parse .tsf files sequentially
@@ -56,9 +57,8 @@ class DatasetFormatting:
                     meta_data['frequency'].append(freq)
                     meta_data['has_nans'].append(has_nans)
                     meta_data['equal_length'].append(equal_length)
-                    meta_data['num_cols'].append(len(data))
 
-            if not os.path.exists(csv_path):
+            # if not os.path.exists(csv_path):
                 # Determine frequency
                 if freq is not None:
                     freq = FREQUENCY_MAP[freq]
@@ -80,6 +80,9 @@ class DatasetFormatting:
                     df = pd.concat([df] + columns, axis=1)
 
                 df.to_csv(csv_path)
+                if gather_metadata:
+                    meta_data['num_rows'].append(df.shape[0])
+                    meta_data['num_cols'].append(df.shape[1])
             else:
                 Utils.logger.debug(f'{csv_path} already exists. Skipping...')
 
@@ -100,8 +103,10 @@ class DatasetFormatting:
         :raises ValueError: If freq is None or not supported
         :return: Forecasting horizon (int)
         """
-        if 'solar_4_seconds_dataset' in csv_path:
-            horizon = 15 * 60 # i.e. 1 hour
+        if '4_seconds' in csv_path:
+            horizon = 15 # i.e. 1 minute
+        elif '10_minutes' in csv_path:
+            horizon = 6 # i.e. 1 hour
 
         # The following horizons are suggested by Godahewa et al. (2021)
         elif 'solar_weekly_dataset' in csv_path:

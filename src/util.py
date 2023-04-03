@@ -30,13 +30,19 @@ class Utils:
 
 
     @staticmethod
-    def regression_scores(actual, predicted, scores_dir=None, forecaster_name=None, multioutput='uniform_average'):
+    def regression_scores(actual, predicted,
+                          scores_dir=None,
+                          forecaster_name=None,
+                          multioutput='uniform_average',
+                          **kwargs):
         """Calculate forecasting metrics and optionally save results.
 
         :param actual: Original time series values
         :param predicted: Predicted time series values
         :param scores_dir: Path to file to record scores (str or None), defaults to None
-        :param multioutput:  'raw_values' (raw errors), 'uniform_average' (averaged errors), defaults to 'uniform_average'
+        :param forecaster_name: Name of model (str)
+        :param multioutput: 'raw_values' (raw errors), 'uniform_average' (averaged errors), defaults to 'uniform_average'
+        :raises TypeError: If forecaster_name is not provided when saving results to file
         :return results: Dictionary of results
         """
 
@@ -56,6 +62,9 @@ class Utils:
             'Spearman Correlation': spearmanr(actual, predicted).correlation,
             'Spearman P-value': spearmanr(actual, predicted).pvalue,
         }
+
+        if 'duration' in kwargs.keys():
+            results['duration'] = kwargs['duration']
 
         if scores_dir != None:
             if forecaster_name == None:

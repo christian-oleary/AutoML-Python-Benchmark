@@ -32,6 +32,7 @@ class Forecasting():
         Forecasting._validate_inputs(forecaster_names, datasets_directory, time_limit)
 
         csv_files = Utils.get_csv_datasets(datasets_directory)
+        # for i in range(len(csv_files)): print(i, csv_files[i])
         # csv_files = [ csv_files[0] ] # TODO: For development only. To be removed
         metadata = pd.read_csv(os.path.join(datasets_directory, '0_metadata.csv'))
 
@@ -63,6 +64,7 @@ class Forecasting():
             horizon = data['horizon'].iloc[0]
             if pd.isna(horizon):
                 raise ValueError(f'Missing horizon in 0_metadata.csv for {csv_file}')
+            horizon = int(horizon)
 
             # TODO: revise frequencies, determine and data formatting stage
             if pd.isna(frequency) and 'm3_other_dataset.csv' in csv_file:
@@ -100,9 +102,12 @@ class Forecasting():
                     actual = test_df[target_name].head(predictions.shape[0])
                 else:
                     actual = test_df[target_name]
+                if test_df[target_name].shape[0] < predictions.shape[0]:
+                    predictions = predictions.head(test_df[target_name].shape[0])
 
                 # Save regression scores and plots
-                scores = Utils.regression_scores(actual, predictions, results_subdir, forecaster_name)
+                scores = Utils.regression_scores(actual, predictions, results_subdir, forecaster_name,
+                                                duration=duration)
                 Utils.plot_forecast(actual, predictions, results_subdir, f'{round(scores["R2"], 2)}_{forecaster_name}')
                     # # Only valid if time limit not exceeded
                     # if duration <= 3600:

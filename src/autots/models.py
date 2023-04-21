@@ -8,11 +8,9 @@ class AutoTSForecaster(Forecaster):
 
     name = 'AutoTS'
 
-    initial_training_fraction = 0.95 # Use 95% of max. time for trainig in initial experiment
 
-
-    def forecast(self, train_df, test_df, target_name, horizon, limit, frequency, tmp_dir='./tmp/forecast/autokeras'):
-        """Perform forecasting using AutoGluon TimeSeriesPredictor
+    def forecast(self, train_df, test_df, target_name, horizon, limit, frequency, tmp_dir='./tmp/forecast/autots'):
+        """Perform time series forecasting
 
         :param train_df: Dataframe of training data
         :param test_df: Dataframe of test data
@@ -39,7 +37,6 @@ class AutoTSForecaster(Forecaster):
         )
 
         train_df.index = pd.to_datetime(train_df.index)
-        print(train_df)
 
         model = model.fit(train_df)
 
@@ -49,7 +46,7 @@ class AutoTSForecaster(Forecaster):
 
 
     def estimate_initial_limit(self, time_limit):
-        """Estimate initial GA generation limit to use for TimeSeriesPredictor fit()
+        """Estimate initial limit to use for training models
 
         :param time_limit: Maximum amount of time allowed for forecast() (int)
         :return: Trials limit (int)

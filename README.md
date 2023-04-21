@@ -20,6 +20,8 @@ The experiment results are based on CUDA 11.2 for TensorFlow and CUDA 11.7 for P
 
 The following installation commands support *each* of the tested libraries. If you know which libraries you want to run and are aware of the requirements, then feel free to customize.
 
+Auto-PyTorch requires Linux.
+
 ```bash
 pip install torch torchvision torchaudio --extra-index-url https://download.pytorch.org/whl/cu117
 pip install git+https://github.com/keras-team/keras-tuner.git

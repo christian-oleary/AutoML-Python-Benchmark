@@ -14,7 +14,7 @@ class AutoGluonForecaster(Forecaster):
 
 
     def forecast(self, train_df, test_df, target_name, horizon, limit, frequency, tmp_dir='./tmp/forecast/autogluon'):
-        """Perform forecasting using AutoGluon TimeSeriesPredictor
+        """Perform time series forecasting using AutoGluon TimeSeriesPredictor
 
         :param train_df: Dataframe of training data
         :param test_df: Dataframe of test data

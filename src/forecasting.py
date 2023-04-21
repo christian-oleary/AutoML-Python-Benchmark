@@ -10,16 +10,14 @@ from sklearn.experimental import enable_iterative_imputer
 from sklearn.impute import IterativeImputer, SimpleImputer
 
 from src.util import Utils
-from src.autogluon.models import AutoGluonForecaster
-from src.autokeras.models import AutoKerasForecaster
-from src.autots.models import AutoTSForecaster
+
 
 class Forecasting():
     """Functionality for applying forecasting libraries to existing datasets"""
 
     logger = Utils.logger
 
-    forecaster_names = [ AutoGluonForecaster.name, AutoKerasForecaster.name, AutoTSForecaster.name ]
+    forecaster_names = [ 'AutoGluon', 'AutoKeras', 'AutoTS', 'AutoPyTorch', 'EvalML' ]
 
     @staticmethod
     def run_forecasting_libraries(forecaster_names, datasets_directory, time_limit=3600, results_dir='results'):
@@ -34,7 +32,7 @@ class Forecasting():
 
         csv_files = Utils.get_csv_datasets(datasets_directory)
         # for i in range(len(csv_files)): print(i, csv_files[i])
-        # csv_files = [ csv_files[0] ] # TODO: For development only. To be removed
+        csv_files = [ csv_files[0] ] # TODO: For development only. To be removed
         metadata = pd.read_csv(os.path.join(datasets_directory, '0_metadata.csv'))
 
         for csv_file in csv_files:
@@ -125,12 +123,21 @@ class Forecasting():
         :raises ValueError: Raised for unknown forecaster name
         :return: Forecaster object
         """
-        if forecaster_name == AutoGluonForecaster.name:
+        if forecaster_name == 'AutoGluon':
+            from src.autogluon.models import AutoGluonForecaster
             forecaster = AutoGluonForecaster()
-        elif forecaster_name == AutoKerasForecaster.name:
+        elif forecaster_name == 'AutoKeras':
+            from src.autokeras.models import AutoKerasForecaster
             forecaster = AutoKerasForecaster()
-        elif forecaster_name == AutoTSForecaster.name:
+        elif forecaster_name == 'AutoTS':
+            from src.autots.models import AutoTSForecaster
             forecaster = AutoTSForecaster()
+        elif forecaster_name == 'AutoPyTorch':
+            from src.autopytorch.models import AutoPyTorchForecaster
+            forecaster = AutoPyTorchForecaster()
+        elif forecaster_name == 'EvalML':
+            from src.evalml.models import EvalMLForecaster
+            forecaster = EvalMLForecaster()
         else:
             raise ValueError(f'Unknown forecaster {forecaster_name}. Options: {Forecasting.forecaster_names}')
         return forecaster

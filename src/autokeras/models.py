@@ -10,11 +10,9 @@ class AutoKerasForecaster(Forecaster):
 
     name = 'AutoKeras'
 
-    initial_training_fraction = 0.95 # Use 95% of max. time for trainig in initial experiment
-
 
     def forecast(self, train_df, test_df, target_name, horizon, limit, frequency, tmp_dir='./tmp/forecast/autokeras'):
-        """Perform forecasting using AutoGluon TimeSeriesPredictor
+        """Perform time series forecasting
 
         :param train_df: Dataframe of training data
         :param test_df: Dataframe of test data
@@ -63,12 +61,7 @@ class AutoKerasForecaster(Forecaster):
                 size += 1
 
         # Train TimeSeriesForecaster
-        try:
-            clf.fit(x=train_X, y=train_y, validation_data=(val_X, val_y), batch_size=batch_size, verbose=0)
-        except:
-            print(train_X)
-            print(batch_size)
-            clf.fit(x=train_X, y=train_y, validation_data=(val_X, val_y), batch_size=batch_size, verbose=0)
+        clf.fit(x=train_X, y=train_y, validation_data=(val_X, val_y), batch_size=batch_size, verbose=0)
 
         # Predict with the best model
         df = pd.concat([train_X, test_X])
@@ -77,7 +70,7 @@ class AutoKerasForecaster(Forecaster):
 
 
     def estimate_initial_limit(self, time_limit):
-        """Estimate initial time limit to use for TimeSeriesPredictor fit()
+        """Estimate initial limit to use for training models
 
         :param time_limit: Maximum amount of time allowed for forecast() (int)
         :return: Trials limit (int)

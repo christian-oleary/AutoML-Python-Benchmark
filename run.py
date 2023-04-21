@@ -28,9 +28,11 @@ if __name__ == '__main__': # Needed for any multiprocessing
     Utils.logger.info(f'Available forecasting libraries: {forecasters}')
     # Forecasting.run_forecasting_libraries(forecasters, './tests/data/forecasting/')
     Forecasting.run_forecasting_libraries([
-        'AutoGluon',
+        'AutoGluon', # Python >= 3.8
         'AutoKeras',
         'AutoTS',
+        'AutoPyTorch', # Linux
+        'EvalML', # evalml > 0.43
         ],
         forecasting_data_dir, # all datasets
         # './tests/data/forecasting/' # test data

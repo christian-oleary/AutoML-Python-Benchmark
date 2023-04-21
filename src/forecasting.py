@@ -11,14 +11,15 @@ from sklearn.impute import IterativeImputer, SimpleImputer
 
 from src.util import Utils
 from src.autogluon.models import AutoGluonForecaster
-
+from src.autokeras.models import AutoKerasForecaster
+from src.autots.models import AutoTSForecaster
 
 class Forecasting():
     """Functionality for applying forecasting libraries to existing datasets"""
 
     logger = Utils.logger
 
-    forecaster_names = [ 'AutoGluon' ]
+    forecaster_names = [ AutoGluonForecaster.name, AutoKerasForecaster.name, AutoTSForecaster.name ]
 
     @staticmethod
     def run_forecasting_libraries(forecaster_names, datasets_directory, time_limit=3600, results_dir='results'):
@@ -126,6 +127,10 @@ class Forecasting():
         """
         if forecaster_name == AutoGluonForecaster.name:
             forecaster = AutoGluonForecaster()
+        elif forecaster_name == AutoKerasForecaster.name:
+            forecaster = AutoKerasForecaster()
+        elif forecaster_name == AutoTSForecaster.name:
+            forecaster = AutoTSForecaster()
         else:
             raise ValueError(f'Unknown forecaster {forecaster_name}. Options: {Forecasting.forecaster_names}')
         return forecaster

@@ -27,7 +27,14 @@ if __name__ == '__main__': # Needed for any multiprocessing
     forecasters = Forecasting.get_forecaster_names()
     Utils.logger.info(f'Available forecasting libraries: {forecasters}')
     # Forecasting.run_forecasting_libraries(forecasters, './tests/data/forecasting/')
-    Forecasting.run_forecasting_libraries(forecasters, forecasting_data_dir)
+    Forecasting.run_forecasting_libraries([
+        'AutoGluon',
+        'AutoKeras',
+        'AutoTS',
+        ],
+        forecasting_data_dir, # all datasets
+        # './tests/data/forecasting/' # test data
+        )
 
     # Calculate runtime
     print(f'\nFinished at {datetime.now().strftime("%d-%m-%y %H:%M:%S")}')

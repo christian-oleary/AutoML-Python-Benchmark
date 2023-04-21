@@ -21,6 +21,7 @@ class AutoGluonForecaster(Forecaster):
         :param target_name: Name of target variable to forecast (str)
         :param horizon: Forecast horizon (how far ahead to predict) (int)
         :param limit: Time limit in seconds (int)
+        :param frequency: Data frequency (str)
         :param tmp_dir: Path to directory to store temporary files (str)
         """
 

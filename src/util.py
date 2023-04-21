@@ -11,6 +11,7 @@ import sys
 
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
 from scipy.stats import pearsonr, spearmanr, t
 from sklearn.metrics import (mean_absolute_error, mean_absolute_percentage_error, median_absolute_error,
                              mean_squared_error, r2_score)
@@ -46,21 +47,31 @@ class Utils:
         :return results: Dictionary of results
         """
 
+        # Convert pd.Series to NumPy Array
+        if predicted.shape == (actual.shape[0], 1):
+            predicted = predicted.flatten()
+
+        if predicted.shape != actual.shape:
+            raise ValueError(f'Predicted ({predicted.shape}) and actual ({actual.shape}) shapes do not match!')
+
         mase = MeanAbsoluteScaledError(multioutput='uniform_average')
+        pearson = Utils.correlation(actual, predicted, method='pearson')
+        spearman = Utils.correlation(actual, predicted, method='spearman')
+
         results = {
             'MAE': mean_absolute_error(actual, predicted, multioutput=multioutput),
             'MAE2': median_absolute_error(actual, predicted),
             'MAPE': mean_absolute_percentage_error(actual, predicted, multioutput=multioutput),
-            # 'MASE': mase(actual.values, predicted.values),
-            'ME': np.mean(actual.values - predicted.values),
+            # 'MASE': mase(actual, predicted),
+            'ME': np.mean(actual - predicted),
             'MSE': mean_squared_error(actual, predicted, multioutput=multioutput),
-            'Pearson Correlation': pearsonr(actual, predicted).correlation,
-            'Pearson P-value': pearsonr(actual, predicted).pvalue,
+            'Pearson Correlation': pearson[0],
+            'Pearson P-value': pearson[1],
             'R2': r2_score(actual, predicted, multioutput=multioutput),
             'RMSE': math.sqrt(mean_squared_error(actual, predicted, multioutput=multioutput)),
-            'sMAPE': Utils.smape(actual.values, predicted.values),
-            'Spearman Correlation': spearmanr(actual, predicted).correlation,
-            'Spearman P-value': spearmanr(actual, predicted).pvalue,
+            'sMAPE': Utils.smape(actual, predicted),
+            'Spearman Correlation': spearman[0],
+            'Spearman P-value': spearman[1],
         }
 
         if 'duration' in kwargs.keys():
@@ -73,6 +84,32 @@ class Utils:
             Utils.write_to_csv(os.path.join(scores_dir, f'{forecaster_name}.csv'), results)
 
         return results
+
+
+    def correlation(actual, predicted, method='pearson'):
+        """Wrapper to extract correlations and p-values from scipy
+
+        :param actual: Actual values
+        :param predicted: Predicted values
+        :param method: Correlation type, defaults to 'pearson'
+        :raises ValueError: If unknown correlation method is passed
+        :return: Correlation (float) and pvalue (float)
+        """
+        if method == 'pearson':
+            result = pearsonr(actual, predicted)
+        elif method == 'spearman':
+            result = spearmanr(actual, predicted)
+        else:
+            raise ValueError(f'Unknown correlation method: {method}')
+
+        try:
+            correlation = result.correlation
+            pvalue = result.pvalue
+        except: # older scipy versions returned a tuple instead of an object
+            correlation = result[0]
+            pvalue = result[1]
+
+        return correlation, pvalue
 
 
     @staticmethod
@@ -142,8 +179,8 @@ class Utils:
         """
         # Create plot
         plt.figure(figsize=(20, 3))
-        plt.plot(actual.values, label='actual')
-        plt.plot(predicted.values, label='predicted')
+        plt.plot(actual, label='actual')
+        plt.plot(predicted, label='predicted')
 
         # Add title and legend
         plt.title(forecaster_name)

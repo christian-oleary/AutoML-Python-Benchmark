@@ -16,10 +16,13 @@ CUDA compatibilities for PyTorch are listed [here](https://pytorch.org/blog/depr
 
 The experiment results are based on CUDA 11.2 for TensorFlow and CUDA 11.7 for PyTorch which are officially recommended versions as of the 10th of March 2023.
 
-## Installation
+## Full Installation
+
+The following installation commands support *each* of the tested libraries. If you know which libraries you want to run and are aware of the requirements, then feel free to customize.
 
 ```bash
 pip install torch torchvision torchaudio --extra-index-url https://download.pytorch.org/whl/cu117
+pip install git+https://github.com/keras-team/keras-tuner.git
 pip install -r requirements.txt
 ```
 

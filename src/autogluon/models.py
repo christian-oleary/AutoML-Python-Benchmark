@@ -76,7 +76,7 @@ class AutoGluonForecaster(Forecaster):
 
         # Get predictions
         predictions = predictor.predict(train_data) # forecast
-        predictions = predictions['mean'] # other values available for probabilistic forecast
+        predictions = predictions['mean'].values # other values available for probabilistic forecast
         return predictions
 
 

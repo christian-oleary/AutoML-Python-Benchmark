@@ -1,12 +1,15 @@
+from fedot.api.main import Fedot
+from fedot.core.data.data import InputData
+from fedot.core.data.data_split import train_test_data_setup
+from fedot.core.repository.tasks import Task, TaskTypesEnum, TsForecastingParams
 import pandas as pd
-from evalml.automl import AutoMLSearch
 
 from src.abstract import Forecaster
 
 
-class EvalMLForecaster(Forecaster):
+class FEDOTForecaster(Forecaster):
 
-    name = 'EvalML'
+    name = 'FEDOT'
 
     initial_training_fraction = 0.95 # Use 95% of max. time for trainig in initial experiment
 
@@ -23,39 +26,23 @@ class EvalMLForecaster(Forecaster):
         :param tmp_dir: Path to directory to store temporary files (str)
         """
 
-        import warnings
-        warnings.warn('NOT USING LAGGED FEATURES FROM TARGET VARIABLE')
+        # specify the task and the forecast length (required depth of forecast)
+        task = Task(TaskTypesEnum.ts_forecasting,
+                    TsForecastingParams(forecast_length=horizon))
 
-        train_df['time_index'] = pd.to_datetime(train_df.index)
-        test_df['time_index'] = pd.to_datetime(test_df.index)
+        # init model for the time-series forecasting
+        model = Fedot(problem='ts_forecasting', task_params=task.task_params)
 
         # Split target from features
         y_train = train_df[target_name]
         X_train = train_df.drop(target_name, axis=1)
         X_test = test_df.drop(target_name, axis=1)
 
-        problem_config = {
-            'gap': 0,
-            'max_delay': horizon, # for feature engineering
-            'forecast_horizon': horizon,
-            'time_index': 'time_index'
-        }
+        # run AutoML model design
+        model.fit(X_train, y_train)
 
-        automl = AutoMLSearch(
-            X_train,
-            y_train,
-            problem_type='time series regression',
-            # max_batches=1,
-            problem_configuration=problem_config,
-            max_time=limit,
-            automl_algorithm='iterative',
-            verbose=False
-        )
-
-        automl.search()
-
-        pl = automl.best_pipeline
-        predictions = pl.predict(X_test, objective=None, X_train=X_train, y_train=y_train)
+        # use model to obtain out-of-sample forecast with one step
+        predictions = model.forecast(X_test)
 
         return predictions
 

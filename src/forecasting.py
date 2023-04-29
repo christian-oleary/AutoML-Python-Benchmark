@@ -17,7 +17,8 @@ class Forecasting():
 
     logger = Utils.logger
 
-    forecaster_names = [ 'AutoGluon', 'AutoKeras', 'AutoTS', 'AutoPyTorch', 'EvalML' ]
+    forecaster_names = [ 'AutoGluon', 'AutoKeras', 'AutoTS', 'AutoPyTorch', 'EvalML',
+                        'FEDOT',]
 
     @staticmethod
     def run_forecasting_libraries(forecaster_names, datasets_directory, time_limit=3600, results_dir='results'):
@@ -123,6 +124,8 @@ class Forecasting():
         :raises ValueError: Raised for unknown forecaster name
         :return: Forecaster object
         """
+
+        # Import statements included here to accomodate different/conflicting setups
         if forecaster_name == 'AutoGluon':
             from src.autogluon.models import AutoGluonForecaster
             forecaster = AutoGluonForecaster()
@@ -138,6 +141,9 @@ class Forecasting():
         elif forecaster_name == 'EvalML':
             from src.evalml.models import EvalMLForecaster
             forecaster = EvalMLForecaster()
+        elif forecaster_name == 'FEDOT':
+            from src.fedot.models import FEDOTForecaster
+            forecaster = FEDOTForecaster()
         else:
             raise ValueError(f'Unknown forecaster {forecaster_name}. Options: {Forecasting.forecaster_names}')
         return forecaster

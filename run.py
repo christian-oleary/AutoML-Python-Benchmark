@@ -33,6 +33,7 @@ if __name__ == '__main__': # Needed for any multiprocessing
         'AutoTS',
         'AutoPyTorch', # Linux
         'EvalML', # evalml > 0.43
+        'FEDOT',
         ],
         forecasting_data_dir, # all datasets
         # './tests/data/forecasting/' # test data

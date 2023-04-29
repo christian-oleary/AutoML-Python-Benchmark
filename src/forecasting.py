@@ -42,7 +42,8 @@ class Forecasting():
             Forecasting.logger.debug(f'Reading dataset {dataset_path}')
             df = pd.read_csv(dataset_path, index_col=0)
 
-            # Holdout for model testing (80% training, 20% testing)
+            # Holdout for model testing (80% training, 20% testing). This seems to be used by Godahewa et al.:
+            # https://github.com/rakshitha123/TSForecasting/blob/master/experiments/rolling_origin.R#L10
             train_df = df.head(int(len(df)* 0.8))
             test_df = df.tail(int(len(df)* 0.2))
 

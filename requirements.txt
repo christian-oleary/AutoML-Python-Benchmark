@@ -1,4 +1,4 @@
-torch==1.13.1+cu117
 tensorflow==2.10.0
+matplotlib
 pandas
 sktime

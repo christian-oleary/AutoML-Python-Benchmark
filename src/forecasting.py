@@ -18,7 +18,7 @@ class Forecasting():
     logger = Utils.logger
 
     forecaster_names = [ 'AutoGluon', 'AutoKeras', 'AutoTS', 'AutoPyTorch', 'EvalML',
-                        'FEDOT',]
+                        'FEDOT', 'PyCaret']
 
     @staticmethod
     def run_forecasting_libraries(forecaster_names, datasets_directory, time_limit=3600, results_dir='results'):
@@ -109,6 +109,7 @@ class Forecasting():
                 # Save regression scores and plots
                 scores = Utils.regression_scores(actual, predictions, results_subdir, forecaster_name,
                                                 duration=duration)
+                predictions = predictions.reset_index()
                 Utils.plot_forecast(actual, predictions, results_subdir, f'{round(scores["R2"], 2)}_{forecaster_name}')
                     # # Only valid if time limit not exceeded
                     # if duration <= 3600:
@@ -145,6 +146,9 @@ class Forecasting():
         elif forecaster_name == 'FEDOT':
             from src.fedot.models import FEDOTForecaster
             forecaster = FEDOTForecaster()
+        elif forecaster_name == 'PyCaret':
+            from src.pycaret.models import PyCaretForecaster
+            forecaster = PyCaretForecaster()
         else:
             raise ValueError(f'Unknown forecaster {forecaster_name}. Options: {Forecasting.forecaster_names}')
         return forecaster

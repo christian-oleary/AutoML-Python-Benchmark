@@ -48,7 +48,7 @@ class Utils:
         """
 
         # Convert pd.Series to NumPy Array
-        if predicted.shape == (actual.shape[0], 1):
+        if predicted.shape == (actual.shape[0], 1) and not pd.core.frame.DataFrame:
             predicted = predicted.flatten()
 
         if predicted.shape != actual.shape:

@@ -18,6 +18,9 @@ tmp/
 *.jpeg
 *.gif
 
+# Ludwig
+*.meta.json
+
 # Generated
 bin
 *.dll

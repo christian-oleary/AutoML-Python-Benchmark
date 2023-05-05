@@ -17,8 +17,8 @@ class Forecasting():
 
     logger = Utils.logger
 
-    forecaster_names = [ 'AutoGluon', 'AutoKeras', 'AutoTS', 'AutoPyTorch', 'EvalML',
-                        'FEDOT', 'PyCaret']
+    forecaster_names = [ 'AutoGluon', 'AutoKeras', 'AutoTS', 'AutoPyTorch', 'ETNA', 'EvalML',
+                        'FEDOT', 'FLAML', 'Ludwig', 'PyCaret']
 
     @staticmethod
     def run_forecasting_libraries(forecaster_names, datasets_directory, time_limit=3600, results_dir='results'):
@@ -109,7 +109,10 @@ class Forecasting():
                 # Save regression scores and plots
                 scores = Utils.regression_scores(actual, predictions, results_subdir, forecaster_name,
                                                 duration=duration)
-                predictions = predictions.reset_index()
+
+                if predictions.shape == (actual.shape[0], 1): # if pandas Series
+                    predictions = predictions.reset_index()
+
                 Utils.plot_forecast(actual, predictions, results_subdir, f'{round(scores["R2"], 2)}_{forecaster_name}')
                     # # Only valid if time limit not exceeded
                     # if duration <= 3600:
@@ -143,9 +146,18 @@ class Forecasting():
         elif forecaster_name == 'EvalML':
             from src.evalml.models import EvalMLForecaster
             forecaster = EvalMLForecaster()
+        elif forecaster_name == 'ETNA':
+            from src.etna.models import ETNAForecaster
+            forecaster = ETNAForecaster()
         elif forecaster_name == 'FEDOT':
             from src.fedot.models import FEDOTForecaster
             forecaster = FEDOTForecaster()
+        elif forecaster_name == 'FLAML':
+            from src.flaml.models import FLAMLForecaster
+            forecaster = FLAMLForecaster()
+        elif forecaster_name == 'Ludwig':
+            from src.ludwig.models import LudwigForecaster
+            forecaster = LudwigForecaster()
         elif forecaster_name == 'PyCaret':
             from src.pycaret.models import PyCaretForecaster
             forecaster = PyCaretForecaster()

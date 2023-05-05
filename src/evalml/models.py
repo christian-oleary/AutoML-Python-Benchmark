@@ -28,6 +28,8 @@ class EvalMLForecaster(Forecaster):
 
         train_df['time_index'] = pd.to_datetime(train_df.index)
         test_df['time_index'] = pd.to_datetime(test_df.index)
+        train_df.index = pd.to_datetime(train_df.index)
+        test_df.index = pd.to_datetime(test_df.index)
 
         # Split target from features
         y_train = train_df[target_name]
@@ -41,14 +43,16 @@ class EvalMLForecaster(Forecaster):
             'time_index': 'time_index'
         }
 
+        X_train = X_train.reset_index(drop=True)
+        y_train = y_train.reset_index(drop=True)
+
         automl = AutoMLSearch(
             X_train,
             y_train,
             problem_type='time series regression',
-            # max_batches=1,
             problem_configuration=problem_config,
+            # max_time=10,
             max_time=limit,
-            automl_algorithm='iterative',
             verbose=False
         )
 

@@ -1,0 +1,3 @@
+etna==1.15.1
+etna[all]
+tsfresh

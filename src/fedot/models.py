@@ -14,7 +14,7 @@ class FEDOTForecaster(Forecaster):
     initial_training_fraction = 0.95 # Use 95% of max. time for trainig in initial experiment
 
 
-    def forecast(self, train_df, test_df, target_name, horizon, limit, frequency, tmp_dir='./tmp/forecast/evalml'):
+    def forecast(self, train_df, test_df, target_name, horizon, limit, frequency, tmp_dir='./tmp/forecast/fedot'):
         """Perform time series forecasting
 
         :param train_df: Dataframe of training data
@@ -26,19 +26,27 @@ class FEDOTForecaster(Forecaster):
         :param tmp_dir: Path to directory to store temporary files (str)
         """
 
-        # specify the task and the forecast length (required depth of forecast)
-        task = Task(TaskTypesEnum.ts_forecasting,
-                    TsForecastingParams(forecast_length=horizon))
+        # Specify the task and the forecast length
+        task = Task(TaskTypesEnum.ts_forecasting, TsForecastingParams(forecast_length=horizon))
 
-        # init model for the time-series forecasting
-        model = Fedot(problem='ts_forecasting', task_params=task.task_params)
+        # Initialize for the time-series forecasting
+        model = Fedot(problem='ts_forecasting', task_params=task.task_params,
+                      use_input_preprocessing=True,
+                    #   timeout=limit,
+                      timeout=0.5,
+                    #   preset='auto',
+                      preset='fast_train',
+                      seed=1,
+                      )
 
         # Split target from features
+        import warnings
+        warnings.warn('NOT USING LAGGED FEATURES FROM TARGET VARIABLE')
         y_train = train_df[target_name]
         X_train = train_df.drop(target_name, axis=1)
         X_test = test_df.drop(target_name, axis=1)
 
-        # run AutoML model design
+        # Fit models
         model.fit(X_train, y_train)
 
         # use model to obtain out-of-sample forecast with one step
@@ -51,7 +59,7 @@ class FEDOTForecaster(Forecaster):
         """Estimate initial limit to use for training models
 
         :param time_limit: Maximum amount of time allowed for forecast() (int)
-        :return: Time limit in seconds (int)
+        :return: Time limit in minutes (int)
         """
 
-        return int(time_limit * self.initial_training_fraction)
+        return int((time_limit/60) * self.initial_training_fraction)

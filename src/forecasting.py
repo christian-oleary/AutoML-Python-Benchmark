@@ -6,8 +6,8 @@ import os
 import time
 
 import pandas as pd
-from sklearn.experimental import enable_iterative_imputer
-from sklearn.impute import IterativeImputer, SimpleImputer
+from sklearn.experimental import enable_iterative_imputer # import needed for IterativeImputer
+from sklearn.impute import IterativeImputer
 
 from src.util import Utils
 
@@ -111,7 +111,7 @@ class Forecasting():
                                                 duration=duration)
 
                 try: # if pandas Series
-                    predictions = predictions.reset_index()
+                    predictions = predictions.reset_index(drop=True)
                 except: pass
 
                 Utils.plot_forecast(actual, predictions, results_subdir, f'{round(scores["R2"], 2)}_{forecaster_name}')

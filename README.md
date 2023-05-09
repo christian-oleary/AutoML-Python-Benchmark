@@ -22,7 +22,7 @@ The following installation commands support *each* of the tested libraries. If y
 
 Replace pip with pip3 if not using Windows.
 
-Auto-PyTorch requires Linux.
+Auto-PyTorch requires Linux. PyCaret and EvalML may conflict. Other conflicts are to be expected if you try to install every library.
 
 ```bash
 pip install torch torchvision torchaudio --extra-index-url https://download.pytorch.org/whl/cu117

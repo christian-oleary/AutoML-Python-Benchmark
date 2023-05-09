@@ -177,6 +177,8 @@ class Utils:
         :param results_subdir: Path to output directory (str)
         :param forecaster_name: Model name (str)
         """
+        pd.plotting.register_matplotlib_converters()
+
         # Create plot
         plt.figure(figsize=(20, 3))
         plt.plot(actual, label='actual')

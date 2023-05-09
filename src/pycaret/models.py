@@ -34,16 +34,9 @@ class PyCaretForecaster(Forecaster):
                   numeric_imputation_exogenous='ffill',
                   )
 
-        # exp.check_stats()
-
-        # best is an empty list! Issue opened at 04/05/2023
-        # WIP...
-        # https://github.com/pycaret/pycaret/issues/3530
-        best = exp.compare_models(budget_time=limit)
-        print('best', best)
-
-        predictions = exp.predict_model(best, fh=horizon)
-        return predictions
+        best_model = exp.compare_models(budget_time=limit)
+        predictions = exp.predict_model(best_model, fh=horizon)
+        return predictions['y_pred']
 
 
     def estimate_initial_limit(self, time_limit):

@@ -110,8 +110,9 @@ class Forecasting():
                 scores = Utils.regression_scores(actual, predictions, results_subdir, forecaster_name,
                                                 duration=duration)
 
-                if predictions.shape == (actual.shape[0], 1): # if pandas Series
+                try: # if pandas Series
                     predictions = predictions.reset_index()
+                except: pass
 
                 Utils.plot_forecast(actual, predictions, results_subdir, f'{round(scores["R2"], 2)}_{forecaster_name}')
                     # # Only valid if time limit not exceeded

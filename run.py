@@ -32,8 +32,8 @@ if __name__ == '__main__': # Needed for any multiprocessing
         'AutoKeras',
         'AutoTS',
         'AutoPyTorch', # Linux
-        'EvalML', # evalml > 0.43
         'ETNA', # Not working
+        'EvalML', # evalml > 0.43
         'FEDOT',
         'FLAML',
         'Ludwig',
@@ -41,6 +41,7 @@ if __name__ == '__main__': # Needed for any multiprocessing
         ],
         forecasting_data_dir, # all datasets
         # './tests/data/forecasting/' # test data
+        # './data/other/' # other datasets
         )
 
     # Calculate runtime

@@ -14,6 +14,7 @@ FREQUENCY_MAP = {
     '4_seconds': '4S',
     'minutely': '1min',
     '10_minutes': '10min',
+    '5_minutes': '5min',
     'half_hourly': '30min',
     'hourly': '1H',
     'daily': '1D',

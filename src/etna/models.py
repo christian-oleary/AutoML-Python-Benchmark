@@ -50,9 +50,9 @@ class ETNAForecaster(Forecaster):
         train_df = train_df.drop('T5', axis=1)
         print(train_df.columns)
 
-        freq = FREQUENCY_MAP[frequency].replace('1', '')
+        freq = FREQUENCY_MAP[frequency].replace('1', '').replace('min', 'T')
         df = TSDataset.to_dataset(train_df)
-        ts = TSDataset(df, freq=freq) # KeyError: 'segment'
+        ts = TSDataset(df, freq=freq)
 
         ts.describe()
 

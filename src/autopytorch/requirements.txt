@@ -1,2 +1,4 @@
-autopytorch
+autoPyTorch==0.2.1
+gluonts==0.12.7
+pytorch_forecasting==0.10.3
 swig==4.1.1

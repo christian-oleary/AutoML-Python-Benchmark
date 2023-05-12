@@ -12,6 +12,8 @@ tmp/
 
 !requirements.txt
 
+catboost_info
+
 # Images
 *.png
 *.jpg

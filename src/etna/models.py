@@ -68,7 +68,8 @@ class ETNAForecaster(Forecaster):
 
         future_ts = ts.make_future(future_steps=test_df.shape[0], tail_steps=best_pipeline.context_size)
 
-        predictions = best_pipeline.forecast(future_ts, prediction_size=horizon)
+        # predictions = best_pipeline.forecast(future_ts, prediction_size=horizon)
+        predictions = best_pipeline.forecast(test_df)
         return predictions
 
 

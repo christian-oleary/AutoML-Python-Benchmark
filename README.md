@@ -47,6 +47,7 @@ pip install -r ./src/pycaret/requirements.txt
 Auto-PyTorch is Linux only:
 
 ```bash
+RUN apt-get update && apt-get install ffmpeg libsm6 libxext6  -y
 pip3 install -r ./src/autopytorch/requirements.txt
 ```
 

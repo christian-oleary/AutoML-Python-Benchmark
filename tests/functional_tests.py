@@ -24,6 +24,8 @@ def fixture():
         df = bike_sharing.frame
         df = df.head(200)
         df = df.drop(['season', 'holiday', 'workingday', 'weather'], axis=1)
+        timestamps = pd.date_range(start='2012-1-1 00:00:00', periods=len(df), freq='30T')
+        df.index = timestamps
         df.to_csv(forecasting_test_path)
 
     metadata_path = os.path.join(forecasting_data_dir, '0_metadata.csv')
@@ -34,6 +36,7 @@ def fixture():
             'horizon': 6,
             'has_nans': False,
             'equal_length': False,
+            'num_rows': 200,
             'num_cols': 5,
         }
         metadata = pd.DataFrame([metadata])

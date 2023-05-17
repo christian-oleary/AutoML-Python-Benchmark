@@ -23,7 +23,7 @@ def fixture():
         bike_sharing = fetch_openml('Bike_Sharing_Demand', version=2, as_frame=True)
         df = bike_sharing.frame
         df = df.head(200)
-        df = df.drop(['season', 'holiday', 'workingday', 'weather'], axis=1)
+        df = df[['temp', 'feel_temp', 'humidity', 'windspeed']]
         timestamps = pd.date_range(start='2012-1-1 00:00:00', periods=len(df), freq='30T')
         df.index = timestamps
         df.to_csv(forecasting_test_path)
@@ -37,11 +37,10 @@ def fixture():
             'has_nans': False,
             'equal_length': False,
             'num_rows': 200,
-            'num_cols': 5,
+            'num_cols': 4,
         }
         metadata = pd.DataFrame([metadata])
         metadata.to_csv(metadata_path, index=False)
-
     yield forecasting_data_dir, forecasting_test_path
 
 

@@ -26,50 +26,68 @@ class ETNAForecaster(Forecaster):
         :param tmp_dir: Path to directory to store temporary files (str)
         """
 
-        # import warnings
-        # warnings.warn('NOT USING LAGGED FEATURES FROM TARGET VARIABLE')
+        def format_dataframe(df):
+            try:
+                df = df.reset_index(names=['timestamp'])
+            except TypeError as e: # Pandas < 1.5.0
+                df = df.rename_axis('timestamp').reset_index()
 
-        try:
-            train_df = train_df.reset_index(names=['timestamp'])
-            test_df = test_df.reset_index(names=['timestamp'])
-        except TypeError as e: # Pandas < 1.5.0
-            train_df = train_df.rename_axis('timestamp').reset_index()
-            test_df = test_df.rename_axis('timestamp').reset_index()
+            df['target'] = df[target_name]
+            df = df.drop(target_name, axis=1)
+            df['segment'] = 'segment_target'
 
-        train_df['target'] = train_df[target_name]
-        test_df['target'] = test_df[target_name]
+            segments = []
+            for i, col in enumerate(df.columns):
+                if col not in ['target', 'segment', 'timestamp']:
+                    segment = df[[col]]
+                    segment.columns = ['target']
+                    segment['segment'] = f'segment_feature_{i}'
+                    segment['timestamp'] = df['timestamp']
+                    segments.append(segment)
+                    df = df.drop(col, axis=1)
+                    print(df.columns)
+            df = pd.concat([df] + segments)
+            return df
 
-        train_df['segment'] = 'segment_1'
+        tail_steps = len(train_df)
+        future_steps = len(test_df)
+        train_df = format_dataframe(train_df)
+        test_df = format_dataframe(test_df)
 
-        # temp
-        print(train_df.columns)
-        train_df = train_df.drop('T1', axis=1)
-        train_df = train_df.drop('T2', axis=1)
-        train_df = train_df.drop('T3', axis=1)
-        train_df = train_df.drop('T4', axis=1)
-        train_df = train_df.drop('T5', axis=1)
-        print(train_df.columns)
+        train_df.to_csv('train_df.csv', index=False)
 
         freq = FREQUENCY_MAP[frequency].replace('1', '').replace('min', 'T')
+        # train_df.index = pd.DatetimeIndex(train_df.index).to_period(freq)
         df = TSDataset.to_dataset(train_df)
         ts = TSDataset(df, freq=freq)
 
-        ts.describe()
-
-        auto = Auto(
-            target_metric=SMAPE(),
-            horizon=horizon,
-            experiment_folder=tmp_dir,
-        )
+        auto = Auto(target_metric=SMAPE(), horizon=horizon, experiment_folder=tmp_dir)
 
         # Get best pipeline
-        best_pipeline = auto.fit(ts, catch=(Exception,))
+        # best_pipeline = auto.fit(ts, timeout=limit, catch=(Exception,))
+        best_pipeline = auto.fit(ts, timeout=limit, catch=())
+        # Errors:
+        # 1. CatBoost
+        # _catboost.CatBoostError: C:/Go_Agent/pipelines/BuildMaster/catboost.git/catboost/libs/metrics/metric.cpp:6487: All train targets are equal
+        # 2. statsmodels
+        # File "C:\sw\AutoML-Python-Benchmark\env\lib\site-packages\statsmodels\tsa\holtwinters\model.py", line 257, in __init__
+        # ValueError: seasonal_periods has not been provided and index does not have a known freq. You must provide seasonal_periods
+        print('best_pipeline')
         print(best_pipeline)
+        print(type(best_pipeline))
 
-        future_ts = ts.make_future(future_steps=test_df.shape[0], tail_steps=best_pipeline.context_size)
+        # future_ts = ts.make_future(future_steps=test_df.shape[0], tail_steps=best_pipeline.context_size)
+        # future_ts = ts.make_future(future_steps=future_steps, tail_steps=tail_steps)
+        # future_ts.to_pandas(True).to_csv('future_ts.csv')
 
+        # ValueError: Pipeline is not fitted! Fit the Pipeline before calling forecast method.
+        predictions = best_pipeline.forecast()
         # predictions = best_pipeline.forecast(future_ts, prediction_size=horizon)
-        predictions = best_pipeline.forecast(test_df)
+        print('predictions')
+        print(predictions)
+        print(type(predictions))
+        print(predictions.shape)
+
         return predictions
 
 

@@ -101,7 +101,7 @@ class AutoPyTorchForecaster(Forecaster):
         # To forecast values value after the X_train, ask datamanager to generate a test set
         test_sets = api.dataset.generate_test_seqs()
 
-        predictions = api.predict(test_sets)
+        predictions = api.predict(test_sets)[0]
         print('predictions', predictions, type(predictions), predictions.shape)
 
         return predictions

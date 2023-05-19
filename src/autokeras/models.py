@@ -1,8 +1,9 @@
-import pandas as pd
+import os
+
 import autokeras as ak
+import pandas as pd
 
 from src.abstract import Forecaster
-from src.TSForecasting.data_loader import FREQUENCY_MAP
 from src.util import Utils
 
 
@@ -26,6 +27,7 @@ class AutoKerasForecaster(Forecaster):
         import warnings
         warnings.warn('NOT USING LAGGED FEATURES FROM TARGET VARIABLE')
 
+
         # Split target from features
         train_y = train_df[target_name]
         train_X = train_df.drop(target_name, axis=1)
@@ -38,34 +40,45 @@ class AutoKerasForecaster(Forecaster):
         train_y = train_y[val_split:]
         train_X = train_X[val_split:]
 
+        # Initialise forecaster
         clf = ak.TimeseriesForecaster(
             lookback=horizon,
             predict_from=1,
-            predict_until=10,
+            predict_until=horizon,
             max_trials=limit,
             objective='val_loss',
+            overwrite=False,
             directory=tmp_dir
         )
 
-        # lookback must be divisable by batch size due to library bug:
-        # https://github.com/keras-team/autokeras/issues/1720
-        batch_size = None
-        size = 8 # initial batch size
-        while batch_size == None:
-            if size >= horizon:
-                size = 1
+        model_path = os.path.join(tmp_dir, 'time_series_forecaster', 'graph')
+        if not os.path.exists(model_path):
+            # lookback must be divisable by batch size due to library bug:
+            # https://github.com/keras-team/autokeras/issues/1720
+            batch_size = None
+            size = 8 # initial batch size
+            while batch_size == None:
+                if size >= horizon:
+                    size = 1
 
-            if (horizon / size).is_integer():
-                batch_size = size
-            else:
-                size += 1
+                if (horizon / size).is_integer():
+                    batch_size = size
+                else:
+                    size += 1
 
-        # Train TimeSeriesForecaster
-        clf.fit(x=train_X, y=train_y, validation_data=(val_X, val_y), batch_size=batch_size, verbose=0)
+            # Train models
+            clf.fit(
+                x=train_X,
+                y=train_y,
+                validation_data=(val_X, val_y),
+                batch_size=batch_size,
+                verbose=0
+            )
 
         # Predict with the best model
         df = pd.concat([train_X, test_X])
         predictions = clf.predict(df)
+        predictions = predictions.flatten()
         return predictions
 
 

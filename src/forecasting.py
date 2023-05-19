@@ -79,7 +79,8 @@ class Forecasting():
 
             # Run each forecaster on the dataset
             for forecaster_name in forecaster_names:
-                results_subdir = os.path.join(results_dir, csv_file.split('.')[0])
+                dataset_name = csv_file.split('.')[0]
+                results_subdir = os.path.join(results_dir, dataset_name)
 
                 # Initialize forecaster and estimate a time/iterations limit
                 forecaster = Forecasting._init_forecaster(forecaster_name)
@@ -91,8 +92,10 @@ class Forecasting():
                 # attempts = 0
                 # while not simulation_valid and attempts < 10:
                     # attempts += 1
+
                 start_time = time.perf_counter()
-                predictions = forecaster.forecast(train_df, test_df, target_name, horizon, limit, frequency)
+                predictions = forecaster.forecast(train_df, test_df, target_name, horizon, limit, frequency,
+                                                  tmp_dir=os.path.join('tmp', dataset_name, forecaster.name))
                 duration = time.perf_counter() - start_time
                 Utils.logger.debug(f'{forecaster.name} took {duration} seconds {csv_file}')
 
@@ -106,11 +109,13 @@ class Forecasting():
                 if test_df[target_name].shape[0] < predictions.shape[0]:
                     predictions = predictions.head(test_df[target_name].shape[0])
 
+                predictions = predictions.flatten()
+
                 # Save regression scores and plots
                 scores = Utils.regression_scores(actual, predictions, results_subdir, forecaster_name,
                                                 duration=duration)
 
-                try: # if pandas Series
+                try: # If pandas Series
                     predictions = predictions.reset_index(drop=True)
                 except: pass
 

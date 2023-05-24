@@ -3,19 +3,25 @@ Abstract Classes
 """
 
 from abc import ABC, abstractmethod
+import numpy as np
+import pandas as pd
+
+from src.util import Utils
+
 
 class Forecaster(ABC):
     """Abstract Forecaster"""
 
     @abstractmethod
-    def forecast(self, train_df, test_df, target_name, horizon):
-        """Perform forecasting using AutoGluon TimeSeriesPredictor
+    def forecast(self, train_df, test_df, target_name, horizon, limit, frequency, tmp_dir):
+        """Perform time series forecasting
 
         :param train_df: Dataframe of training data
         :param test_df: Dataframe of test data
         :param target_name: Name of target variable to forecast (str)
         :param horizon: Forecast horizon (how far ahead to predict) (int)
-        :param limit: Time or iterations limit (int)
+        :param limit: Iterations limit (int)
+        :param frequency: Data frequency (str)
         :param tmp_dir: Path to directory to store temporary files (str)
         """
 
@@ -51,3 +57,27 @@ class Forecaster(ABC):
             raise NotImplementedError()
 
         return new_limit
+
+
+    def rolling_origin_forecast(self, model, train_X, test_X, horizon):
+        """Iteratively forecast over increasing dataset
+
+        :param model: Forecasting model, must have predict()
+        :param train_X: Training feature data (pandas DataFrame)
+        :param test_X: Test feature data (pandas DataFrame)
+        :param horizon: Forecast horizon (int)
+        :return: Predictions (numpy array)
+        """
+        # Split test set
+        test_splits = Utils.split_test_set(test_X, horizon)
+
+        # Make predictions
+        predictions = [ model.predict(train_X) ]
+        for s in test_splits:
+            train_X = pd.concat([train_X, s])
+            predictions.append(model.predict(train_X))
+
+        # Flatten predictions and truncate if needed
+        predictions = np.concatenate([ p.flatten() for p in predictions ])
+        predictions = predictions[:len(test_X)]
+        return predictions

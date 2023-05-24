@@ -1,10 +1,8 @@
 import os
 
 import autokeras as ak
-import pandas as pd
 
 from src.abstract import Forecaster
-from src.util import Utils
 
 
 class AutoKerasForecaster(Forecaster):
@@ -12,7 +10,7 @@ class AutoKerasForecaster(Forecaster):
     name = 'AutoKeras'
 
 
-    def forecast(self, train_df, test_df, target_name, horizon, limit, frequency, tmp_dir='./tmp/forecast/autokeras'):
+    def forecast(self, train_df, test_df, target_name, horizon, limit, frequency, tmp_dir):
         """Perform time series forecasting
 
         :param train_df: Dataframe of training data
@@ -26,7 +24,6 @@ class AutoKerasForecaster(Forecaster):
 
         import warnings
         warnings.warn('NOT USING LAGGED FEATURES FROM TARGET VARIABLE')
-
 
         # Split target from features
         train_y = train_df[target_name]
@@ -51,7 +48,7 @@ class AutoKerasForecaster(Forecaster):
             directory=tmp_dir
         )
 
-        model_path = os.path.join(tmp_dir, 'time_series_forecaster', 'graph')
+        model_path = os.path.join(tmp_dir, 'time_series_forecaster', 'best_pipeline')
         if not os.path.exists(model_path):
             # lookback must be divisable by batch size due to library bug:
             # https://github.com/keras-team/autokeras/issues/1720
@@ -75,10 +72,7 @@ class AutoKerasForecaster(Forecaster):
                 verbose=0
             )
 
-        # Predict with the best model
-        df = pd.concat([train_X, test_X])
-        predictions = clf.predict(df)
-        predictions = predictions.flatten()
+        predictions = self.rolling_origin_forecast(clf, train_X, test_X, horizon)
         return predictions
 
 

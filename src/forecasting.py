@@ -99,16 +99,14 @@ class Forecasting():
                 duration = time.perf_counter() - start_time
                 Utils.logger.debug(f'{forecaster.name} took {duration} seconds {csv_file}')
 
-                # Development only
-                # TODO: replace with iterative forecasting
-                test_df[target_name].to_csv('actual.csv')
-                if test_df[target_name].shape[0] > predictions.shape[0]:
-                    actual = test_df[target_name].head(predictions.shape[0])
-                else:
-                    actual = test_df[target_name]
-                if test_df[target_name].shape[0] < predictions.shape[0]:
-                    predictions = predictions.head(test_df[target_name].shape[0])
+                # Check that model outputted enough predictions
+                actual = test_df[target_name]
+                if actual.shape[0] > predictions.shape[0]:
+                    raise ValueError(f'Not enough predictions {predictions.shape[0]} for test set {actual.shape[0]}')
 
+                # Truncate and flatten predictions if needed
+                if actual.shape[0] < predictions.shape[0]:
+                    predictions = predictions.head(actual.shape[0])
                 predictions = predictions.flatten()
 
                 # Save regression scores and plots
@@ -119,7 +117,8 @@ class Forecasting():
                     predictions = predictions.reset_index(drop=True)
                 except: pass
 
-                Utils.plot_forecast(actual, predictions, results_subdir, f'{round(scores["R2"], 2)}_{forecaster_name}')
+                Utils.plot_forecast(actual.reset_index(drop=True).values, predictions, results_subdir,
+                                    f'{round(scores["R2"], 2)}_{forecaster_name}')
                     # # Only valid if time limit not exceeded
                     # if duration <= 3600:
                     #     simulation_valid = True

@@ -215,3 +215,24 @@ class Utils:
             raise IOError('No CSV files found')
 
         return csv_files
+
+
+    @staticmethod
+    def split_test_set(test_df, horizon):
+        """Split test dataset into list of smaller sets for rolling origin forecasting
+
+        :param test_df: Test dataset (pandas DataFrame)
+        :param horizon: Forecasting horizon (int)
+        :return: List of DataFrame objects
+        """
+
+        test_splits = []
+        total = 0 # total length of test splits
+        for _ in range(int(len(test_df) / horizon)):
+            test_splits.append(test_df.iloc[total:total+horizon, :])
+            total += horizon
+
+        # Leftover rows
+        if total < len(test_df):
+            test_splits.append(test_df.tail(len(test_df) - total))
+        return test_splits

@@ -50,18 +50,17 @@ class AutoKerasForecaster(Forecaster):
 
         model_path = os.path.join(tmp_dir, 'time_series_forecaster', 'best_pipeline')
         if not os.path.exists(model_path):
-            # lookback must be divisable by batch size due to library bug:
+            # "lookback" must be divisable by batch size due to library bug:
             # https://github.com/keras-team/autokeras/issues/1720
+            # Start at 512 (or 10% of dataset) as batch size and decrease until a factor is found
+            # Counting down prevents unnecessarily small batch sizes being selected
             batch_size = None
-            size = 8 # initial batch size
+            size = min(512, horizon / 10) # Prospective batch size
             while batch_size == None:
-                if size >= horizon:
-                    size = 1
-
-                if (horizon / size).is_integer():
+                if (horizon / size).is_integer(): # i.e. is a factor
                     batch_size = size
                 else:
-                    size += 1
+                    size -= 1
 
             # Train models
             clf.fit(
@@ -69,6 +68,9 @@ class AutoKerasForecaster(Forecaster):
                 y=train_y,
                 validation_data=(val_X, val_y),
                 batch_size=batch_size,
+                # epochs=1,
+                tuner='greedy', # 'greedy', 'bayesian', 'hyperband', 'random',
+                seed=limit,
                 verbose=0
             )
 

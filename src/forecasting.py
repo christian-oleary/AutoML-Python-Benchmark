@@ -17,8 +17,9 @@ class Forecasting():
 
     logger = Utils.logger
 
-    forecaster_names = [ 'AutoGluon', 'AutoKeras', 'AutoTS', 'AutoPyTorch', 'ETNA', 'EvalML',
-                        'FEDOT', 'FLAML', 'Ludwig', 'PyCaret']
+    forecaster_names = [ 'AutoGluon', 'AutoKeras', 'AutoTS', 'AutoPyTorch',
+                        # 'ETNA', # Internal library errors
+                        'EvalML', 'FEDOT', 'FLAML', 'Ludwig', 'PyCaret']
 
     @staticmethod
     def run_forecasting_libraries(forecaster_names, datasets_directory, time_limit=3600, results_dir='results'):

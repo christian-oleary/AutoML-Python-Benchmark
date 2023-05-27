@@ -9,6 +9,9 @@ class AutoKerasForecaster(Forecaster):
 
     name = 'AutoKeras'
 
+    # Training configurations (not ordered)
+    presets = ['greedy', 'bayesian', 'hyperband', 'random']
+
 
     def forecast(self, train_df, test_df, target_name, horizon, limit, frequency, tmp_dir):
         """Perform time series forecasting
@@ -20,6 +23,7 @@ class AutoKerasForecaster(Forecaster):
         :param limit: Iterations limit (int)
         :param frequency: Data frequency (str)
         :param tmp_dir: Path to directory to store temporary files (str)
+        :return predictions: Numpy array of predictions
         """
 
         import warnings
@@ -36,6 +40,11 @@ class AutoKerasForecaster(Forecaster):
         val_X = train_X[:val_split]
         train_y = train_y[val_split:]
         train_X = train_X[val_split:]
+
+        limit = 1
+        epochs = 1
+        tuner = 'greedy'
+        tmp_dir = os.path.join(tmp_dir, f'{tuner}_{epochs}epochs')
 
         # Initialise forecaster
         clf = ak.TimeseriesForecaster(
@@ -68,8 +77,8 @@ class AutoKerasForecaster(Forecaster):
                 y=train_y,
                 validation_data=(val_X, val_y),
                 batch_size=batch_size,
-                # epochs=1,
-                tuner='greedy', # 'greedy', 'bayesian', 'hyperband', 'random',
+                epochs=epochs,
+                tuner=tuner,
                 seed=limit,
                 verbose=0
             )

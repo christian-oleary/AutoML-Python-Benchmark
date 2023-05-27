@@ -10,10 +10,13 @@ class FLAMLForecaster(Forecaster):
 
     name = 'FLAML'
 
-    initial_training_fraction = 0.95 # Use 95% of max. time for trainig in initial experiment
+    # Training configurations approximately ordered from slowest to fastest
+    presets = [ 'best_quality', 'auto', 'gpu', 'stable', 'ts', 'fast_train' ]
 
+    # Use 95% of maximum available time for model training in initial experiment
+    initial_training_fraction = 0.95
 
-    def forecast(self, train_df, test_df, target_name, horizon, limit, frequency, tmp_dir='./tmp/forecast/flaml'):
+    def forecast(self, train_df, test_df, target_name, horizon, limit, frequency, tmp_dir):
         """Perform time series forecasting
 
         :param train_df: Dataframe of training data
@@ -23,6 +26,7 @@ class FLAMLForecaster(Forecaster):
         :param limit: Iterations limit (int)
         :param frequency: Data frequency (str)
         :param tmp_dir: Path to directory to store temporary files (str)
+        :return predictions: Numpy array of predictions
         """
 
         os.makedirs(tmp_dir, exist_ok=True)
@@ -32,15 +36,16 @@ class FLAMLForecaster(Forecaster):
 
         automl = AutoML()
         automl.fit(X_train=train_df.index.to_series().values,
-                  y_train=train_df[target_name].values,
-                  period=horizon,
-                  task='ts_forecast',
-                #   time_budget=limit,
-                  time_budget=15,
-                  log_file_name=os.path.join(tmp_dir, 'ts_forecast.log'),
-                  eval_method='holdout',
-                  )
-        predictions = automl.predict(test_df.index.to_series().values)
+                   y_train=train_df[target_name].values,
+                   estimator_list='auto',
+                   eval_method='auto',
+                   log_file_name=os.path.join(tmp_dir, 'ts_forecast.log'),
+                   period=horizon,
+                   task='ts_forecast',
+                   time_budget=limit,
+                #    time_budget=15,
+                   )
+        predictions = automl.predict(test_df.index.to_series().values).values
         return predictions
 
 

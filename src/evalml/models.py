@@ -8,10 +8,14 @@ class EvalMLForecaster(Forecaster):
 
     name = 'EvalML'
 
-    initial_training_fraction = 0.95 # Use 95% of max. time for trainig in initial experiment
+    # Training configurations ordered from slowest to fastest
+    presets = [ 'default_long', 'iterative_fast', 'default_fast' ]
+
+    # Use 95% of maximum available time for model training in initial experiment
+    initial_training_fraction = 0.95
 
 
-    def forecast(self, train_df, test_df, target_name, horizon, limit, frequency, tmp_dir='./tmp/forecast/evalml'):
+    def forecast(self, train_df, test_df, preset, target_name, horizon, limit, frequency, tmp_dir):
         """Perform time series forecasting
 
         :param train_df: Dataframe of training data
@@ -21,6 +25,7 @@ class EvalMLForecaster(Forecaster):
         :param limit: Iterations limit (int)
         :param frequency: Data frequency (str)
         :param tmp_dir: Path to directory to store temporary files (str)
+        :return predictions: TODO
         """
 
         import warnings
@@ -46,17 +51,20 @@ class EvalMLForecaster(Forecaster):
         X_train = X_train.reset_index(drop=True)
         y_train = y_train.reset_index(drop=True)
 
+        automl_algorithm = preset.split('_')[0]
         automl = AutoMLSearch(
             X_train,
             y_train,
+            allowed_model_families='regression',
+            automl_algorithm=automl_algorithm,
             problem_type='time series regression',
             problem_configuration=problem_config,
-            # max_time=10,
             max_time=limit,
-            verbose=False
+            verbose=False,
         )
 
-        automl.search()
+        mode = preset.split('_')[1]
+        automl.search(mode=mode)
 
         pl = automl.best_pipeline
         predictions = pl.predict(X_test, objective=None, X_train=X_train, y_train=y_train)

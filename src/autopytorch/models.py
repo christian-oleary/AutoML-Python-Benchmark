@@ -8,13 +8,13 @@ from src.TSForecasting.data_loader import FREQUENCY_MAP
 
 class AutoPyTorchForecaster(Forecaster):
 
-    name = 'AutoGluon'
+    name = 'AutoPyTorch'
 
-    initial_training_fraction = 0.95 # Use 95% of max. time for trainig in initial experiment
+    # Use 95% of maximum available time for model training in initial experiment
+    initial_training_fraction = 0.95
 
-
-    def forecast(self, train_df, test_df, target_name, horizon, limit, frequency, tmp_dir='./tmp/forecast/autopytorch'):
-        """Perform time series forecasting using AutoGluon TimeSeriesPredictor
+    def forecast(self, train_df, test_df, target_name, horizon, limit, frequency, tmp_dir):
+        """Perform time series forecasting using AutoPyTorch
 
         :param train_df: Dataframe of training data
         :param test_df: Dataframe of test data
@@ -23,7 +23,10 @@ class AutoPyTorchForecaster(Forecaster):
         :param limit: Time limit in seconds (int)
         :param frequency: Data frequency (str)
         :param tmp_dir: Path to directory to store temporary files (str)
+        :return predictions: TODO
         """
+
+        raise NotImplementedError()
         target_name = 'humidity'
         y_train = train_df[[target_name]]
         X_train = train_df.drop(target_name, axis=1)

@@ -4,6 +4,7 @@
 *.ignore
 *_ignore.ipynb
 
+env*/
 data/
 ignore/
 repositories/

@@ -14,7 +14,7 @@ class ETNAForecaster(Forecaster):
     initial_training_fraction = 0.95 # Use 95% of max. time for trainig in initial experiment
 
 
-    def forecast(self, train_df, test_df, target_name, horizon, limit, frequency, tmp_dir='./tmp/forecast/etna'):
+    def forecast(self, train_df, test_df, target_name, horizon, limit, frequency, tmp_dir):
         """Perform time series forecasting
 
         :param train_df: Dataframe of training data
@@ -24,6 +24,7 @@ class ETNAForecaster(Forecaster):
         :param limit: Iterations limit (int)
         :param frequency: Data frequency (str)
         :param tmp_dir: Path to directory to store temporary files (str)
+        :return predictions: TODO
         """
 
         def format_dataframe(df):

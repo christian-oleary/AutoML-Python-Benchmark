@@ -1,6 +1,4 @@
 from fedot.api.main import Fedot
-from fedot.core.data.data import InputData
-from fedot.core.data.data_split import train_test_data_setup
 from fedot.core.repository.tasks import Task, TaskTypesEnum, TsForecastingParams
 import pandas as pd
 
@@ -11,10 +9,14 @@ class FEDOTForecaster(Forecaster):
 
     name = 'FEDOT'
 
-    initial_training_fraction = 0.95 # Use 95% of max. time for trainig in initial experiment
+    # Training configurations approximately ordered from slowest to fastest
+    presets = [ 'best_quality', 'auto', 'gpu', 'stable', 'ts', 'fast_train' ]
+
+    # Use 95% of maximum available time for model training in initial experiment
+    initial_training_fraction = 0.95
 
 
-    def forecast(self, train_df, test_df, target_name, horizon, limit, frequency, tmp_dir='./tmp/forecast/fedot'):
+    def forecast(self, train_df, test_df, preset, target_name, horizon, limit, frequency, tmp_dir):
         """Perform time series forecasting
 
         :param train_df: Dataframe of training data
@@ -24,19 +26,19 @@ class FEDOTForecaster(Forecaster):
         :param limit: Iterations limit (int)
         :param frequency: Data frequency (str)
         :param tmp_dir: Path to directory to store temporary files (str)
+        :return predictions: TODO
         """
 
         # Specify the task and the forecast length
         task = Task(TaskTypesEnum.ts_forecasting, TsForecastingParams(forecast_length=horizon))
 
         # Initialize for the time-series forecasting
-        model = Fedot(problem='ts_forecasting', task_params=task.task_params,
+        model = Fedot(problem='ts_forecasting',
+                      task_params=task.task_params,
                       use_input_preprocessing=True,
-                    #   timeout=limit,
-                      timeout=0.5,
-                    #   preset='auto',
-                      preset='fast_train',
-                      seed=1,
+                      timeout=limit, # minutes
+                      preset=preset,
+                      seed=limit,
                       )
 
         # Split target from features

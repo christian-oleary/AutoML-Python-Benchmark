@@ -10,19 +10,25 @@ class AutoGluonForecaster(Forecaster):
 
     name = 'AutoGluon'
 
-    initial_training_fraction = 0.95 # Use 95% of max. time for trainig in initial experiment
+    # Training configurations ordered from slowest/"best" to fastest/"worst"
+    presets = [ 'best_quality', 'high_quality', 'medium_quality', 'fast_training' ]
+
+    # Use 90% of maximum available time for model training in initial experiment
+    initial_training_fraction = 0.9
 
 
-    def forecast(self, train_df, test_df, target_name, horizon, limit, frequency, tmp_dir='./tmp/forecast/autogluon'):
+    def forecast(self, train_df, test_df, preset, target_name, horizon, limit, frequency, tmp_dir):
         """Perform time series forecasting using AutoGluon TimeSeriesPredictor
 
         :param train_df: Dataframe of training data
         :param test_df: Dataframe of test data
+        :param preset: Model configuration to use
         :param target_name: Name of target variable to forecast (str)
         :param horizon: Forecast horizon (how far ahead to predict) (int)
         :param limit: Time limit in seconds (int)
         :param frequency: Data frequency (str)
         :param tmp_dir: Path to directory to store temporary files (str)
+        :return predictions: Numpy array of predictions
         """
 
         try:
@@ -62,17 +68,15 @@ class AutoGluonForecaster(Forecaster):
             Utils.logger.warning('Autogluon failed to impute some test data data. Filling with zeros')
 
         # Create Predictor
-        predictor = TimeSeriesPredictor(prediction_length=horizon, path=tmp_dir, target=target_name,
+        predictor = TimeSeriesPredictor(prediction_length=horizon,
+                                        path=tmp_dir,
+                                        target=target_name,
                                         ignore_time_index=True,
                                         verbosity=0,
                                         eval_metric='sMAPE')
 
         # Train models
-        # predictor.fit(train_data, presets='best_quality', time_limit=limit)
-        # predictor.fit(train_data, presets='high_quality', time_limit=limit)
-        # predictor.fit(train_data, presets='medium_quality', time_limit=limit)
-        # predictor.fit(train_data, presets='fast_training', time_limit=limit)
-        predictor.fit(train_data, presets='fast_training', time_limit=30)
+        predictor.fit(train_data, presets=preset, time_limit=limit)
 
         # Get predictions
         predictions = predictor.predict(train_data) # forecast

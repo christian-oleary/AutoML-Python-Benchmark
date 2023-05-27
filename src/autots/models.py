@@ -8,8 +8,10 @@ class AutoTSForecaster(Forecaster):
 
     name = 'AutoTS'
 
+    # Training configurations ordered from slowest to fastest
+    presets = [ 'all', 'default', 'fast_parallel', 'fast', 'superfast' ]
 
-    def forecast(self, train_df, test_df, target_name, horizon, limit, frequency, tmp_dir='./tmp/forecast/autots'):
+    def forecast(self, train_df, test_df, target_name, horizon, limit, frequency, tmp_dir):
         """Perform time series forecasting
 
         :param train_df: Dataframe of training data
@@ -19,6 +21,7 @@ class AutoTSForecaster(Forecaster):
         :param limit: Iterations limit (int)
         :param frequency: Data frequency (str)
         :param tmp_dir: Path to directory to store temporary files (str)
+        :return predictions: TODO
         """
 
         model = AutoTS(
@@ -27,7 +30,7 @@ class AutoTSForecaster(Forecaster):
             prediction_interval=0.95,
             ensemble=['simple', 'horizontal-min'],
             max_generations=limit,
-            num_validations=2,
+            # num_validations=2,
             validation_method='seasonal 168',
             model_list='superfast',
             transformer_list='all',
@@ -42,7 +45,7 @@ class AutoTSForecaster(Forecaster):
 
         prediction = model.predict()
         forecasts_df = prediction.forecast
-        return forecasts_df[target_name]
+        return forecasts_df[target_name].values
 
 
     def estimate_initial_limit(self, time_limit):

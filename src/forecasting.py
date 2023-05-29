@@ -95,8 +95,9 @@ class Forecasting():
                     # attempts += 1
 
                 start_time = time.perf_counter()
-                predictions = forecaster.forecast(train_df, test_df, target_name, horizon, limit, frequency,
-                                                  tmp_dir=os.path.join('tmp', dataset_name, forecaster.name))
+                tmp_dir = os.path.join('tmp', dataset_name, forecaster.name)
+                os.makedirs(tmp_dir, exist_ok=True)
+                predictions = forecaster.forecast(train_df, test_df, target_name, horizon, limit, frequency, tmp_dir)
                 duration = time.perf_counter() - start_time
                 Utils.logger.debug(f'{forecaster.name} took {duration} seconds {csv_file}')
 

@@ -27,37 +27,38 @@ class LudwigForecaster(Forecaster):
         :return predictions: TODO
         """
 
+        # TODO: need multiple output_feature for horizon > 1
+        raise NotImplementedError('need multiple output_feature for horizon > 1')
+
         config = {
             'input_features': [
                 {
                     'name': feature_name,
-                    'type': 'number',
-                    'preprocessing': {'num_processes': 1}, # TODO
+                    'type': 'timeseries', # KeyError: 'timeseries' Issue with library version?
+                    # 'type': 'numerical',
+                    # 'preprocessing': {'num_processes': 1}, # TODO
                 }
                 for feature_name in train_df.columns if feature_name != target_name
             ],
-            'output_features': [{ 'name': target_name, 'type': 'number'} ],
-            'trainer': { 'epochs': 5 } # TODO: limit?
+            'output_features': [{
+                'name': target_name,
+                'type': 'numerical',
+            }],
+            # 'trainer': { 'epochs': 5 } # TODO: limit?
         }
 
         # Constructs Ludwig model from config dictionary
         model = LudwigModel(config, logging_level=logging.INFO)
 
         train_stats, preprocessed_data, output_directory = model.train(dataset=train_df, output_directory=tmp_dir)
-        print('train_stats', train_stats)
-        print('preprocessed_data', preprocessed_data)
-        print('output_directory', output_directory)
 
         test_stats, predictions, output_directory = model.evaluate(
             test_df,
             collect_predictions=True,
             collect_overall_stats=True
         )
-        print('test_stats', test_stats)
-        print('output_directory', output_directory)
 
-        predictions = predictions[f'{target_name}_predictions']
-
+        predictions = predictions[f'{target_name}_predictions'].values
         return predictions
 
 

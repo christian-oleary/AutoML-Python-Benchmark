@@ -17,7 +17,7 @@ class AutoGluonForecaster(Forecaster):
     initial_training_fraction = 0.9
 
 
-    def forecast(self, train_df, test_df, target_name, horizon, limit, frequency, tmp_dir, preset='fast_training'):
+    def forecast(self, train_df, test_df, target_name, horizon, limit, frequency, tmp_dir, preset='best_quality'):
         """Perform time series forecasting using AutoGluon TimeSeriesPredictor
 
         :param train_df: Dataframe of training data
@@ -73,6 +73,7 @@ class AutoGluonForecaster(Forecaster):
                                         target=target_name,
                                         ignore_time_index=True,
                                         verbosity=0,
+                                        random_seed=limit,
                                         eval_metric='sMAPE')
 
         # Train models

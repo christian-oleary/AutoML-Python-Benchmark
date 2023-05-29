@@ -1,4 +1,7 @@
+import os
+
 from etna.auto import Auto
+from etna.core import load
 from etna.datasets.tsdataset import TSDataset
 from etna.metrics import SMAPE
 import pandas as pd
@@ -62,28 +65,31 @@ class ETNAForecaster(Forecaster):
         df = TSDataset.to_dataset(train_df)
         ts = TSDataset(df, freq=freq)
 
-        auto = Auto(target_metric=SMAPE(), horizon=horizon, experiment_folder=tmp_dir)
+        model_path = os.path.join(tmp_dir, 'pipeline.zip')
+        if not os.path.exists(model_path):
+            auto = Auto(target_metric=SMAPE(), horizon=horizon, experiment_folder=tmp_dir)
 
-        # Get best pipeline
-        # best_pipeline = auto.fit(ts, timeout=limit, catch=(Exception,))
-        best_pipeline = auto.fit(ts, timeout=limit, catch=())
-        # Errors:
-        # 1. CatBoost
-        # _catboost.CatBoostError: C:/Go_Agent/pipelines/BuildMaster/catboost.git/catboost/libs/metrics/metric.cpp:6487: All train targets are equal
-        # 2. statsmodels
-        # File "C:\sw\AutoML-Python-Benchmark\env\lib\site-packages\statsmodels\tsa\holtwinters\model.py", line 257, in __init__
-        # ValueError: seasonal_periods has not been provided and index does not have a known freq. You must provide seasonal_periods
-        print('best_pipeline')
-        print(best_pipeline)
-        print(type(best_pipeline))
+            # Get best pipeline
+            # _catboost.CatBoostError: C:/Go_Agent/pipelines/BuildMaster/catboost.git/catboost/libs/metrics/metric.cpp:6487: All train targets are equal
+            # best_pipeline = auto.fit(ts, timeout=limit, catch=(Exception,))
+            best_pipeline = auto.fit(ts, timeout=limit, catch=())
+            print('best_pipeline')
+            print(best_pipeline)
+            print(type(best_pipeline))
+            print(dir(best_pipeline))
+            print('best_pipeline.ts', best_pipeline.ts, type(best_pipeline.ts))
+
+            best_pipeline.save(model_path)
+        else:
+            best_pipeline = load(model_path, ts=ts)
 
         # future_ts = ts.make_future(future_steps=test_df.shape[0], tail_steps=best_pipeline.context_size)
         # future_ts = ts.make_future(future_steps=future_steps, tail_steps=tail_steps)
         # future_ts.to_pandas(True).to_csv('future_ts.csv')
 
         # ValueError: Pipeline is not fitted! Fit the Pipeline before calling forecast method.
+        # predictions = best_pipeline.forecast(future_ts)
         predictions = best_pipeline.forecast()
-        # predictions = best_pipeline.forecast(future_ts, prediction_size=horizon)
         print('predictions')
         print(predictions)
         print(type(predictions))

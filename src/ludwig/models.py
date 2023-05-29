@@ -3,6 +3,7 @@ import logging
 
 import pandas as pd
 from ludwig.api import LudwigModel
+from ludwig.utils.data_utils import add_sequence_feature_column
 
 from src.abstract import Forecaster
 
@@ -27,36 +28,32 @@ class LudwigForecaster(Forecaster):
         :return predictions: TODO
         """
 
-        # TODO: need multiple output_feature for horizon > 1
-        raise NotImplementedError('need multiple output_feature for horizon > 1')
+        # backfill, forwardfill, scale
+
+        # Format DataFrame
+        add_sequence_feature_column(train_df, target_name, horizon)
+        add_sequence_feature_column(test_df, target_name, horizon)
+
+        # config = {
+        #     'input_features': [{ 'name': feature_name, 'type': 'timeseries', # KeyError: 'timeseries' Issue with library version?
+        #         } for feature_name in train_df.columns if feature_name != target_name ],
+        #     'output_features': [{'name': target_name, 'type': 'numerical' }],
+        # }
 
         config = {
-            'input_features': [
-                {
-                    'name': feature_name,
-                    'type': 'timeseries', # KeyError: 'timeseries' Issue with library version?
-                    # 'type': 'numerical',
-                    # 'preprocessing': {'num_processes': 1}, # TODO
-                }
-                for feature_name in train_df.columns if feature_name != target_name
+            'input_features': [{ 'name': f'{target_name}_feature', 'type': 'timeseries', }
+                                 # 'preprocessing': {'num_processes': 1}, # TODO
             ],
-            'output_features': [{
-                'name': target_name,
-                'type': 'numerical',
-            }],
-            # 'trainer': { 'epochs': 5 } # TODO: limit?
+            'output_features': [{ 'name': target_name, 'type': 'numerical' }],
+            'trainer': { 'epochs': 50 } # TODO: limit?
         }
 
         # Constructs Ludwig model from config dictionary
-        model = LudwigModel(config, logging_level=logging.INFO)
+        model = LudwigModel(config, logging_level=logging.WARNING)
 
-        train_stats, preprocessed_data, output_directory = model.train(dataset=train_df, output_directory=tmp_dir)
+        train_stats, preprocessed_data, _ = model.train(dataset=train_df, output_directory=tmp_dir, skip_save_log=True)
 
-        test_stats, predictions, output_directory = model.evaluate(
-            test_df,
-            collect_predictions=True,
-            collect_overall_stats=True
-        )
+        test_stats, predictions, _ = model.evaluate(test_df, collect_predictions=True, collect_overall_stats=True)
 
         predictions = predictions[f'{target_name}_predictions'].values
         return predictions

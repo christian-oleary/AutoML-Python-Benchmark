@@ -16,7 +16,7 @@ class FLAMLForecaster(Forecaster):
     # Use 95% of maximum available time for model training in initial experiment
     initial_training_fraction = 0.95
 
-    def forecast(self, train_df, test_df, target_name, horizon, limit, frequency, tmp_dir):
+    def forecast(self, train_df, test_df, target_name, horizon, limit, frequency, tmp_dir, preset='fast_train'):
         """Perform time series forecasting
 
         :param train_df: Dataframe of training data
@@ -26,6 +26,7 @@ class FLAMLForecaster(Forecaster):
         :param limit: Iterations limit (int)
         :param frequency: Data frequency (str)
         :param tmp_dir: Path to directory to store temporary files (str)
+        :param preset: Model configuration to use
         :return predictions: Numpy array of predictions
         """
 
@@ -37,15 +38,20 @@ class FLAMLForecaster(Forecaster):
         automl = AutoML()
         automl.fit(X_train=train_df.index.to_series().values,
                    y_train=train_df[target_name].values,
+                #    estimator_list=preset,
                    estimator_list='auto',
                    eval_method='auto',
                    log_file_name=os.path.join(tmp_dir, 'ts_forecast.log'),
-                   period=horizon,
+                   period=horizon, # AssertionError: Model is optimized for horizon, length of X must be equal to `period`.
                    task='ts_forecast',
                    time_budget=limit,
                 #    time_budget=15,
                    )
-        predictions = automl.predict(test_df.index.to_series().values).values
+        # print('train_df', train_df.index.to_series().to_frame().shape)
+        # print('test_df', test_df.index.to_series().to_frame().shape)
+        predictions = self.rolling_origin_forecast(automl, train_df.index.to_series().to_frame(),
+                                                   test_df.index.to_series().to_frame(), horizon)
+        print('predictions', predictions.shape)
         return predictions
 
 

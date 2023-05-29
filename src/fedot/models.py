@@ -1,6 +1,8 @@
+import os
+
 from fedot.api.main import Fedot
+from fedot.core.pipelines.pipeline import Pipeline
 from fedot.core.repository.tasks import Task, TaskTypesEnum, TsForecastingParams
-import pandas as pd
 
 from src.abstract import Forecaster
 
@@ -16,7 +18,7 @@ class FEDOTForecaster(Forecaster):
     initial_training_fraction = 0.95
 
 
-    def forecast(self, train_df, test_df, preset, target_name, horizon, limit, frequency, tmp_dir):
+    def forecast(self, train_df, test_df, target_name, horizon, limit, frequency, tmp_dir, preset='fast_train'):
         """Perform time series forecasting
 
         :param train_df: Dataframe of training data
@@ -29,17 +31,19 @@ class FEDOTForecaster(Forecaster):
         :return predictions: TODO
         """
 
+        # model_path = os.path.join(tmp_dir, '0_pipeline_saved', '0_pipeline_saved.json')
+        # if not os.path.exists(model_path):
         # Specify the task and the forecast length
         task = Task(TaskTypesEnum.ts_forecasting, TsForecastingParams(forecast_length=horizon))
 
         # Initialize for the time-series forecasting
         model = Fedot(problem='ts_forecasting',
-                      task_params=task.task_params,
-                      use_input_preprocessing=True,
-                      timeout=limit, # minutes
-                      preset=preset,
-                      seed=limit,
-                      )
+                    task_params=task.task_params,
+                    use_input_preprocessing=True,
+                    timeout=limit, # minutes
+                    preset=preset,
+                    seed=limit,
+                    )
 
         # Split target from features
         import warnings
@@ -48,11 +52,20 @@ class FEDOTForecaster(Forecaster):
         X_train = train_df.drop(target_name, axis=1)
         X_test = test_df.drop(target_name, axis=1)
 
-        # Fit models
         model.fit(X_train, y_train)
+        model.test_data = X_test
+        #     model.export_as_project(project_path=os.path.join(tmp_dir, 'project.zip'))
+        # else:
+        #     model.import_as_project(project_path=os.path.join(tmp_dir, 'project.zip'))
 
-        # use model to obtain out-of-sample forecast with one step
-        predictions = model.forecast(X_test)
+        print('y_train', y_train.shape)
+        print('X_train', X_train.shape)
+        print('X_test', X_test.shape)
+        # predictions = model.forecast(X_test)
+        predictions = model.predict(features=X_test)
+        # ValueError: all the input arrays must have same number of dimensions, but the array
+        # at index 0 has 2 dimension(s) and the array at index 1 has 1 dimension(s)
+        print('predictions', predictions, type(predictions))
 
         return predictions
 

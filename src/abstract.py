@@ -59,23 +59,33 @@ class Forecaster(ABC):
         return new_limit
 
 
-    def rolling_origin_forecast(self, model, train_X, test_X, horizon):
+    def rolling_origin_forecast(self, model, train_X, test_X, horizon, column=None):
         """Iteratively forecast over increasing dataset
 
         :param model: Forecasting model, must have predict()
         :param train_X: Training feature data (pandas DataFrame)
         :param test_X: Test feature data (pandas DataFrame)
         :param horizon: Forecast horizon (int)
+        :param column: Specifies forecast column if dataframe outputted, defaults to None
         :return: Predictions (numpy array)
         """
         # Split test set
         test_splits = Utils.split_test_set(test_X, horizon)
 
         # Make predictions
-        predictions = [ model.predict(train_X) ]
+        preds = model.predict(train_X)
+        if column != None:
+            preds = preds[column].values
+        predictions = [ preds ]
+
         for s in test_splits:
             train_X = pd.concat([train_X, s])
-            predictions.append(model.predict(train_X))
+
+            preds = model.predict(train_X)
+            if column != None:
+                preds = preds[column].values
+
+            predictions.append(preds)
 
         # Flatten predictions and truncate if needed
         predictions = np.concatenate([ p.flatten() for p in predictions ])

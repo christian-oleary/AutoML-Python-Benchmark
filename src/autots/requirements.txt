@@ -1,1 +1,2 @@
+autots==0.5.7
 autots[additional]

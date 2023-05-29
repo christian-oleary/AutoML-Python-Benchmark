@@ -15,7 +15,7 @@ class EvalMLForecaster(Forecaster):
     initial_training_fraction = 0.95
 
 
-    def forecast(self, train_df, test_df, preset, target_name, horizon, limit, frequency, tmp_dir):
+    def forecast(self, train_df, test_df, target_name, horizon, limit, frequency, tmp_dir, preset='default_fast'):
         """Perform time series forecasting
 
         :param train_df: Dataframe of training data
@@ -25,11 +25,9 @@ class EvalMLForecaster(Forecaster):
         :param limit: Iterations limit (int)
         :param frequency: Data frequency (str)
         :param tmp_dir: Path to directory to store temporary files (str)
+        :param preset: Which AutoML/Mode option to use (str)
         :return predictions: TODO
         """
-
-        import warnings
-        warnings.warn('NOT USING LAGGED FEATURES FROM TARGET VARIABLE')
 
         train_df['time_index'] = pd.to_datetime(train_df.index)
         test_df['time_index'] = pd.to_datetime(test_df.index)
@@ -64,11 +62,13 @@ class EvalMLForecaster(Forecaster):
         )
 
         mode = preset.split('_')[1]
-        automl.search(mode=mode)
+        # automl.search(mode=mode)
+        automl.search()
+        model = automl.best_pipeline
 
-        pl = automl.best_pipeline
-        predictions = pl.predict(X_test, objective=None, X_train=X_train, y_train=y_train)
-
+        # TODO: Flatlining after horizon steps, need rolling origin
+        predictions = model.predict(X_test, objective=None, X_train=X_train, y_train=y_train)
+        predictions = predictions.values
         return predictions
 
 

@@ -37,7 +37,7 @@ pip install -r ./src/autogluon/requirements.txt
 pip install -r ./src/autokeras/requirements.txt
 pip install -r ./src/autots/requirements.txt
 pip install -r ./src/etna/requirements.txt
-pip install -r ./src/evaml/requirements.txt
+pip install -r ./src/evalml/requirements.txt
 pip install -r ./src/fedot/requirements.txt
 pip install -r ./src/flaml/requirements.txt
 pip install -r ./src/ludwig/requirements.txt

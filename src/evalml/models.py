@@ -60,7 +60,7 @@ class EvalMLForecaster(Forecaster):
             automl_algorithm=automl_algorithm,
             problem_type='time series regression',
             problem_configuration=problem_config,
-            max_time=60,#limit,
+            max_time=limit,
             verbose=False,
         )
         automl.search()

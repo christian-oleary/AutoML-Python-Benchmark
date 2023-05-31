@@ -60,7 +60,7 @@ class EvalMLForecaster(Forecaster):
             automl_algorithm=automl_algorithm,
             problem_type='time series regression',
             problem_configuration=problem_config,
-            max_time=limit,
+            max_time=60,#limit,
             verbose=False,
         )
         automl.search()
@@ -93,14 +93,8 @@ class EvalMLForecaster(Forecaster):
         # Split test set
         test_splits = Utils.split_test_set(test_X, horizon)
 
-        # Make predictions
-        # preds = model.predict(test_X, X_train=train_X)
-        # preds = preds[column].values
-        # predictions = [ preds ]
-
         predictions = []
         for s in test_splits:
-            print('s', s, type(s))
             preds = model.predict(s, objective=None, X_train=train_X, y_train=y_train).values
             predictions.append(preds)
             train_X = pd.concat([train_X, s])

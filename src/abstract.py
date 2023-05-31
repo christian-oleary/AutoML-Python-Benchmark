@@ -88,6 +88,9 @@ class Forecaster(ABC):
             predictions.append(preds)
 
         # Flatten predictions and truncate if needed
-        predictions = np.concatenate([ p.flatten() for p in predictions ])
+        try:
+            predictions = np.concatenate([ p.flatten() for p in predictions ])
+        except:
+            predictions = np.concatenate([ p.values.flatten() for p in predictions ])
         predictions = predictions[:len(test_X)]
         return predictions

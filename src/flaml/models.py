@@ -38,17 +38,14 @@ class FLAMLForecaster(Forecaster):
         automl = AutoML()
         automl.fit(X_train=train_df.index.to_series().values,
                    y_train=train_df[target_name].values,
-                #    estimator_list=preset,
-                   estimator_list='auto',
+                   estimator_list='auto', # 'auto', preset
                    eval_method='auto',
                    log_file_name=os.path.join(tmp_dir, 'ts_forecast.log'),
                    period=horizon, # AssertionError: Model is optimized for horizon, length of X must be equal to `period`.
                    task='ts_forecast',
-                   time_budget=limit,
-                #    time_budget=15,
+                   time_budget=limit, # 15
                    )
-        # print('train_df', train_df.index.to_series().to_frame().shape)
-        # print('test_df', test_df.index.to_series().to_frame().shape)
+
         predictions = self.rolling_origin_forecast(automl, train_df.index.to_series().to_frame(),
                                                    test_df.index.to_series().to_frame(), horizon)
         print('predictions', predictions.shape)

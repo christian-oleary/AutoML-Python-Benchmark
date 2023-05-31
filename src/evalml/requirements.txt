@@ -1,1 +1,2 @@
+evalml==0.76.0
 evalml[complete]

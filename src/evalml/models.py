@@ -1,7 +1,9 @@
+import numpy as np
 import pandas as pd
 from evalml.automl import AutoMLSearch
 
 from src.abstract import Forecaster
+from src.util import Utils
 
 
 class EvalMLForecaster(Forecaster):
@@ -9,7 +11,7 @@ class EvalMLForecaster(Forecaster):
     name = 'EvalML'
 
     # Training configurations ordered from slowest to fastest
-    presets = [ 'default_long', 'iterative_fast', 'default_fast' ]
+    presets = [ 'default', 'iterative' ]
 
     # Use 95% of maximum available time for model training in initial experiment
     initial_training_fraction = 0.95
@@ -39,15 +41,16 @@ class EvalMLForecaster(Forecaster):
         X_train = train_df.drop(target_name, axis=1)
         X_test = test_df.drop(target_name, axis=1)
 
+        X_train = X_train.reset_index(drop=True)
+        X_test = X_test.reset_index(drop=True)
+        y_train = y_train.reset_index(drop=True)
+
         problem_config = {
             'gap': 0,
             'max_delay': horizon, # for feature engineering
             'forecast_horizon': horizon,
             'time_index': 'time_index'
         }
-
-        X_train = X_train.reset_index(drop=True)
-        y_train = y_train.reset_index(drop=True)
 
         automl_algorithm = preset.split('_')[0]
         automl = AutoMLSearch(
@@ -60,15 +63,10 @@ class EvalMLForecaster(Forecaster):
             max_time=limit,
             verbose=False,
         )
-
-        mode = preset.split('_')[1]
-        # automl.search(mode=mode)
         automl.search()
-        model = automl.best_pipeline
 
-        # TODO: Flatlining after horizon steps, need rolling origin
-        predictions = model.predict(X_test, objective=None, X_train=X_train, y_train=y_train)
-        predictions = predictions.values
+        model = automl.best_pipeline
+        predictions = self.rolling_origin_forecast(model, X_train, X_test, y_train, horizon)
         return predictions
 
 
@@ -80,3 +78,34 @@ class EvalMLForecaster(Forecaster):
         """
 
         return int(time_limit * self.initial_training_fraction)
+
+
+    def rolling_origin_forecast(self, model, train_X, test_X, y_train, horizon):
+        """Iteratively forecast over increasing dataset
+
+        :param model: Forecasting model, must have predict()
+        :param train_X: Training feature data (pandas DataFrame)
+        :param test_X: Test feature data (pandas DataFrame)
+        :param horizon: Forecast horizon (int)
+        :param column: Specifies forecast column if dataframe outputted, defaults to None
+        :return: Predictions (numpy array)
+        """
+        # Split test set
+        test_splits = Utils.split_test_set(test_X, horizon)
+
+        # Make predictions
+        # preds = model.predict(test_X, X_train=train_X)
+        # preds = preds[column].values
+        # predictions = [ preds ]
+
+        predictions = []
+        for s in test_splits:
+            print('s', s, type(s))
+            preds = model.predict(s, objective=None, X_train=train_X, y_train=y_train).values
+            predictions.append(preds)
+            train_X = pd.concat([train_X, s])
+
+        # Flatten predictions and truncate if needed
+        predictions = np.concatenate([ p.flatten() for p in predictions ])
+        predictions = predictions[:len(test_X)]
+        return predictions

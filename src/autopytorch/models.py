@@ -38,10 +38,7 @@ class AutoPyTorchForecaster(Forecaster):
         y_test = y_test.reset_index(drop=True)
         X_test = X_test.reset_index(drop=True)
 
-        api = TimeSeriesForecastingTask(
-            # output_directory=tmp_dir,
-            ensemble_size=50
-            )
+        api = TimeSeriesForecastingTask(ensemble_size=50)
 
         api.search(
             X_train=[X_train],
@@ -59,11 +56,7 @@ class AutoPyTorchForecaster(Forecaster):
 
         # To forecast values value after the X_train, ask datamanager to generate a test set
         test_sets = api.dataset.generate_test_seqs()
-        # print('test_sets', test_sets, type(test_sets))
-
         predictions = api.predict(test_sets)[0]
-        # print('predictions', predictions, type(predictions), predictions.shape)
-
         return predictions
 
 

@@ -39,8 +39,9 @@ class FEDOTForecaster(Forecaster):
         # Initialize for the time-series forecasting
         model = Fedot(problem='ts_forecasting',
                     task_params=task.task_params,
-                    use_input_preprocessing=True,
-                    timeout=limit, # minutes
+                    # use_input_preprocessing=True, # fedot>=0.7.0
+                    # timeout=limit, # minutes
+                    timeout=1, # minutes
                     preset=preset,
                     seed=limit,
                     )
@@ -62,7 +63,8 @@ class FEDOTForecaster(Forecaster):
         print('X_train', X_train.shape)
         print('X_test', X_test.shape)
         # predictions = model.forecast(X_test)
-        predictions = model.predict(features=X_test)
+        # predictions = model.predict(features=X_test)
+        predictions = self.rolling_origin_forecast(model, X_train, X_test, horizon)
         # ValueError: all the input arrays must have same number of dimensions, but the array
         # at index 0 has 2 dimension(s) and the array at index 1 has 1 dimension(s)
         print('predictions', predictions, type(predictions))

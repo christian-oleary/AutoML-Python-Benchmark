@@ -4,6 +4,7 @@ from autots import AutoTS
 
 from src.abstract import Forecaster
 from src.util import Utils
+from src.TSForecasting.data_loader import FREQUENCY_MAP
 
 
 class AutoTSForecaster(Forecaster):
@@ -27,8 +28,13 @@ class AutoTSForecaster(Forecaster):
         :return predictions: TODO
         """
 
-        from src.TSForecasting.data_loader import FREQUENCY_MAP
         freq = FREQUENCY_MAP[frequency].replace('1', '').replace('min', 'T')
+
+        train_df = train_df[target_name]
+        test_df = test_df[target_name]
+
+        train_df.index = pd.to_datetime(train_df.index)
+        test_df.index = pd.to_datetime(test_df.index)
 
         model = AutoTS(
             ensemble=['auto'],
@@ -39,15 +45,13 @@ class AutoTSForecaster(Forecaster):
             model_list=preset,
             models_to_validate=0.2,
             n_jobs='auto',
+            # n_jobs=1,
             # num_validations=2,
             prediction_interval=0.95,
             random_seed=limit,
             transformer_list='all',
             validation_method='similarity',
         )
-
-        train_df.index = pd.to_datetime(train_df.index)
-        test_df.index = pd.to_datetime(test_df.index)
 
         model = model.fit(train_df)
 
@@ -81,13 +85,13 @@ class AutoTSForecaster(Forecaster):
         test_splits = Utils.split_test_set(test_X, horizon)
 
         # Make predictions
-        print('column', column)
-        print('train_X', train_X)
-        print('model.predict(train_X[column])', model.predict(train_X[column]), type(model.predict(train_X[column])), model.predict(train_X[column]).shape)
-        print('model', model)
-        print('model.predict(train_X)', model.predict(train_X), type(model.predict(train_X)), model.predict(train_X).shape)
-        print('model', model)
-        print('model.predict(train_X).forecast[column]', model.predict(train_X).forecast[column], type(model.predict(train_X).forecast[column]), model.predict(train_X).forecast[column].shape)
+        # print('column', column)
+        # print('train_X', train_X)
+        # print('model.predict(train_X[column])', model.predict(train_X[column]), type(model.predict(train_X[column])), model.predict(train_X[column]).shape)
+        # print('model', model)
+        # print('model.predict(train_X)', model.predict(train_X), type(model.predict(train_X)), model.predict(train_X).shape)
+        # print('model', model)
+        # print('model.predict(train_X).forecast[column]', model.predict(train_X).forecast[column], type(model.predict(train_X).forecast[column]), model.predict(train_X).forecast[column].shape)
         preds = model.predict(train_X).forecast[column].values
 
         for s in test_splits:

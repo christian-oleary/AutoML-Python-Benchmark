@@ -41,30 +41,32 @@ class AutoKerasForecaster(Forecaster):
         train_y = train_y[val_split:]
         train_X = train_X[val_split:]
 
-        limit = 1
-        epochs = 1
+        limit = 100 #1
+        epochs = 10 #1
         tuner = 'greedy'
         tmp_dir = os.path.join(tmp_dir, f'{tuner}_{epochs}epochs')
 
         # Initialise forecaster
         clf = ak.TimeseriesForecaster(
+            directory=tmp_dir,
             lookback=horizon,
-            predict_from=1,
-            predict_until=horizon,
             max_trials=limit,
             objective='val_loss',
             overwrite=False,
-            directory=tmp_dir
+            predict_from=1,
+            predict_until=horizon,
+            seed=limit,
+            tuner=tuner,
         )
 
         model_path = os.path.join(tmp_dir, 'time_series_forecaster', 'best_pipeline')
         if not os.path.exists(model_path):
             # "lookback" must be divisable by batch size due to library bug:
             # https://github.com/keras-team/autokeras/issues/1720
-            # Start at 512 (or 10% of dataset) as batch size and decrease until a factor is found
+            # Start at 512 as batch size and decrease until a factor is found
             # Counting down prevents unnecessarily small batch sizes being selected
             batch_size = None
-            size = min(512, horizon / 10) # Prospective batch size
+            size = 512 # Prospective batch size
             while batch_size == None:
                 if (horizon / size).is_integer(): # i.e. is a factor
                     batch_size = size
@@ -78,8 +80,6 @@ class AutoKerasForecaster(Forecaster):
                 validation_data=(val_X, val_y),
                 batch_size=batch_size,
                 epochs=epochs,
-                tuner=tuner,
-                seed=limit,
                 verbose=0
             )
 

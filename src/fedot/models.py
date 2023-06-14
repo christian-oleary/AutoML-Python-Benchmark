@@ -1,8 +1,11 @@
 import os
 
 from fedot.api.main import Fedot
+from fedot.core.pipelines.node import PrimaryNode, SecondaryNode
 from fedot.core.pipelines.pipeline import Pipeline
 from fedot.core.repository.tasks import Task, TaskTypesEnum, TsForecastingParams
+from fedot.utilities.ts_gapfilling import ModelGapFiller
+import pandas as pd
 
 from src.abstract import Forecaster
 
@@ -28,13 +31,39 @@ class FEDOTForecaster(Forecaster):
         :param limit: Iterations limit (int)
         :param frequency: Data frequency (str)
         :param tmp_dir: Path to directory to store temporary files (str)
+        :param preset: Model configuration to use
         :return predictions: TODO
         """
+
+        # Split target from features
+        y_train = train_df[target_name]
+        X_train = train_df.drop(target_name, axis=1)
+        X_test = test_df.drop(target_name, axis=1)
 
         # model_path = os.path.join(tmp_dir, '0_pipeline_saved', '0_pipeline_saved.json')
         # if not os.path.exists(model_path):
         # Specify the task and the forecast length
         task = Task(TaskTypesEnum.ts_forecasting, TsForecastingParams(forecast_length=horizon))
+
+        # Fill in missing gaps in data. Adapted from:
+        # https://github.com/ITMO-NSS-team/fedot-examples/blob/main/notebooks/latest/5_ts_specific_cases.ipynb
+        def fill_gaps(dataframe):
+            # Create model to infer missing values
+            node_lagged = PrimaryNode('lagged')
+            node_lagged.custom_params = { 'window_size': horizon }
+            node_final = SecondaryNode('ridge', nodes_from=[node_lagged])
+            pipeline = Pipeline(node_final)
+            model_gapfiller = ModelGapFiller(gap_value=-float('inf'), pipeline=pipeline)
+
+            # Filling in the gaps
+            data = dataframe.fillna(-float('inf')).copy()
+            data = model_gapfiller.forward_filling(data)
+            data = model_gapfiller.forward_inverse_filling(data)
+            df = pd.DataFrame(data, columns=dataframe.columns)
+            return df
+
+        X_train = fill_gaps(X_train)
+        X_test = fill_gaps(X_test)
 
         # Initialize for the time-series forecasting
         model = Fedot(problem='ts_forecasting',
@@ -43,14 +72,8 @@ class FEDOTForecaster(Forecaster):
                     timeout=limit, # minutes
                     preset=preset,
                     seed=limit,
+                    # n_jobs=-1,
                     )
-
-        # Split target from features
-        import warnings
-        warnings.warn('NOT USING LAGGED FEATURES FROM TARGET VARIABLE')
-        y_train = train_df[target_name]
-        X_train = train_df.drop(target_name, axis=1)
-        X_test = test_df.drop(target_name, axis=1)
 
         model.fit(X_train, y_train)
         model.test_data = X_test

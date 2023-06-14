@@ -41,8 +41,8 @@ class LudwigForecaster(Forecaster):
         # }
 
         config = {
-            'input_features': [{ 'name': f'{target_name}_feature', 'type': 'timeseries', }
-                                 # 'preprocessing': {'num_processes': 1}, # TODO
+            'input_features': [{'name': f'{target_name}_feature', 'type': 'timeseries'}
+                                # 'preprocessing': {'num_processes': 1}, # TODO
             ],
             'output_features': [{ 'name': target_name, 'type': 'numerical' }],
             'trainer': { 'epochs': 50 } # TODO: limit?

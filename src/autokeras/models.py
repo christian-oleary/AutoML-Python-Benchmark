@@ -13,7 +13,7 @@ class AutoKerasForecaster(Forecaster):
     presets = ['greedy', 'bayesian', 'hyperband', 'random']
 
 
-    def forecast(self, train_df, test_df, target_name, horizon, limit, frequency, tmp_dir):
+    def forecast(self, train_df, test_df, target_name, horizon, limit, frequency, tmp_dir, preset='greedy'):
         """Perform time series forecasting
 
         :param train_df: Dataframe of training data
@@ -23,6 +23,7 @@ class AutoKerasForecaster(Forecaster):
         :param limit: Iterations limit (int)
         :param frequency: Data frequency (str)
         :param tmp_dir: Path to directory to store temporary files (str)
+        :param preset: Model configuration to use
         :return predictions: Numpy array of predictions
         """
 
@@ -43,8 +44,8 @@ class AutoKerasForecaster(Forecaster):
 
         limit = 100 #1
         epochs = 10 #1
-        tuner = 'greedy'
-        tmp_dir = os.path.join(tmp_dir, f'{tuner}_{epochs}epochs')
+        preset = 'greedy'
+        tmp_dir = os.path.join(tmp_dir, f'{preset}_{epochs}epochs')
 
         # Initialise forecaster
         clf = ak.TimeseriesForecaster(
@@ -56,7 +57,7 @@ class AutoKerasForecaster(Forecaster):
             predict_from=1,
             predict_until=horizon,
             seed=limit,
-            tuner=tuner,
+            tuner=preset,
         )
 
         model_path = os.path.join(tmp_dir, 'time_series_forecaster', 'best_pipeline')

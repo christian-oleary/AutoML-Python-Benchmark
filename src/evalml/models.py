@@ -17,7 +17,7 @@ class EvalMLForecaster(Forecaster):
     initial_training_fraction = 0.95
 
 
-    def forecast(self, train_df, test_df, target_name, horizon, limit, frequency, tmp_dir, preset='default_fast'):
+    def forecast(self, train_df, test_df, target_name, horizon, limit, frequency, tmp_dir, preset='default'):
         """Perform time series forecasting
 
         :param train_df: Dataframe of training data
@@ -52,12 +52,11 @@ class EvalMLForecaster(Forecaster):
             'time_index': 'time_index'
         }
 
-        automl_algorithm = preset.split('_')[0]
         automl = AutoMLSearch(
             X_train,
             y_train,
             allowed_model_families='regression',
-            automl_algorithm=automl_algorithm,
+            automl_algorithm=preset,
             problem_type='time series regression',
             problem_configuration=problem_config,
             max_time=limit,

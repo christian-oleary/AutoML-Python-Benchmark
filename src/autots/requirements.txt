@@ -1,2 +1,17 @@
 autots==0.5.7
 autots[additional]
+requests
+psutil
+holidays
+prophet
+gluonts
+mxnet
+lightgbm
+xgboost
+tensorflow-probability
+fredapi
+greykite
+# pytorch-forecasting
+neuralprophet
+scipy
+arch

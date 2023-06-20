@@ -59,29 +59,29 @@ class Forecaster(ABC):
         return new_limit
 
 
-    def rolling_origin_forecast(self, model, train_X, test_X, horizon, column=None):
+    def rolling_origin_forecast(self, model, X_train, X_test, horizon, column=None):
         """Iteratively forecast over increasing dataset
 
         :param model: Forecasting model, must have predict()
-        :param train_X: Training feature data (pandas DataFrame)
-        :param test_X: Test feature data (pandas DataFrame)
+        :param X_train: Training feature data (pandas DataFrame)
+        :param X_test: Test feature data (pandas DataFrame)
         :param horizon: Forecast horizon (int)
         :param column: Specifies forecast column if dataframe outputted, defaults to None
         :return: Predictions (numpy array)
         """
         # Split test set
-        test_splits = Utils.split_test_set(test_X, horizon)
+        test_splits = Utils.split_test_set(X_test, horizon)
 
         # Make predictions
-        preds = model.predict(train_X)
+        preds = model.predict(X_train)
         if column != None:
             preds = preds[column].values
         predictions = [ preds ]
 
         for s in test_splits:
-            train_X = pd.concat([train_X, s])
+            X_train = pd.concat([X_train, s])
 
-            preds = model.predict(train_X)
+            preds = model.predict(X_train)
             if column != None:
                 preds = preds[column].values
 
@@ -92,5 +92,5 @@ class Forecaster(ABC):
             predictions = np.concatenate([ p.flatten() for p in predictions ])
         except:
             predictions = np.concatenate([ p.values.flatten() for p in predictions ])
-        predictions = predictions[:len(test_X)]
+        predictions = predictions[:len(X_test)]
         return predictions

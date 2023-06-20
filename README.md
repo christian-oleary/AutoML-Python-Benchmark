@@ -35,13 +35,26 @@ Install the libraries you want to run (they may conflict), e.g.:
 ```bash
 pip install -r ./src/autogluon/requirements.txt
 pip install -r ./src/autokeras/requirements.txt
-pip install -r ./src/autots/requirements.txt
 pip install -r ./src/etna/requirements.txt
 pip install -r ./src/evalml/requirements.txt
 pip install -r ./src/fedot/requirements.txt
 pip install -r ./src/flaml/requirements.txt
 pip install -r ./src/ludwig/requirements.txt
 pip install -r ./src/pycaret/requirements.txt
+```
+
+Recommended for AutoTS:
+
+```bash
+python -m pip install numpy==1.21 scipy scikit-learn statsmodels lightgbm xgboost numexpr bottleneck yfinance pytrends fredapi plotly --exists-action i && \
+python -m pip install pystan prophet --exists-action i && \
+python -m pip install mxnet --no-deps && \
+python -m pip install gluonts arch && \
+python -m pip install holidays==0.24  holidays-ext pmdarima dill greykite --exists-action i --no-deps && \
+python -m pip install holidays==0.24 prophet==1.1.3 cvxpy neuralprophet pytorch-forecasting && \
+python -m pip install pandas --exists-action i && \
+python -m pip install numpy==1.21 i && \
+python -m pip install autots --exists-action i
 ```
 
 Auto-PyTorch is Linux only:

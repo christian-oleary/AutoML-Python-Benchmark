@@ -1,5 +1,10 @@
+
+# Read instructions in README.md
+# The following may not work:
+
 autots==0.5.7
 autots[additional]
+# autots[additional] does not seem to install the following:
 requests
 psutil
 holidays
@@ -11,7 +16,9 @@ xgboost
 tensorflow-probability
 fredapi
 greykite
-# pytorch-forecasting
+pytorch-forecasting
 neuralprophet
 scipy
-arch
+# Versions of arch require Cython and IPython
+# Cython
+# arch

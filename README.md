@@ -60,7 +60,7 @@ python -m pip install autots --exists-action i
 Auto-PyTorch is Linux only:
 
 ```bash
-RUN apt-get update && apt-get install ffmpeg libsm6 libxext6  -y
+apt-get update && apt-get install ffmpeg libsm6 libxext6  -y
 pip3 install -r ./src/autopytorch/requirements.txt
 ```
 

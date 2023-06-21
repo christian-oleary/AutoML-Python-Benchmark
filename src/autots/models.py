@@ -53,11 +53,15 @@ class AutoTSForecaster(Forecaster):
             validation_method='similarity',
         )
 
-        model = model.fit(train_df)
+        # We need to pass future_regressor to be able to do rolling origin forecasting
+        model = model.fit(train_df, future_regressor=train_df)
+        predictions = self.rolling_origin_forecast(model, train_df, test_df, horizon, column=target_name)
 
+        # model = model.fit(train_df)
+        # predictions = model.predict(len(test_df), just_point_forecast=True)[target_name].values
         # predictions = prediction.forecast[target_name].values
-        # predictions = self.rolling_origin_forecast(model, train_df, test_df, horizon, column=target_name)
-        predictions = model.predict(len(test_df), just_point_forecast=True)[target_name].values
+
+        print(model)
         return predictions
 
 
@@ -85,18 +89,11 @@ class AutoTSForecaster(Forecaster):
         test_splits = Utils.split_test_set(test_X, horizon)
 
         # Make predictions
-        # print('column', column)
-        # print('train_X', train_X)
-        # print('model.predict(train_X[column])', model.predict(train_X[column]), type(model.predict(train_X[column])), model.predict(train_X[column]).shape)
-        # print('model', model)
-        # print('model.predict(train_X)', model.predict(train_X), type(model.predict(train_X)), model.predict(train_X).shape)
-        # print('model', model)
-        # print('model.predict(train_X).forecast[column]', model.predict(train_X).forecast[column], type(model.predict(train_X).forecast[column]), model.predict(train_X).forecast[column].shape)
-        preds = model.predict(train_X).forecast[column].values
-
+        # preds = model.predict(future_regressor=train_X, forecast_length=horizon).forecast.values
+        predictions = []
         for s in test_splits:
-            train_X = pd.concat([train_X, s])
-            preds = model.predict(train_X).forecast[column].values
+            # train_X = pd.concat([train_X, s])
+            preds = model.predict(future_regressor=s, forecast_length=horizon).forecast.values
             predictions.append(preds)
 
         # Flatten predictions and truncate if needed

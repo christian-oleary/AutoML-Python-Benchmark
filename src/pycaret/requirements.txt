@@ -1,3 +1,4 @@
 pycaret==3.0.0
 pycaret[full]
 sktime==0.17.0
+lightgbm==3.1

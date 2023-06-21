@@ -229,7 +229,10 @@ class Utils:
         test_splits = []
         total = 0 # total length of test splits
         for _ in range(int(len(test_df) / horizon)):
-            test_splits.append(test_df.iloc[total:total+horizon, :])
+            try:
+                test_splits.append(test_df.iloc[total:total+horizon, :])
+            except: # If 1D (series)
+                test_splits.append(test_df.iloc[total:total+horizon])
             total += horizon
 
         # Leftover rows

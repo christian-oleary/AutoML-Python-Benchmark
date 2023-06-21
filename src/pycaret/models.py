@@ -38,14 +38,14 @@ class PyCaretForecaster(Forecaster):
         exp.setup(train_df,
                   target=target_name,
                   fh=horizon,
-                  fold=2,
+                  fold=2, # Lower folds prevents errors with short time series
                   numeric_imputation_target='ffill',
                   numeric_imputation_exogenous='ffill',
+                  use_gpu=True,
                   )
 
         model = exp.compare_models(budget_time=limit)
-        # predictions = exp.predict_model(model, X=test_df, fh=horizon) # Internal errors
-        predictions = exp.predict_model(model, fh=horizon)
+        predictions = exp.predict_model(model, X=test_df.drop(target_name, axis=1), fh=horizon)
         predictions = predictions['y_pred'].values
         return predictions
 

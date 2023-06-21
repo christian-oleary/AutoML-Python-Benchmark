@@ -61,7 +61,7 @@ class AutoTSForecaster(Forecaster):
         # predictions = model.predict(len(test_df), just_point_forecast=True)[target_name].values
         # predictions = prediction.forecast[target_name].values
 
-        print(model)
+        # print(model)
         return predictions
 
 
@@ -75,14 +75,14 @@ class AutoTSForecaster(Forecaster):
         # return (time_limit / 600) # Estimate a generation takes 10 minutes
         return 1 # One GA generation
 
-    def rolling_origin_forecast(self, model, train_X, test_X, horizon, column):
+
+    def rolling_origin_forecast(self, model, train_X, test_X, horizon):
         """Iteratively forecast over increasing dataset
 
         :param model: Forecasting model, must have predict()
         :param train_X: Training feature data (pandas DataFrame)
         :param test_X: Test feature data (pandas DataFrame)
         :param horizon: Forecast horizon (int)
-        :param column: Specifies forecast column if dataframe outputted
         :return: Predictions (numpy array)
         """
         # Split test set

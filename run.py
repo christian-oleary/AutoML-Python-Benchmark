@@ -26,14 +26,13 @@ if __name__ == '__main__': # Needed for any multiprocessing
     # Run forecasting models
     forecasters = Forecasting.get_forecaster_names()
     Utils.logger.info(f'Available forecasting libraries: {forecasters}')
-    # Forecasting.run_forecasting_libraries(forecasters, './tests/data/forecasting/')
     Forecasting.run_forecasting_libraries([
         'AutoGluon', # Python >= 3.8
         'AutoKeras',
         'AutoTS',
         'AutoPyTorch', # Linux
-        'ETNA', # Not working
-        'EvalML', # evalml > 0.43
+        # 'ETNA', # Not working
+        'EvalML',
         'FEDOT',
         'FLAML',
         'Ludwig',

@@ -120,9 +120,9 @@ class Forecasting():
                 except: pass
 
                 Utils.plot_forecast(actual.reset_index(drop=True).values, predictions, results_subdir,
-                                    f'{round(scores["R2"], 2)}_{forecaster_name}')
+                                    f'{forecaster_name}_{round(scores["R2"], 2)}')
                     # # Only valid if time limit not exceeded
-                    # if duration <= 3600:
+                    # if duration <= limit:
                     #     simulation_valid = True
                         # Re-estimate time/iterations limit based on previous duration
                     #     limit = forecaster.estimate_new_limit(time_limit, limit, duration)

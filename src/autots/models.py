@@ -55,7 +55,7 @@ class AutoTSForecaster(Forecaster):
 
         # We need to pass future_regressor to be able to do rolling origin forecasting
         model = model.fit(train_df, future_regressor=train_df)
-        predictions = self.rolling_origin_forecast(model, train_df, test_df, horizon, column=target_name)
+        predictions = self.rolling_origin_forecast(model, train_df, test_df, horizon)
 
         # model = model.fit(train_df)
         # predictions = model.predict(len(test_df), just_point_forecast=True)[target_name].values

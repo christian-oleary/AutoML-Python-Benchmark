@@ -5,10 +5,15 @@ import time
 from src.dataset_formatting import DatasetFormatting
 from src.forecasting import Forecasting
 from src.util import Utils
+from tests import gpu_test
 
 # os.environ['CUDA_VISIBLE_DEVICES'] = '-1' # Use CPU instead of GPU
 
 if __name__ == '__main__': # Needed for any multiprocessing
+
+    # Ensure GPU access
+    assert gpu_test.tensorflow_test(), 'TensorFlow cannot access GPU'
+    assert gpu_test.pytorch_test(), 'PyTorch cannot access GPU'
 
     # Start timer
     print(f'Started at {datetime.now().strftime("%d-%m-%y %H:%M:%S")}\n')

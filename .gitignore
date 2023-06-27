@@ -15,6 +15,9 @@ tmp/
 
 catboost_info
 
+# Anaconda installation scripts
+Anaconda3*.sh
+
 # Images
 *.png
 *.jpg

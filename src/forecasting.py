@@ -18,7 +18,7 @@ class Forecasting():
     logger = Utils.logger
 
     forecaster_names = [ 'AutoGluon', 'AutoKeras', 'AutoTS', 'AutoPyTorch',
-                        'ETNA', # Internal library errors
+                        # 'ETNA', # Internal library errors
                         'EvalML', 'FEDOT', 'FLAML', 'Ludwig', 'PyCaret']
 
     @staticmethod

@@ -9,6 +9,7 @@ mkdir -p ./data/repositories
 # Numenta Anomaly detection Benchmark (NAB) - AGPL-3.0 license, commercial use allowed
 # https://github.com/numenta/NAB
 mkdir -p ./data/anomaly_detection/NAB
+mkdir -p ./data/repositories/NAB
 if cd ./data/repositories/NAB; then git pull && cd ../../../; else git clone https://github.com/numenta/NAB.git ./data/repositories/NAB; fi
 
 cp -r ./data/repositories/NAB/data/* ./data/anomaly_detection/NAB
@@ -41,6 +42,7 @@ if cd ./data/anomaly_detection/HAI; then git pull && cd ../../../; else git clon
 # https://www.kaggle.com/datasets/afrniomelo/3w-dataset
 # Each of the 8 directories is a seperate dataset
 mkdir -p ./data/anomaly_detection/3W
+mkdir -p ./data/anomaly_detection/3W/dataset
 if cd ./data/repositories/3W; then git pull && cd ../../../; else git clone https://github.com/petrobras/3W.git ./data/repositories/3W; fi
 cp -r ./data/repositories/3W/dataset/* ./data/anomaly_detection/3W
 

@@ -18,8 +18,29 @@ class Forecasting():
     logger = Utils.logger
 
     forecaster_names = [ 'AutoGluon', 'AutoKeras', 'AutoTS', 'AutoPyTorch',
-                        'ETNA', # Internal library errors
+                        # 'ETNA', # Internal library errors
                         'EvalML', 'FEDOT', 'FLAML', 'Ludwig', 'PyCaret']
+
+    # Filter datasets based on "Monash Time Series Forecasting Archive" by Godahewa et al. (2021):
+    # "we do not consider the London smart meters, wind farms, solar power, and wind power datasets
+    # for both univariate and global model evaluations, the Kaggle web traffic daily dataset for
+    # the global model evaluations and the solar 10 minutely dataset for the WaveNet evaluation"
+    omitted_datasets = [
+        'kaggle_web_traffic_dataset_with_missing_values',
+        'kaggle_web_traffic_dataset_without_missing_values',
+        'kaggle_web_traffic_weekly_dataset',
+        'london_smart_meters_dataset_with_missing_values',
+        'london_smart_meters_dataset_without_missing_values',
+        'solar_weekly_dataset',
+        'solar_10_minutes_dataset',
+        'solar_4_seconds_dataset',
+        'web_traffic_extended_dataset_with_missing_values',
+        'web_traffic_extended_dataset_without_missing_values',
+        'wind_farms_minutely_dataset_without_missing_values',
+        'wind_farms_minutely_dataset_with_missing_values',
+        'wind_4_seconds_dataset',
+        ]
+
 
     @staticmethod
     def run_forecasting_libraries(forecaster_names, datasets_directory, time_limit=3600, results_dir='results'):
@@ -34,10 +55,20 @@ class Forecasting():
 
         csv_files = Utils.get_csv_datasets(datasets_directory)
         # for i in range(len(csv_files)): print(i, csv_files[i])
-        csv_files = [ csv_files[0] ] # TODO: For development only. To be removed
+        # csv_files = [ csv_files[0] ] # TODO: For development only. To be removed
         metadata = pd.read_csv(os.path.join(datasets_directory, '0_metadata.csv'))
 
         for csv_file in csv_files:
+            dataset_name = csv_file.split('.')[0]
+
+            # Filter datasets based on "Monash Time Series Forecasting Archive" by Godahewa et al. (2021)
+            # we do not consider the London smart meters, wind farms, solar power, and wind power datasets
+            # for both univariate and global model evaluations, the Kaggle web traffic daily dataset for
+            # the global model evaluations and the solar 10 minutely dataset for the WaveNet evaluation
+            filter_forecast_datasets = True # TODO: make an env variable
+            if filter_forecast_datasets and dataset_name in Forecasting.omitted_datasets:
+                Forecasting.logger.debug(f'Skipping dataset {dataset_name}')
+
             # Read dataset
             dataset_path = os.path.join(datasets_directory, csv_file)
             Forecasting.logger.debug(f'Reading dataset {dataset_path}')
@@ -80,7 +111,6 @@ class Forecasting():
 
             # Run each forecaster on the dataset
             for forecaster_name in forecaster_names:
-                dataset_name = csv_file.split('.')[0]
                 results_subdir = os.path.join(results_dir, dataset_name)
 
                 # Initialize forecaster and estimate a time/iterations limit
@@ -202,12 +232,3 @@ class Forecasting():
         :return: list of forecaster names (str)
         """
         return Forecasting.forecaster_names
-
-
-    @staticmethod
-    def apply_forecaster(df, forecaster):
-        """Apply forecaster to a forecasting dataset
-
-        :param df: DataFrame of time series data
-        :param forecaster: Forecaster object
-        """

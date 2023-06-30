@@ -43,20 +43,18 @@ class Forecasting():
 
 
     @staticmethod
-    def run_forecasting_libraries(forecaster_names, datasets_directory, time_limit=3600, results_dir='results'):
+    def run_forecasting_libraries(config):
         """Intended entrypoint to run forecasting libraries on the davailable datasets
 
-        :param forecaster_names: List of forecasting library names
-        :param datasets_directory: Path to forecasting datasets directory (str)
-        :param time_limit: Time limit in seconds (int)
+        :param config: Program configuration
         """
 
-        Forecasting._validate_inputs(forecaster_names, datasets_directory, time_limit)
+        Forecasting._validate_inputs(config)
 
-        csv_files = Utils.get_csv_datasets(datasets_directory)
+        csv_files = Utils.get_csv_datasets(config.forecasting_data_dir)
         # for i in range(len(csv_files)): print(i, csv_files[i])
         # csv_files = [ csv_files[0] ] # TODO: For development only. To be removed
-        metadata = pd.read_csv(os.path.join(datasets_directory, '0_metadata.csv'))
+        metadata = pd.read_csv(os.path.join(config.forecasting_data_dir, '0_metadata.csv'))
 
         for csv_file in csv_files:
             dataset_name = csv_file.split('.')[0]
@@ -70,7 +68,7 @@ class Forecasting():
                 Forecasting.logger.debug(f'Skipping dataset {dataset_name}')
 
             # Read dataset
-            dataset_path = os.path.join(datasets_directory, csv_file)
+            dataset_path = os.path.join(config.forecasting_data_dir, csv_file)
             Forecasting.logger.debug(f'Reading dataset {dataset_path}')
             df = pd.read_csv(dataset_path, index_col=0)
 
@@ -110,12 +108,12 @@ class Forecasting():
                 test_df[target_name] = imputer.fit_transform(test_df[[target_name]]).ravel()
 
             # Run each forecaster on the dataset
-            for forecaster_name in forecaster_names:
-                results_subdir = os.path.join(results_dir, dataset_name)
+            for forecaster_name in config.libraries:
+                results_subdir = os.path.join(config.results_dir, dataset_name)
 
                 # Initialize forecaster and estimate a time/iterations limit
                 forecaster = Forecasting._init_forecaster(forecaster_name)
-                limit = forecaster.estimate_initial_limit(time_limit)
+                limit = forecaster.estimate_initial_limit(config.time_limit)
 
                 # Run forecaster and record total runtime
                 Forecasting.logger.info(f'Applying {forecaster.name} to {dataset_path}')
@@ -203,26 +201,30 @@ class Forecasting():
         return forecaster
 
 
-    def _validate_inputs(forecaster_names, datasets_directory, time_limit):
+    def _validate_inputs(config):
         """Validation inputs for entrypoint run_forecasting_libraries()"""
 
-        if not isinstance(forecaster_names, list):
-            raise TypeError(f'forecaster_names must be a list. Received: {type(forecaster_names)}')
+        if config.libraries == 'all':
+            config.libraries = Forecasting.forecaster_names
+        else:
+            print('config.libraries', config.libraries)
+            if not isinstance(config.libraries, list):
+                raise TypeError(f'forecaster_names must be a list or "all". Received: {type(config.libraries)}')
 
-        for name in forecaster_names:
-            if name not in Forecasting.forecaster_names:
-                raise ValueError(f'Unknown forecaster. Options: {forecaster_names}')
+            for name in config.libraries:
+                if name not in Forecasting.forecaster_names:
+                    raise ValueError(f'Unknown forecaster. Options: {Forecasting.forecaster_names}')
 
         try:
-            _ = os.listdir(datasets_directory)
+            _ = os.listdir(config.forecasting_data_dir)
         except NotADirectoryError as e:
-            raise NotADirectoryError(f'Unknown directory for datasets_directory. Received: {datasets_directory}') from e
+            raise NotADirectoryError(f'Unknown directory for datasets_directory. Received: {config.forecasting_data_dir}') from e
 
-        if not isinstance(time_limit, int):
-            raise TypeError(f'time_limit must be an int. Received: {time_limit}')
+        if not isinstance(config.time_limit, int):
+            raise TypeError(f'time_limit must be an int. Received: {config.time_limit}')
 
-        if time_limit <= 0:
-            raise ValueError(f'time_limit must be > 0. Received: {time_limit}')
+        if config.time_limit <= 0:
+            raise ValueError(f'time_limit must be > 0. Received: {config.time_limit}')
 
 
     @staticmethod

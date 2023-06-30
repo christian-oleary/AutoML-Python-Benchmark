@@ -25,6 +25,10 @@ Replace pip with pip3 if not using Windows.
 Auto-PyTorch requires Linux. PyCaret and EvalML may conflict. Other conflicts are to be expected if you try to install every library.
 
 ```bash
+conda update -n env -c defaults conda python=3.8
+```
+
+```bash
 pip install torch torchvision torchaudio --extra-index-url https://download.pytorch.org/whl/cu117
 pip install git+https://github.com/keras-team/keras-tuner.git
 pip install -r requirements.txt

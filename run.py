@@ -26,9 +26,11 @@ if __name__ == '__main__': # Needed for any multiprocessing
                         # default='./data/other/', # other datasets
                         help='directory containing forecasting datasets')
 
-    parser.add_argument('--libraries', metavar='-L', type=str, nargs='*', default=['AutoTS'],
+    parser.add_argument('--libraries', metavar='-L', type=str, nargs='*', default='installed',
                         choices=[
                             'all', # Will run all libraries
+                            'installed', # Will run all libraries installed correctly
+
                             'AutoGluon', # Python >= 3.8
                             'AutoKeras',
                             'AutoTS',
@@ -62,11 +64,11 @@ if __name__ == '__main__': # Needed for any multiprocessing
     print(args)
 
     # GPU access
-    if args.use_gpu
-        os.environ['CUDA_VISIBLE_DEVICES'] = '-1' # Use CPU instead of GPU
-    else:
+    if args.use_gpu:
         assert gpu_test.tensorflow_test(), 'TensorFlow cannot access GPU'
         assert gpu_test.pytorch_test(), 'PyTorch cannot access GPU'
+    else:
+        os.environ['CUDA_VISIBLE_DEVICES'] = '-1' # Use CPU instead of GPU
 
     assert gpu_test.tensorflow_test(), 'TensorFlow cannot access GPU'
     assert gpu_test.pytorch_test(), 'PyTorch cannot access GPU'

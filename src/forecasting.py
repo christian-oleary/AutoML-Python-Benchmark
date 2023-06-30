@@ -206,6 +206,9 @@ class Forecasting():
 
         if config.libraries == 'all':
             config.libraries = Forecasting.forecaster_names
+
+        elif config.libraries == 'installed':
+            config = Forecasting._check_installed(config)
         else:
             print('config.libraries', config.libraries)
             if not isinstance(config.libraries, list):
@@ -225,6 +228,83 @@ class Forecasting():
 
         if config.time_limit <= 0:
             raise ValueError(f'time_limit must be > 0. Received: {config.time_limit}')
+
+
+    @staticmethod
+    def _check_installed(config):
+        """Determine which libararies are installed.
+
+        :param config: Argparser configuration
+        :raises ValueError: If no AutoML library is installed
+        :return: Updated argparser config object
+        """
+        # Try to import libraries to determine which are installed
+        config.libraries = []
+        try:
+            from src.autogluon.models import AutoGluonForecaster
+            config.libraries.append('AutoGluon')
+        except:
+            Forecasting.logger.debug('Not using AutoGluon')
+
+        try:
+            from src.autokeras.models import AutoKerasForecaster
+            config.libraries.append('AutoKeras')
+        except:
+            Forecasting.logger.debug('Not using AutoKeras')
+
+        try:
+            from src.autots.models import AutoTSForecaster
+            config.libraries.append('AutoTS')
+        except:
+            Forecasting.logger.debug('Not using AutoTS')
+
+        try:
+            from src.autopytorch.models import AutoPyTorchForecaster
+            config.libraries.append('AutoPyTorch')
+        except:
+            Forecasting.logger.debug('Not using AutoPyTorch')
+
+        try:
+            from src.evalml.models import EvalMLForecaster
+            config.libraries.append('EvalML')
+        except:
+            Forecasting.logger.debug('Not using EvalML')
+
+        try:
+            from src.etna.models import ETNAForecaster
+            config.libraries.append('ETNA')
+        except:
+            Forecasting.logger.debug('Not using ETNA')
+
+        try:
+            from src.fedot.models import FEDOTForecaster
+            config.libraries.append('FEDOT')
+        except:
+            Forecasting.logger.debug('Not using FEDOT')
+
+        try:
+            from src.flaml.models import FLAMLForecaster
+            config.libraries.append('FLAML')
+        except:
+            Forecasting.logger.debug('Not using FLAML')
+
+        try:
+            from src.ludwig.models import LudwigForecaster
+            config.libraries.append('Ludwig')
+        except:
+            Forecasting.logger.debug('Not using Ludwig')
+
+        try:
+            from src.pycaret.models import PyCaretForecaster
+            config.libraries.append('PyCaret')
+        except:
+            Forecasting.logger.debug('Not using PyCaret')
+
+        if len(config.libraries) == 0:
+            raise ValueError('No AutoML libraries are available. Check installation!')
+
+        Forecasting.logger.info(f'Using Libraries: {config.libraries}')
+        return config
 
 
     @staticmethod

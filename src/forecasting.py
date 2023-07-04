@@ -21,25 +21,54 @@ class Forecasting():
                         # 'ETNA', # Internal library errors
                         'EvalML', 'FEDOT', 'FLAML', 'Ludwig', 'PyCaret']
 
+    # Filter datasets based on "Monash Time Series Forecasting Archive" by Godahewa et al. (2021):
+    # "we do not consider the London smart meters, wind farms, solar power, and wind power datasets
+    # for both univariate and global model evaluations, the Kaggle web traffic daily dataset for
+    # the global model evaluations and the solar 10 minutely dataset for the WaveNet evaluation"
+    omitted_datasets = [
+        'kaggle_web_traffic_dataset_with_missing_values',
+        'kaggle_web_traffic_dataset_without_missing_values',
+        'kaggle_web_traffic_weekly_dataset',
+        'london_smart_meters_dataset_with_missing_values',
+        'london_smart_meters_dataset_without_missing_values',
+        'solar_weekly_dataset',
+        'solar_10_minutes_dataset',
+        'solar_4_seconds_dataset',
+        'web_traffic_extended_dataset_with_missing_values',
+        'web_traffic_extended_dataset_without_missing_values',
+        'wind_farms_minutely_dataset_without_missing_values',
+        'wind_farms_minutely_dataset_with_missing_values',
+        'wind_4_seconds_dataset',
+        ]
+
+
     @staticmethod
-    def run_forecasting_libraries(forecaster_names, datasets_directory, time_limit=3600, results_dir='results'):
+    def run_forecasting_libraries(config):
         """Intended entrypoint to run forecasting libraries on the davailable datasets
 
-        :param forecaster_names: List of forecasting library names
-        :param datasets_directory: Path to forecasting datasets directory (str)
-        :param time_limit: Time limit in seconds (int)
+        :param config: Program configuration
         """
 
-        Forecasting._validate_inputs(forecaster_names, datasets_directory, time_limit)
+        Forecasting._validate_inputs(config)
 
-        csv_files = Utils.get_csv_datasets(datasets_directory)
+        csv_files = Utils.get_csv_datasets(config.forecasting_data_dir)
         # for i in range(len(csv_files)): print(i, csv_files[i])
-        csv_files = [ csv_files[0] ] # TODO: For development only. To be removed
-        metadata = pd.read_csv(os.path.join(datasets_directory, '0_metadata.csv'))
+        # csv_files = [ csv_files[0] ] # TODO: For development only. To be removed
+        metadata = pd.read_csv(os.path.join(config.forecasting_data_dir, '0_metadata.csv'))
 
         for csv_file in csv_files:
+            dataset_name = csv_file.split('.')[0]
+
+            # Filter datasets based on "Monash Time Series Forecasting Archive" by Godahewa et al. (2021)
+            # we do not consider the London smart meters, wind farms, solar power, and wind power datasets
+            # for both univariate and global model evaluations, the Kaggle web traffic daily dataset for
+            # the global model evaluations and the solar 10 minutely dataset for the WaveNet evaluation
+            filter_forecast_datasets = True # TODO: make an env variable
+            if filter_forecast_datasets and dataset_name in Forecasting.omitted_datasets:
+                Forecasting.logger.debug(f'Skipping dataset {dataset_name}')
+
             # Read dataset
-            dataset_path = os.path.join(datasets_directory, csv_file)
+            dataset_path = os.path.join(config.forecasting_data_dir, csv_file)
             Forecasting.logger.debug(f'Reading dataset {dataset_path}')
             df = pd.read_csv(dataset_path, index_col=0)
 
@@ -79,13 +108,12 @@ class Forecasting():
                 test_df[target_name] = imputer.fit_transform(test_df[[target_name]]).ravel()
 
             # Run each forecaster on the dataset
-            for forecaster_name in forecaster_names:
-                dataset_name = csv_file.split('.')[0]
-                results_subdir = os.path.join(results_dir, dataset_name)
+            for forecaster_name in config.libraries:
+                results_subdir = os.path.join(config.results_dir, dataset_name)
 
                 # Initialize forecaster and estimate a time/iterations limit
                 forecaster = Forecasting._init_forecaster(forecaster_name)
-                limit = forecaster.estimate_initial_limit(time_limit)
+                limit = forecaster.estimate_initial_limit(config.time_limit)
 
                 # Run forecaster and record total runtime
                 Forecasting.logger.info(f'Applying {forecaster.name} to {dataset_path}')
@@ -173,26 +201,110 @@ class Forecasting():
         return forecaster
 
 
-    def _validate_inputs(forecaster_names, datasets_directory, time_limit):
+    def _validate_inputs(config):
         """Validation inputs for entrypoint run_forecasting_libraries()"""
 
-        if not isinstance(forecaster_names, list):
-            raise TypeError(f'forecaster_names must be a list. Received: {type(forecaster_names)}')
+        if config.libraries == 'all':
+            config.libraries = Forecasting.forecaster_names
 
-        for name in forecaster_names:
-            if name not in Forecasting.forecaster_names:
-                raise ValueError(f'Unknown forecaster. Options: {forecaster_names}')
+        elif config.libraries == 'installed':
+            config = Forecasting._check_installed(config)
+        else:
+            print('config.libraries', config.libraries)
+            if not isinstance(config.libraries, list):
+                raise TypeError(f'forecaster_names must be a list or "all". Received: {type(config.libraries)}')
+
+            for name in config.libraries:
+                if name not in Forecasting.forecaster_names:
+                    raise ValueError(f'Unknown forecaster. Options: {Forecasting.forecaster_names}')
 
         try:
-            _ = os.listdir(datasets_directory)
+            _ = os.listdir(config.forecasting_data_dir)
         except NotADirectoryError as e:
-            raise NotADirectoryError(f'Unknown directory for datasets_directory. Received: {datasets_directory}') from e
+            raise NotADirectoryError(f'Unknown directory for datasets_directory. Received: {config.forecasting_data_dir}') from e
 
-        if not isinstance(time_limit, int):
-            raise TypeError(f'time_limit must be an int. Received: {time_limit}')
+        if not isinstance(config.time_limit, int):
+            raise TypeError(f'time_limit must be an int. Received: {config.time_limit}')
 
-        if time_limit <= 0:
-            raise ValueError(f'time_limit must be > 0. Received: {time_limit}')
+        if config.time_limit <= 0:
+            raise ValueError(f'time_limit must be > 0. Received: {config.time_limit}')
+
+
+    @staticmethod
+    def _check_installed(config):
+        """Determine which libararies are installed.
+
+        :param config: Argparser configuration
+        :raises ValueError: If no AutoML library is installed
+        :return: Updated argparser config object
+        """
+        # Try to import libraries to determine which are installed
+        config.libraries = []
+        try:
+            from src.autogluon.models import AutoGluonForecaster
+            config.libraries.append('AutoGluon')
+        except:
+            Forecasting.logger.debug('Not using AutoGluon')
+
+        try:
+            from src.autokeras.models import AutoKerasForecaster
+            config.libraries.append('AutoKeras')
+        except:
+            Forecasting.logger.debug('Not using AutoKeras')
+
+        try:
+            from src.autots.models import AutoTSForecaster
+            config.libraries.append('AutoTS')
+        except:
+            Forecasting.logger.debug('Not using AutoTS')
+
+        try:
+            from src.autopytorch.models import AutoPyTorchForecaster
+            config.libraries.append('AutoPyTorch')
+        except:
+            Forecasting.logger.debug('Not using AutoPyTorch')
+
+        try:
+            from src.evalml.models import EvalMLForecaster
+            config.libraries.append('EvalML')
+        except:
+            Forecasting.logger.debug('Not using EvalML')
+
+        try:
+            from src.etna.models import ETNAForecaster
+            config.libraries.append('ETNA')
+        except:
+            Forecasting.logger.debug('Not using ETNA')
+
+        try:
+            from src.fedot.models import FEDOTForecaster
+            config.libraries.append('FEDOT')
+        except:
+            Forecasting.logger.debug('Not using FEDOT')
+
+        try:
+            from src.flaml.models import FLAMLForecaster
+            config.libraries.append('FLAML')
+        except:
+            Forecasting.logger.debug('Not using FLAML')
+
+        try:
+            from src.ludwig.models import LudwigForecaster
+            config.libraries.append('Ludwig')
+        except:
+            Forecasting.logger.debug('Not using Ludwig')
+
+        try:
+            from src.pycaret.models import PyCaretForecaster
+            config.libraries.append('PyCaret')
+        except:
+            Forecasting.logger.debug('Not using PyCaret')
+
+        if len(config.libraries) == 0:
+            raise ValueError('No AutoML libraries are available. Check installation!')
+
+        Forecasting.logger.info(f'Using Libraries: {config.libraries}')
+        return config
 
 
     @staticmethod
@@ -202,12 +314,3 @@ class Forecasting():
         :return: list of forecaster names (str)
         """
         return Forecasting.forecaster_names
-
-
-    @staticmethod
-    def apply_forecaster(df, forecaster):
-        """Apply forecaster to a forecasting dataset
-
-        :param df: DataFrame of time series data
-        :param forecaster: Forecaster object
-        """

@@ -26,23 +26,23 @@ if __name__ == '__main__': # Needed for any multiprocessing
                         # default='./data/other/', # other datasets
                         help='directory containing forecasting datasets')
 
-    parser.add_argument('--libraries', metavar='-L', type=str, nargs='*', default='installed',
-                        choices=[
-                            'all', # Will run all libraries
-                            'installed', # Will run all libraries installed correctly
+    library_options = [
+                        'all', # Will run all libraries
+                        'installed', # Will run all libraries installed correctly
 
-                            'AutoGluon', # Python >= 3.8
-                            'AutoKeras',
-                            'AutoTS',
-                            'AutoPyTorch', # Linux
-                            'EvalML',
-                            # 'ETNA', # Not working
-                            'FEDOT',
-                            'FLAML',
-                            'Ludwig',
-                            'PyCaret',
-                            ],
-                        help='AutoML libraries to run')
+                        'autogluon', # Python >= 3.8
+                        'autokeras',
+                        'autots',
+                        'autopytorch', # Linux
+                        'evalml',
+                        # 'etna', # Not working
+                        'fedot',
+                        'flaml',
+                        'ludwig',
+                        'pycaret',
+                        ]
+    parser.add_argument('--libraries', metavar='-L', type=str, nargs='*', default='installed',
+                        choices=library_options, help=f'AutoML libraries to run: {library_options}')
 
     parser.add_argument('--n_cores', metavar='-N', type=int, nargs='?', default=1,
                         help='Number of CPU cores to allow')
@@ -61,7 +61,7 @@ if __name__ == '__main__': # Needed for any multiprocessing
                         help='Boolean to decide if libraries can use GPU')
 
     args = parser.parse_args()
-    print(args)
+    print('CLI arguments:', args)
 
     # GPU access
     if args.use_gpu:

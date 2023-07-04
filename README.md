@@ -30,9 +30,21 @@ conda update -n env -c defaults conda python=3.8
 
 ```bash
 pip install torch torchvision torchaudio --extra-index-url https://download.pytorch.org/whl/cu117
+
+or for AutoGluon:
+
+conda install -c conda-forge mamba
+mamba install -c conda-forge autogluon
+
+then:
+
 pip install git+https://github.com/keras-team/keras-tuner.git
 pip install -r requirements.txt
 ```
+
+Note:
+
+AutoGluon does not work with PyTorch 2.* yet: <https://github.com/autogluon/autogluon/issues/3250>
 
 Install the libraries you want to run (they may conflict), e.g.:
 
@@ -67,6 +79,8 @@ Auto-PyTorch is Linux only:
 apt-get update && apt-get install ffmpeg libsm6 libxext6  -y
 pip3 install -r ./src/autopytorch/requirements.txt
 ```
+
+If you have trouble installing PyTorch, you can try building from source: <https://github.com/pytorch/pytorch#from-source>
 
 ## Run experiments
 

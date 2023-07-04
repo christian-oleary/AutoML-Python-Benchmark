@@ -17,9 +17,9 @@ class Forecasting():
 
     logger = Utils.logger
 
-    forecaster_names = [ 'AutoGluon', 'AutoKeras', 'AutoTS', 'AutoPyTorch',
-                        # 'ETNA', # Internal library errors
-                        'EvalML', 'FEDOT', 'FLAML', 'Ludwig', 'PyCaret']
+    forecaster_names = [ 'autogluon', 'autokeras', 'autots', 'autopytorch',
+                        # 'etna', # Internal library errors
+                        'evalml', 'fedot', 'flaml', 'ludwig', 'pycaret']
 
     # Filter datasets based on "Monash Time Series Forecasting Archive" by Godahewa et al. (2021):
     # "we do not consider the London smart meters, wind farms, solar power, and wind power datasets
@@ -116,18 +116,18 @@ class Forecasting():
                 limit = forecaster.estimate_initial_limit(config.time_limit)
 
                 # Run forecaster and record total runtime
-                Forecasting.logger.info(f'Applying {forecaster.name} to {dataset_path}')
+                Forecasting.logger.info(f'Applying {forecaster_name} to {dataset_path}')
                 # simulation_valid = False
                 # attempts = 0
                 # while not simulation_valid and attempts < 10:
                     # attempts += 1
 
                 start_time = time.perf_counter()
-                tmp_dir = os.path.join('tmp', dataset_name, forecaster.name)
+                tmp_dir = os.path.join('tmp', dataset_name, forecaster_name)
                 os.makedirs(tmp_dir, exist_ok=True)
                 predictions = forecaster.forecast(train_df, test_df, target_name, horizon, limit, frequency, tmp_dir)
                 duration = time.perf_counter() - start_time
-                Utils.logger.debug(f'{forecaster.name} took {duration} seconds {csv_file}')
+                Utils.logger.debug(f'{forecaster_name} took {duration} seconds {csv_file}')
 
                 # Check that model outputted enough predictions
                 actual = test_df[target_name]
@@ -166,34 +166,34 @@ class Forecasting():
         """
 
         # Import statements included here to accomodate different/conflicting setups
-        if forecaster_name == 'AutoGluon':
+        if forecaster_name == 'autogluon':
             from src.autogluon.models import AutoGluonForecaster
             forecaster = AutoGluonForecaster()
-        elif forecaster_name == 'AutoKeras':
+        elif forecaster_name == 'autokeras':
             from src.autokeras.models import AutoKerasForecaster
             forecaster = AutoKerasForecaster()
-        elif forecaster_name == 'AutoTS':
+        elif forecaster_name == 'autots':
             from src.autots.models import AutoTSForecaster
             forecaster = AutoTSForecaster()
-        elif forecaster_name == 'AutoPyTorch':
+        elif forecaster_name == 'autopytorch':
             from src.autopytorch.models import AutoPyTorchForecaster
             forecaster = AutoPyTorchForecaster()
-        elif forecaster_name == 'EvalML':
-            from src.evalml.models import EvalMLForecaster
-            forecaster = EvalMLForecaster()
-        elif forecaster_name == 'ETNA':
+        elif forecaster_name == 'etna':
             from src.etna.models import ETNAForecaster
             forecaster = ETNAForecaster()
-        elif forecaster_name == 'FEDOT':
+        elif forecaster_name == 'evalml':
+            from src.evalml.models import EvalMLForecaster
+            forecaster = EvalMLForecaster()
+        elif forecaster_name == 'fedot':
             from src.fedot.models import FEDOTForecaster
             forecaster = FEDOTForecaster()
-        elif forecaster_name == 'FLAML':
+        elif forecaster_name == 'flaml':
             from src.flaml.models import FLAMLForecaster
             forecaster = FLAMLForecaster()
-        elif forecaster_name == 'Ludwig':
+        elif forecaster_name == 'ludwig':
             from src.ludwig.models import LudwigForecaster
             forecaster = LudwigForecaster()
-        elif forecaster_name == 'PyCaret':
+        elif forecaster_name == 'pycaret':
             from src.pycaret.models import PyCaretForecaster
             forecaster = PyCaretForecaster()
         else:
@@ -242,61 +242,61 @@ class Forecasting():
         config.libraries = []
         try:
             from src.autogluon.models import AutoGluonForecaster
-            config.libraries.append('AutoGluon')
+            config.libraries.append('autogluon')
         except:
             Forecasting.logger.debug('Not using AutoGluon')
 
         try:
             from src.autokeras.models import AutoKerasForecaster
-            config.libraries.append('AutoKeras')
+            config.libraries.append('autokeras')
         except:
             Forecasting.logger.debug('Not using AutoKeras')
 
         try:
             from src.autots.models import AutoTSForecaster
-            config.libraries.append('AutoTS')
+            config.libraries.append('autots')
         except:
             Forecasting.logger.debug('Not using AutoTS')
 
         try:
             from src.autopytorch.models import AutoPyTorchForecaster
-            config.libraries.append('AutoPyTorch')
+            config.libraries.append('autopytorch')
         except:
             Forecasting.logger.debug('Not using AutoPyTorch')
 
         try:
             from src.evalml.models import EvalMLForecaster
-            config.libraries.append('EvalML')
+            config.libraries.append('evalml')
         except:
             Forecasting.logger.debug('Not using EvalML')
 
         try:
             from src.etna.models import ETNAForecaster
-            config.libraries.append('ETNA')
+            config.libraries.append('etna')
         except:
             Forecasting.logger.debug('Not using ETNA')
 
         try:
             from src.fedot.models import FEDOTForecaster
-            config.libraries.append('FEDOT')
+            config.libraries.append('fedot')
         except:
             Forecasting.logger.debug('Not using FEDOT')
 
         try:
             from src.flaml.models import FLAMLForecaster
-            config.libraries.append('FLAML')
+            config.libraries.append('flaml')
         except:
             Forecasting.logger.debug('Not using FLAML')
 
         try:
             from src.ludwig.models import LudwigForecaster
-            config.libraries.append('Ludwig')
+            config.libraries.append('ludwig')
         except:
             Forecasting.logger.debug('Not using Ludwig')
 
         try:
             from src.pycaret.models import PyCaretForecaster
-            config.libraries.append('PyCaret')
+            config.libraries.append('pycaret')
         except:
             Forecasting.logger.debug('Not using PyCaret')
 

@@ -64,7 +64,13 @@ python -m pip install autots --exists-action i
 Auto-PyTorch is Linux only:
 
 ```bash
-apt-get update && apt-get install ffmpeg libsm6 libxext6  -y
+sudo apt-get update && sudo apt-get install ffmpeg libsm6 libxext6  -y
+sudo add-apt-repository multiverse
+sudo apt update
+sudo apt install nvidia-cuda-toolkit
+conda config --append channels conda-forge
+conda install -c conda-forge torch
+pip install --force-reinstall charset-normalizer==3.1.0
 pip3 install -r ./src/autopytorch/requirements.txt
 ```
 

@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta
 import os
 import time
+import warnings
 
 from src.dataset_formatting import DatasetFormatting
 from src.forecasting import Forecasting
@@ -11,9 +12,12 @@ from tests import gpu_test
 
 if __name__ == '__main__': # Needed for any multiprocessing
 
-    # Ensure GPU access
-    assert gpu_test.tensorflow_test(), 'TensorFlow cannot access GPU'
-    assert gpu_test.pytorch_test(), 'PyTorch cannot access GPU'
+    # Check GPU access
+    if not gpu_test.tensorflow_test():
+        warnings.warn('TensorFlow cannot access GPU')
+
+    if not gpu_test.pytorch_test():
+        warnings.warn('PyTorch cannot access GPU')
 
     # Start timer
     print(f'Started at {datetime.now().strftime("%d-%m-%y %H:%M:%S")}\n')

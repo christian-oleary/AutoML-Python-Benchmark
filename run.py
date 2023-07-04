@@ -31,12 +31,12 @@ if __name__ == '__main__': # Needed for any multiprocessing
                         'all', # Will run all libraries
                         'installed', # Will run all libraries installed correctly
 
-                        'autogluon', # Python >= 3.8
+                        'autogluon',
                         'autokeras',
                         'autots',
-                        'autopytorch', # Linux
+                        'autopytorch', # Linux/WSL
                         'evalml',
-                        # 'etna', # Not working
+                        # 'etna', # Internal Library Errors
                         'fedot',
                         'flaml',
                         'ludwig',
@@ -66,8 +66,12 @@ if __name__ == '__main__': # Needed for any multiprocessing
 
     # Check GPU access
     if args.use_gpu:
-        warnings.warn('TensorFlow cannot access GPU')
-        warnings.warn('PyTorch cannot access GPU')
+        if not gpu_test.tensorflow_test():
+            warnings.warn('TensorFlow cannot access GPU')
+
+        if not gpu_test.pytorch_test():
+            warnings.warn('PyTorch cannot access GPU')
+
         # assert gpu_test.tensorflow_test(), 'TensorFlow cannot access GPU'
         # assert gpu_test.pytorch_test(), 'PyTorch cannot access GPU'
     else:

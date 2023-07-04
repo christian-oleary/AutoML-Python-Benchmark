@@ -42,8 +42,8 @@ class AutoKerasForecaster(Forecaster):
         train_y = train_y[val_split:]
         train_X = train_X[val_split:]
 
-        limit = 100 #1
-        epochs = 10 #1
+        limit = 100 # do we get pred length errors if > 1?
+        epochs = 10 # do we get pred length errors if > 1?
         preset = 'greedy'
         tmp_dir = os.path.join(tmp_dir, f'{preset}_{epochs}epochs')
 

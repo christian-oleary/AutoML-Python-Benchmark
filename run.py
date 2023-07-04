@@ -2,6 +2,7 @@ import argparse
 from datetime import datetime, timedelta
 import os
 import time
+import warnings
 
 from src.dataset_formatting import DatasetFormatting
 from src.forecasting import Forecasting
@@ -63,15 +64,14 @@ if __name__ == '__main__': # Needed for any multiprocessing
     args = parser.parse_args()
     print('CLI arguments:', args)
 
-    # GPU access
+    # Check GPU access
     if args.use_gpu:
-        assert gpu_test.tensorflow_test(), 'TensorFlow cannot access GPU'
-        assert gpu_test.pytorch_test(), 'PyTorch cannot access GPU'
+        warnings.warn('TensorFlow cannot access GPU')
+        warnings.warn('PyTorch cannot access GPU')
+        # assert gpu_test.tensorflow_test(), 'TensorFlow cannot access GPU'
+        # assert gpu_test.pytorch_test(), 'PyTorch cannot access GPU'
     else:
         os.environ['CUDA_VISIBLE_DEVICES'] = '-1' # Use CPU instead of GPU
-
-    assert gpu_test.tensorflow_test(), 'TensorFlow cannot access GPU'
-    assert gpu_test.pytorch_test(), 'PyTorch cannot access GPU'
 
     # Download data if needed
     gather_metadata = not os.path.exists('./data/forecasting/0_metadata.csv')

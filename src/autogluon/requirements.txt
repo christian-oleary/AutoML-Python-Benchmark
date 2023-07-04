@@ -1,5 +1,5 @@
-autogluon==0.7.0
-# autogluon==0.8.2
+autogluon==0.8.2
+plotly==5.15.0
 # Torch 2.* not supported right now:
 # https://github.com/autogluon/autogluon/issues/3250
 # torch==2.0.1+cu117

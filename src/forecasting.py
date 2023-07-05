@@ -243,43 +243,43 @@ class Forecasting():
         try:
             from src.autogluon.models import AutoGluonForecaster
             config.libraries.append('autogluon')
-        except:
+        except ModuleNotFoundError as e:
             Forecasting.logger.debug('Not using AutoGluon')
 
         try:
             from src.autokeras.models import AutoKerasForecaster
             config.libraries.append('autokeras')
-        except:
+        except ModuleNotFoundError as e:
             Forecasting.logger.debug('Not using AutoKeras')
 
         try:
             from src.autots.models import AutoTSForecaster
             config.libraries.append('autots')
-        except:
+        except ModuleNotFoundError as e:
             Forecasting.logger.debug('Not using AutoTS')
 
         try:
             from src.autopytorch.models import AutoPyTorchForecaster
             config.libraries.append('autopytorch')
-        except:
+        except ModuleNotFoundError as e:
             Forecasting.logger.debug('Not using AutoPyTorch')
 
         try:
             from src.evalml.models import EvalMLForecaster
             config.libraries.append('evalml')
-        except:
+        except ModuleNotFoundError as e:
             Forecasting.logger.debug('Not using EvalML')
 
         try:
             from src.etna.models import ETNAForecaster
             config.libraries.append('etna')
-        except:
+        except ModuleNotFoundError as e:
             Forecasting.logger.debug('Not using ETNA')
 
         try:
             from src.fedot.models import FEDOTForecaster
             config.libraries.append('fedot')
-        except:
+        except ModuleNotFoundError as e:
             Forecasting.logger.debug('Not using FEDOT')
 
         try:
@@ -291,13 +291,13 @@ class Forecasting():
         try:
             from src.ludwig.models import LudwigForecaster
             config.libraries.append('ludwig')
-        except:
+        except ModuleNotFoundError as e:
             Forecasting.logger.debug('Not using Ludwig')
 
         try:
             from src.pycaret.models import PyCaretForecaster
             config.libraries.append('pycaret')
-        except:
+        except ModuleNotFoundError as e:
             Forecasting.logger.debug('Not using PyCaret')
 
         if len(config.libraries) == 0:

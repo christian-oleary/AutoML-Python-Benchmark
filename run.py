@@ -78,9 +78,15 @@ if __name__ == '__main__': # Needed for any multiprocessing
         os.environ['CUDA_VISIBLE_DEVICES'] = '-1' # Use CPU instead of GPU
 
     # Download data if needed
-    gather_metadata = not os.path.exists('./data/forecasting/0_metadata.csv')
-    DatasetFormatting.format_forecasting_data(args.forecasting_data_dir, gather_metadata=gather_metadata)
-    DatasetFormatting.format_anomaly_data(args.anomaly_data_dir)
+    exp_dir = os.path.join('data', 'forecasting')
+    if args.forecasting_data_dir == exp_dir:
+        gather_metadata = not os.path.exists(os.path.join(exp_dir, '0_metadata.csv'))
+        DatasetFormatting.format_forecasting_data(args.forecasting_data_dir, gather_metadata=gather_metadata)
+
+    exp_dir = os.path.join('data', 'anomaly_detection')
+    if args.anomaly_data_dir == exp_dir:
+        gather_metadata = not os.path.exists(os.path.join(exp_dir, '0_metadata.csv'))
+        DatasetFormatting.format_anomaly_data(args.anomaly_data_dir)
 
     # Run forecasting models
     Forecasting.run_forecasting_libraries(args)

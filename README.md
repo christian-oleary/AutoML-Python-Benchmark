@@ -33,8 +33,8 @@ pip install torch torchvision torchaudio --extra-index-url https://download.pyto
 
 or for AutoGluon:
 
-conda install -c conda-forge mamba
-mamba install -c conda-forge autogluon
+conda install -y -c conda-forge mamba
+mamba install -y -c conda-forge autogluon
 
 then:
 
@@ -81,7 +81,7 @@ sudo add-apt-repository multiverse
 sudo apt update
 sudo apt install nvidia-cuda-toolkit
 conda config --append channels conda-forge
-conda install -c conda-forge torch
+conda install -c conda-forge pytorch # can also try: conda install -c conda-forge torch
 pip install --force-reinstall charset-normalizer==3.1.0
 pip3 install -r ./src/autopytorch/requirements.txt
 ```

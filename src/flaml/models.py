@@ -77,6 +77,8 @@ class FLAMLForecaster(Forecaster):
         predictions = [ preds ]
 
         for s in test_splits:
+            if len(s) < horizon:
+                s = X_test.tail(horizon)
             preds = model.predict(s)
             predictions.append(preds)
 

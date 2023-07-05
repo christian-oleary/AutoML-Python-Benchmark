@@ -1,1 +1,2 @@
+FLAML==1.2.4
 flaml[ts_forecast]

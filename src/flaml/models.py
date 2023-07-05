@@ -1,17 +1,16 @@
 import os
 
 from flaml import AutoML
+import numpy as np
 import pandas as pd
 
 from src.abstract import Forecaster
+from src.util import Utils
 
 
 class FLAMLForecaster(Forecaster):
 
     name = 'FLAML'
-
-    # Training configurations approximately ordered from slowest to fastest
-    presets = [ 'best_quality', 'auto', 'gpu', 'stable', 'ts', 'fast_train' ]
 
     # Use 95% of maximum available time for model training in initial experiment
     initial_training_fraction = 0.95
@@ -48,7 +47,6 @@ class FLAMLForecaster(Forecaster):
 
         predictions = self.rolling_origin_forecast(automl, train_df.index.to_series().to_frame(),
                                                    test_df.index.to_series().to_frame(), horizon)
-        print('predictions', predictions.shape)
         return predictions
 
 
@@ -60,3 +58,32 @@ class FLAMLForecaster(Forecaster):
         """
 
         return int(time_limit * self.initial_training_fraction)
+
+
+    def rolling_origin_forecast(self, model, X_train, X_test, horizon):
+        """Iteratively forecast over increasing dataset
+
+        :param model: Forecasting model, must have predict()
+        :param X_train: Training feature data (pandas DataFrame)
+        :param X_test: Test feature data (pandas DataFrame)
+        :param horizon: Forecast horizon (int)
+        :return: Predictions (numpy array)
+        """
+        # Split test set
+        test_splits = Utils.split_test_set(X_test, horizon)
+
+        # Make predictions
+        preds = model.predict(X_train.tail(horizon))
+        predictions = [ preds ]
+
+        for s in test_splits:
+            preds = model.predict(s)
+            predictions.append(preds)
+
+        # Flatten predictions and truncate if needed
+        try:
+            predictions = np.concatenate([ p.flatten() for p in predictions ])
+        except:
+            predictions = np.concatenate([ p.values.flatten() for p in predictions ])
+        predictions = predictions[:len(X_test)]
+        return predictions

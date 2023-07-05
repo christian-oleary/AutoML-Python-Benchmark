@@ -73,11 +73,10 @@ class AutoGluonForecaster(Forecaster):
                                         target=target_name,
                                         ignore_time_index=True,
                                         verbosity=0,
-                                        random_seed=limit,
                                         eval_metric='sMAPE')
 
         # Train models
-        predictor.fit(train_data, presets=preset, time_limit=limit)
+        predictor.fit(train_data, presets=preset, random_seed=limit, time_limit=limit)
 
         # Get predictions
         # predictions = predictor.predict(train_data) # forecast

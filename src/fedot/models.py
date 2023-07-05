@@ -40,9 +40,6 @@ class FEDOTForecaster(Forecaster):
         X_train = train_df.drop(target_name, axis=1)
         X_test = test_df.drop(target_name, axis=1)
 
-        # model_path = os.path.join(tmp_dir, '0_pipeline_saved', '0_pipeline_saved.json')
-        # if not os.path.exists(model_path):
-        # Specify the task and the forecast length
         task = Task(TaskTypesEnum.ts_forecasting, TsForecastingParams(forecast_length=horizon))
 
         # Fill in missing gaps in data. Adapted from:
@@ -77,9 +74,6 @@ class FEDOTForecaster(Forecaster):
 
         model.fit(X_train, y_train)
         model.test_data = X_test
-        #     model.export_as_project(project_path=os.path.join(tmp_dir, 'project.zip'))
-        # else:
-        #     model.import_as_project(project_path=os.path.join(tmp_dir, 'project.zip'))
 
         predictions = self.rolling_origin_forecast(model, X_train, X_test, horizon)
         return predictions

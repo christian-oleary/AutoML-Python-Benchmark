@@ -48,7 +48,7 @@ class AutoPyTorchForecaster(Forecaster):
             freq=freq,
             n_prediction_steps=y_test.shape[0],
             # n_prediction_steps=horizon,
-            memory_limit=16 * 1024,
+            memory_limit=32 * 1024,
             total_walltime_limit=limit,
             # min_num_test_instances=100, # proxy validation sets for the tasks with more than 100 series
             optimize_metric='mean_MASE_forecasting',

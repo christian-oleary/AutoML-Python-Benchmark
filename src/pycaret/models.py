@@ -3,6 +3,7 @@ import pandas as pd
 from pycaret.time_series import TSForecastingExperiment
 
 from src.abstract import Forecaster
+from src.TSForecasting.data_loader import FREQUENCY_MAP
 from src.util import Utils
 
 
@@ -26,8 +27,9 @@ class PyCaretForecaster(Forecaster):
         :return predictions: TODO
         """
 
-        train_df.index = pd.to_datetime(train_df.index)
-        test_df.index = pd.to_datetime(test_df.index)
+        freq = FREQUENCY_MAP[frequency].replace('1', '')
+        train_df.index = pd.to_datetime(train_df.index).to_period(freq)
+        test_df.index = pd.to_datetime(test_df.index).to_period(freq)
 
         # Using the correct horizon causes a variety of internal library errors
         # during the forecasting stage (via predict_model())

@@ -28,38 +28,7 @@ Auto-PyTorch requires Linux. PyCaret and EvalML may conflict. Other conflicts ar
 conda update -n env -c defaults conda python=3.8
 ```
 
-```bash
-pip install torch torchvision torchaudio --extra-index-url https://download.pytorch.org/whl/cu117
-
-or for AutoGluon:
-
-conda install -y -c conda-forge mamba
-mamba install -y -c conda-forge autogluon
-
-then:
-
-pip install git+https://github.com/keras-team/keras-tuner.git
-pip install -r requirements.txt
-```
-
-Note:
-
-AutoGluon does not work with PyTorch 2.* yet: <https://github.com/autogluon/autogluon/issues/3250>
-
-Install the libraries you want to run (they may conflict), e.g.:
-
-```bash
-pip install -r ./src/autogluon/requirements.txt
-pip install -r ./src/autokeras/requirements.txt
-pip install -r ./src/etna/requirements.txt
-pip install -r ./src/evalml/requirements.txt
-pip install -r ./src/fedot/requirements.txt
-pip install -r ./src/flaml/requirements.txt
-pip install -r ./src/ludwig/requirements.txt
-pip install -r ./src/pycaret/requirements.txt
-```
-
-Recommended for AutoTS:
+Installation for AutoTS specifically:
 
 ```bash
 python -m pip install numpy==1.21 scipy scikit-learn statsmodels lightgbm xgboost numexpr bottleneck yfinance pytrends fredapi plotly --exists-action i && \
@@ -73,7 +42,7 @@ python -m pip install numpy==1.21 i && \
 python -m pip install autots --exists-action i
 ```
 
-Auto-PyTorch is Linux only:
+Installation for Auto-PyTorch specifically. Auto-PyTorch is Linux only:
 
 ```bash
 sudo apt-get update && sudo apt-get install ffmpeg libsm6 libxext6  -y
@@ -84,6 +53,36 @@ conda config --append channels conda-forge
 conda install -c conda-forge pytorch # can also try: conda install -c conda-forge torch
 pip install --force-reinstall charset-normalizer==3.1.0
 pip3 install -r ./src/autopytorch/requirements.txt
+```
+
+Initial steps for AutoGluon:
+
+```bash
+conda install -y -c conda-forge mamba
+mamba install -y -c conda-forge autogluon
+```
+
+Note: AutoGluon does not work with PyTorch 2.* yet: <https://github.com/autogluon/autogluon/issues/3250>
+
+For all libraries except AutoTS and AutoPyTorch:
+
+```bash
+pip install torch torchvision torchaudio --extra-index-url https://download.pytorch.org/whl/cu117
+pip install git+https://github.com/keras-team/keras-tuner.git
+pip install -r requirements.txt
+```
+
+Install the libraries you want to run (they may conflict). One per environment is recommended.
+
+```bash
+pip install -r ./src/autogluon/requirements.txt
+pip install -r ./src/autokeras/requirements.txt
+pip install -r ./src/etna/requirements.txt
+pip install -r ./src/evalml/requirements.txt
+pip install -r ./src/fedot/requirements.txt
+pip install -r ./src/flaml/requirements.txt
+pip install -r ./src/ludwig/requirements.txt
+pip install -r ./src/pycaret/requirements.txt
 ```
 
 If you have trouble installing PyTorch, you can try building from source: <https://github.com/pytorch/pytorch#from-source>

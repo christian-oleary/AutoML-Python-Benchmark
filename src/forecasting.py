@@ -109,11 +109,10 @@ class Forecasting():
 
             # Run each forecaster on the dataset
             for forecaster_name in config.libraries:
-                results_subdir = os.path.join(config.results_dir, dataset_name)
-
                 # Initialize forecaster and estimate a time/iterations limit
                 forecaster = Forecasting._init_forecaster(forecaster_name)
                 limit = forecaster.estimate_initial_limit(config.time_limit)
+                results_subdir = os.path.join(config.results_dir, dataset_name, f'{target_name}_{config.nproc}proc_{limit}sec')
 
                 # Run forecaster and record total runtime
                 Forecasting.logger.info(f'Applying {forecaster_name} to {dataset_path}')

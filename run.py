@@ -45,8 +45,8 @@ if __name__ == '__main__': # Needed for any multiprocessing
     parser.add_argument('--libraries', metavar='-L', type=str, nargs='*', default='installed',
                         choices=library_options, help=f'AutoML libraries to run: {library_options}')
 
-    parser.add_argument('--n_cores', metavar='-N', type=int, nargs='?', default=1,
-                        help='Number of CPU cores to allow')
+    parser.add_argument('--nproc', metavar='-N', type=int, nargs='?', default=1,
+                        help='Number of CPU processes to allow')
 
     parser.add_argument('--preset', metavar='-P', type=str, nargs='?', default='best',
                         choices=['best', 'fastest'],

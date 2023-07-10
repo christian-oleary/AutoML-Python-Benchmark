@@ -31,7 +31,6 @@ class Forecasting():
         'kaggle_web_traffic_weekly_dataset',
         'london_smart_meters_dataset_with_missing_values',
         'london_smart_meters_dataset_without_missing_values',
-        'solar_weekly_dataset',
         'solar_10_minutes_dataset',
         'solar_4_seconds_dataset',
         'web_traffic_extended_dataset_with_missing_values',

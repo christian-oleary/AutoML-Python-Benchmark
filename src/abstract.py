@@ -13,12 +13,12 @@ class Forecaster(ABC):
     """Abstract Forecaster"""
 
     @abstractmethod
-    def forecast(self, train_df, test_df, target_name, horizon, limit, frequency, tmp_dir):
+    def forecast(self, train_df, test_df, forecast_type, horizon, limit, frequency, tmp_dir):
         """Perform time series forecasting
 
         :param train_df: Dataframe of training data
         :param test_df: Dataframe of test data
-        :param target_name: Name of target variable to forecast (str)
+        :param forecast_type: Type of forecasting, 'global', 'univariate' or 'multivariate'
         :param horizon: Forecast horizon (how far ahead to predict) (int)
         :param limit: Iterations limit (int)
         :param frequency: Data frequency (str)

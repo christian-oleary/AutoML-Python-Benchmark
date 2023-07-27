@@ -122,7 +122,6 @@ class Forecasting():
                     imputer = IterativeImputer(max_iter=10, random_state=0)
                     test_df = imputer.fit_transform(test_df).ravel()
 
-
             # Run each forecaster on the dataset
             for forecaster_name in config.libraries:
                 # Initialize forecaster and estimate a time/iterations limit
@@ -141,7 +140,7 @@ class Forecasting():
                 start_time = time.perf_counter()
                 tmp_dir = os.path.join('tmp', dataset_name, forecaster_name)
                 os.makedirs(tmp_dir, exist_ok=True)
-                predictions = forecaster.forecast(train_df, test_df, horizon, limit, frequency, tmp_dir)
+                predictions = forecaster.forecast(train_df, test_df, forecast_type, horizon, limit, frequency, tmp_dir)
                 duration = time.perf_counter() - start_time
                 Utils.logger.debug(f'{forecaster_name} took {duration} seconds {csv_file}')
 

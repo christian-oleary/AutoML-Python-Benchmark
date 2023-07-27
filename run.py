@@ -60,6 +60,11 @@ if __name__ == '__main__': # Needed for any multiprocessing
     parser.add_argument('--use_gpu', metavar='-G', type=bool, nargs='?', default=True,
                         help='Boolean to decide if libraries can use GPU')
 
+    parser.add_argument('--univariate_forecasting_data_dir', metavar='-UF', type=str, nargs='?',
+                        default=os.path.join('data', 'univariate_forecasting'),
+                        # default='./tests/data/forecasting/', # test data
+                        help='directory containing univariate forecasting datasets')
+
     args = parser.parse_args()
     print('CLI arguments:', args)
 
@@ -76,19 +81,19 @@ if __name__ == '__main__': # Needed for any multiprocessing
     else:
         os.environ['CUDA_VISIBLE_DEVICES'] = '-1' # Use CPU instead of GPU
 
-    # Download data if needed
-    exp_dir = os.path.join('data', 'global_forecasting')
-    if args.global_forecasting_data_dir == exp_dir:
-        gather_metadata = not os.path.exists(os.path.join(exp_dir, '0_metadata.csv'))
-        DatasetFormatting.format_forecasting_data(args.global_forecasting_data_dir, gather_metadata=gather_metadata)
+    # Format datasets if needed
+    gather_metadata = not os.path.exists(os.path.join(args.global_forecasting_data_dir, '0_metadata.csv'))
+    DatasetFormatting.format_global_forecasting_data(args.global_forecasting_data_dir,
+                                                        gather_metadata=gather_metadata)
+    DatasetFormatting.format_anomaly_data(args.anomaly_data_dir)
+    DatasetFormatting.format_univariate_forecasting_data(args.univariate_forecasting_data_dir)
 
-    exp_dir = os.path.join('data', 'anomaly_detection')
-    if args.anomaly_data_dir == exp_dir:
-        gather_metadata = not os.path.exists(os.path.join(exp_dir, '0_metadata.csv'))
-        DatasetFormatting.format_anomaly_data(args.anomaly_data_dir)
+    # Run univariate forecasting models
+    Forecasting.run_univariate_forecasting_libraries(args)
 
-    # Run forecasting models
-    Forecasting.run_global_forecasting_libraries(args)
+    # Run global forecasting models
+    # Needs refactoring
+    # Forecasting.run_global_forecasting_libraries(args)
 
     # Calculate runtime
     print(f'\nFinished at {datetime.now().strftime("%d-%m-%y %H:%M:%S")}')

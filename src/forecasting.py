@@ -17,9 +17,12 @@ class Forecasting():
 
     logger = Utils.logger
 
+    univariate_forecaster_names = [ 'autogluon', 'autokeras', 'autots', 'autopytorch',
+                                    'evalml', 'fedot', 'flaml', 'ludwig', 'pycaret']
+
     global_forecaster_names = [ 'autogluon', 'autokeras', 'autots', 'autopytorch',
-                        # 'etna', # Internal library errors
-                        'evalml', 'fedot', 'flaml', 'ludwig', 'pycaret']
+                                # 'etna', # Internal library errors
+                                'evalml', 'fedot', 'flaml', 'ludwig', 'pycaret']
 
     # Filter datasets based on "Monash Time Series Forecasting Archive" by Godahewa et al. (2021):
     # "we do not consider the London smart meters, wind farms, solar power, and wind power datasets
@@ -42,10 +45,85 @@ class Forecasting():
 
 
     @staticmethod
-    def run_global_forecasting_libraries(config):
-        """Intended entrypoint to run forecasting libraries on the davailable datasets
+    def run_univariate_forecasting_libraries(config):
+        """Entrypoint to run univariate forecasting libraries on available datasets
 
-        :param config: Program configuration
+        :param argparse.Namespace config: arguments from command line
+        """
+
+        # Validate inputs
+        Forecasting._validate_inputs(config)
+
+        # List CSV files and read metadata
+        metadata = pd.read_csv(os.path.join(config.univariate_forecasting_data_dir, '0_metadata.csv'))
+        csv_files = [ f for f in os.listdir(config.univariate_forecasting_data_dir)
+                      if '0_metadata.csv' not in f and f.endswith('csv') ]
+
+        for csv_file in csv_files:
+            # Dataset metadata
+            dataset_name = csv_file.split('.')[0]
+            data = metadata[metadata['file'] == csv_file]
+            print(data)
+            frequency = int(data['frequency'].iloc[0])
+            horizon = int(data['horizon'].iloc[0])
+
+            # Read dataset
+            dataset_path = os.path.join(config.univariate_forecasting_data_dir, csv_file)
+            Forecasting.logger.debug(f'Reading dataset {dataset_path}')
+            df = pd.read_csv(dataset_path, index_col=0)
+
+            # Holdout
+            # "the horizon is 20% of the time series length" (Bauer, 2021)
+            train_df = df.head(int(len(df)* 0.8))
+            test_df = df.tail(int(len(df)* 0.2))
+
+            # Run each forecaster on the dataset
+            for forecaster_name in config.libraries:
+                # Initialize forecaster and estimate a time/iterations limit
+                forecaster = Forecasting._init_forecaster(forecaster_name)
+                limit = forecaster.estimate_initial_limit(config.time_limit)
+                results_subdir = os.path.join(config.results_dir, 'univariate_holdout', dataset_name,
+                                              f'{config.nproc}proc_{limit}sec')
+
+                # Run forecaster and record total runtime
+                Forecasting.logger.info(f'Applying {forecaster_name} to {dataset_path}')
+                start_time = time.perf_counter()
+                tmp_dir = os.path.join('tmp', dataset_name, forecaster_name)
+                os.makedirs(tmp_dir, exist_ok=True)
+                predictions = forecaster.forecast(train_df, test_df, horizon, limit, frequency, tmp_dir)
+                duration = time.perf_counter() - start_time
+                Utils.logger.debug(f'{forecaster_name} took {duration} seconds {csv_file}')
+
+                # Check that model outputted enough predictions
+                if test_df.shape[0] > predictions.shape[0]:
+                    raise ValueError(f'Not enough predictions {predictions.shape[0]} for test set {test_df.shape[0]}')
+
+                # Truncate and flatten predictions if needed
+                if test_df.shape[0] < predictions.shape[0]:
+                    predictions = predictions.head(test_df.shape[0])
+                predictions = predictions.flatten()
+
+                # Save regression scores and plots
+                scores = Utils.regression_scores(test_df, predictions, results_subdir, forecaster_name,
+                                                duration=duration)
+
+                try: # If pandas Series
+                    predictions = predictions.reset_index(drop=True)
+                except: pass
+
+                Utils.plot_forecast(test_df.reset_index(drop=True).values, predictions, results_subdir,
+                                    f'{forecaster_name}_{round(scores["R2"], 2)}')
+
+
+            # Rolling Origin
+            # TODO
+
+
+    @staticmethod
+    def run_global_forecasting_libraries(config):
+        """Entrypoint to run global forecasting libraries on available datasets
+
+        :param argparse.Namespace config: arguments from command line
         """
 
         Forecasting._validate_inputs(config)
@@ -224,7 +302,12 @@ class Forecasting():
                     raise ValueError(f'Unknown forecaster. Options: {Forecasting.global_forecaster_names}')
 
         try:
-            _ = os.listdir(config.forecasting_data_dir)
+            _ = os.listdir(config.univariate_forecasting_data_dir)
+        except NotADirectoryError as e:
+            raise NotADirectoryError(f'Unknown directory for datasets_directory. Received: {config.forecasting_data_dir}') from e
+
+        try:
+            _ = os.listdir(config.global_forecasting_data_dir)
         except NotADirectoryError as e:
             raise NotADirectoryError(f'Unknown directory for datasets_directory. Received: {config.forecasting_data_dir}') from e
 
@@ -306,7 +389,7 @@ class Forecasting():
             Forecasting.logger.debug('Not using PyCaret')
 
         if len(config.libraries) == 0:
-            raise ValueError('No AutoML libraries are available. Check installation!')
+            raise ValueError('No AutoML libraries can be imported. Are any installed?')
 
         Forecasting.logger.info(f'Using Libraries: {config.libraries}')
         return config

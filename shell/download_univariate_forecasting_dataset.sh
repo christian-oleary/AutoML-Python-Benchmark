@@ -15,7 +15,7 @@ do
     curl --silent $url/finance_$i.csv --output $output_dir/finance_$i.csv
     curl --silent $url/human_$i.csv --output $output_dir/human_$i.csv
     curl --silent $url/nature_$i.csv --output $output_dir/nature_$i.csv
-    # sleep 1 # May be needed to prevent timeouts from website
+    # sleep 0.5 # May be needed to prevent timeouts from website
 done
 
 echo "Finshed downloading files to $output_dir."

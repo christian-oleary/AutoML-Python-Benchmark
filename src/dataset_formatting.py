@@ -5,12 +5,14 @@ Miscellaneous utility functions
 from datetime import datetime
 import logging
 import os
+import math
 import zipfile
 
 import pandas as pd
 
 from src.TSForecasting.data_loader import convert_tsf_to_dataframe, FREQUENCY_MAP
 from src.util import Utils
+from src.frequencies import frequencies
 
 
 class DatasetFormatting:
@@ -22,8 +24,62 @@ class DatasetFormatting:
 
 
     @staticmethod
-    def format_forecasting_data(data_dir, gather_metadata=False):
-        """Prepare forecasting data for modelling from zip files"""
+    def format_univariate_forecasting_data(data_dir):
+
+        Utils.logger.info('Reading univariate forecasting data...')
+
+        meta_data = {
+            'file': [],
+            'horizon': [],
+            'frequency': [],
+            'nan_count': [],
+            'num_rows': [],
+            'num_cols': [],
+            'origin_index': [],
+            'step_size': [],
+            }
+
+        csv_files = [f for f in os.listdir(data_dir)
+                     if '0_metadata.csv' not in f and f.endswith('csv')]
+
+        for csv_file in csv_files:
+            df = pd.read_csv(os.path.join(data_dir, csv_file), header=None)
+            assert df.shape[1] == 1
+
+            # The horizon/frequency are based on the paper:
+            # "Libra: A Benchmark for Time Series Forecasting Methods" Bauer 2021
+            #
+            # - "the horizon is 20% of the time series length"
+            #
+            # - "the [rolling origin] starting point is set either to [a maximum of] 40% of the time series or at two
+            #    times the frequency of the time series plus 1"
+            #
+            # - "the range between the starting point and endpoint is divided into 100 [equal (rounded up)] parts"
+            #
+            frequency = frequencies[csv_file]
+            meta_data['file'].append(csv_file)
+            meta_data['horizon'].append(int(df.shape[0] * 0.2))
+            meta_data['frequency'].append(frequency)
+            meta_data['nan_count'].append(int(df.isna().sum()))
+            meta_data['num_rows'].append(df.shape[0])
+            meta_data['num_cols'].append(df.shape[1])
+            meta_data['origin_index'].append(int(max(df.shape[0]*0.4, (2*frequency)+1)))
+            meta_data['step_size'].append(math.ceil((0.8*df.shape[0])/100))
+
+
+        metadata_df = pd.DataFrame(meta_data)
+        metadata_df.to_csv(os.path.join(data_dir, '0_metadata.csv'), index=False)
+
+        Utils.logger.info('Univariate forecasting data ready.')
+
+
+    @staticmethod
+    def format_global_forecasting_data(data_dir, gather_metadata=False):
+        """Prepare forecasting data for modelling from zip files
+
+        :param str data_dir: Path to data directory
+        :param bool gather_metadata: Store datasets metadata in a CSV file, defaults to False
+        """
 
         tsf_files = DatasetFormatting.extract_forecasting_data(data_dir)
 
@@ -83,15 +139,13 @@ class DatasetFormatting:
                 if gather_metadata:
                     meta_data['num_rows'].append(df.shape[0])
                     meta_data['num_cols'].append(df.shape[1])
-            else:
-                Utils.logger.debug(f'{csv_path} already exists. Skipping...')
 
         # Save dataset-specific metadata
         if gather_metadata:
             metadata_df = pd.DataFrame(meta_data)
             metadata_df.to_csv(os.path.join(data_dir, '0_metadata.csv'), index=False)
 
-        Utils.logger.info('Forecasting data ready.')
+        Utils.logger.info('Global forecasting data ready.')
 
 
     @staticmethod

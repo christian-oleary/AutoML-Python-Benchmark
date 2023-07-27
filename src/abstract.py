@@ -59,7 +59,7 @@ class Forecaster(ABC):
         return new_limit
 
 
-    def rolling_origin_forecast(self, model, X_train, X_test, horizon, column=None):
+    def rolling_origin_forecast(self, model, X_train, X_test, horizon, column=None, step_size=None):
         """Iteratively forecast over increasing dataset
 
         :param model: Forecasting model, must have predict()
@@ -67,10 +67,15 @@ class Forecaster(ABC):
         :param X_test: Test feature data (pandas DataFrame)
         :param horizon: Forecast horizon (int)
         :param column: Specifies forecast column if dataframe outputted, defaults to None
+        :param step_size: Specifies the step size to , defaults to None
         :return: Predictions (numpy array)
         """
+
+        if step_size == None:
+            step_size = horizon
+
         # Split test set
-        test_splits = Utils.split_test_set(X_test, horizon)
+        test_splits = Utils.split_test_set(X_test, step_size)
 
         # Make predictions
         preds = model.predict(X_train)
@@ -85,6 +90,7 @@ class Forecaster(ABC):
             if column != None:
                 preds = preds[column].values
 
+            preds = preds[:step_size]
             predictions.append(preds)
 
         # Flatten predictions and truncate if needed

@@ -38,11 +38,11 @@ class Utils:
                           **kwargs):
         """Calculate forecasting metrics and optionally save results.
 
-        :param actual: Original time series values
-        :param predicted: Predicted time series values
-        :param scores_dir: Path to file to record scores (str or None), defaults to None
-        :param forecaster_name: Name of model (str)
-        :param multioutput: 'raw_values' (raw errors), 'uniform_average' (averaged errors), defaults to 'uniform_average'
+        :param np.array actual: Original time series values
+        :param np.array predicted: Predicted time series values
+        :param str scores_dir: Path to file to record scores (str or None), defaults to None
+        :param str forecaster_name: Name of model (str)
+        :param str multioutput: 'raw_values' (raw errors), 'uniform_average' (averaged errors), defaults to 'uniform_average'
         :raises TypeError: If forecaster_name is not provided when saving results to file
         :return results: Dictionary of results
         """
@@ -89,9 +89,9 @@ class Utils:
     def correlation(actual, predicted, method='pearson'):
         """Wrapper to extract correlations and p-values from scipy
 
-        :param actual: Actual values
-        :param predicted: Predicted values
-        :param method: Correlation type, defaults to 'pearson'
+        :param np.array actual: Actual values
+        :param np.array predicted: Predicted values
+        :param str method: Correlation type, defaults to 'pearson'
         :raises ValueError: If unknown correlation method is passed
         :return: Correlation (float) and pvalue (float)
         """
@@ -172,10 +172,10 @@ class Utils:
     def plot_forecast(actual, predicted, results_subdir, forecaster_name):
         """Plot forecasted vs actual values
 
-        :param actual: Original time series values
-        :param predicted: Forecasted values
-        :param results_subdir: Path to output directory (str)
-        :param forecaster_name: Model name (str)
+        :param np.array actual: Original time series values
+        :param np.array predicted: Forecasted values
+        :param str results_subdir: Path to output directory
+        :param str forecaster_name: Model name
         """
         pd.plotting.register_matplotlib_converters()
 
@@ -197,7 +197,7 @@ class Utils:
     def get_csv_datasets(datasets_directory):
         """Fetch list of file names of CSV datasets
 
-        :param datasets_directory: Path to datasets directory (str)
+        :param str datasets_directory: Path to datasets directory
         :raises NotADirectoryError: If datasets_directory does not exist
         :raises IOError: If datasets_directory does not have CSV files
         :return: list of dataset file names
@@ -221,8 +221,8 @@ class Utils:
     def split_test_set(test_df, horizon):
         """Split test dataset into list of smaller sets for rolling origin forecasting
 
-        :param test_df: Test dataset (pandas DataFrame)
-        :param horizon: Forecasting horizon (int)
+        :param pd.DataFrame test_df: Test dataset
+        :param int horizon: Forecasting horizon
         :return: List of DataFrame objects
         """
 

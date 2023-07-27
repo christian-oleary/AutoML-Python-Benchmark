@@ -45,48 +45,99 @@ class Forecasting():
 
 
     @staticmethod
-    def run_univariate_forecasting_libraries(config):
-        """Entrypoint to run univariate forecasting libraries on available datasets
+    def run_forecasting_libraries(data_dir, config, forecast_type):
+        """Entrypoint to run forecasting libraries on available datasets
 
+        :param str data_dir: Path to datasets directory
         :param argparse.Namespace config: arguments from command line
+        :param str data_dir: Type of forecasting, i.e. 'global', 'multivariate' or 'univariate'
         """
 
-        # Validate inputs
-        Forecasting._validate_inputs(config)
+        Forecasting._validate_inputs(config, forecast_type)
 
-        # List CSV files and read metadata
-        metadata = pd.read_csv(os.path.join(config.univariate_forecasting_data_dir, '0_metadata.csv'))
-        csv_files = [ f for f in os.listdir(config.univariate_forecasting_data_dir)
-                      if '0_metadata.csv' not in f and f.endswith('csv') ]
+        csv_files = Utils.get_csv_datasets(data_dir)
+        # for i in range(len(csv_files)): print(i, csv_files[i])
+        # csv_files = [ csv_files[0] ] # TODO: For development only. To be removed
+        metadata = pd.read_csv(os.path.join(data_dir, '0_metadata.csv'))
 
         for csv_file in csv_files:
-            # Dataset metadata
             dataset_name = csv_file.split('.')[0]
-            data = metadata[metadata['file'] == csv_file]
-            print(data)
-            frequency = int(data['frequency'].iloc[0])
-            horizon = int(data['horizon'].iloc[0])
+
+            # Filter datasets based on "Monash Time Series Forecasting Archive" by Godahewa et al. (2021)
+            # we do not consider the London smart meters, wind farms, solar power, and wind power datasets
+            # for both univariate and global model evaluations, the Kaggle web traffic daily dataset for
+            # the global model evaluations and the solar 10 minutely dataset for the WaveNet evaluation
+            filter_forecast_datasets = True # TODO: make an env variable
+            if filter_forecast_datasets and dataset_name in Forecasting.omitted_datasets:
+                Forecasting.logger.debug(f'Skipping dataset {dataset_name}')
+                continue
 
             # Read dataset
-            dataset_path = os.path.join(config.univariate_forecasting_data_dir, csv_file)
+            dataset_path = os.path.join(data_dir, csv_file)
             Forecasting.logger.debug(f'Reading dataset {dataset_path}')
-            df = pd.read_csv(dataset_path, index_col=0)
+            if forecast_type == 'global':
+                df = pd.read_csv(dataset_path, index_col=0)
+            else:
+                df = pd.read_csv(dataset_path)
 
-            # Holdout
-            # "the horizon is 20% of the time series length" (Bauer, 2021)
+            # Holdout for model testing (80% training, 20% testing).
+            # This seems to be used by Godahewa et al. for global forecasting:
+            # https://github.com/rakshitha123/TSForecasting/blob/master/experiments/rolling_origin.R#L10
+            # Also used by Bauer 2021 for univariate forecasting
             train_df = df.head(int(len(df)* 0.8))
             test_df = df.tail(int(len(df)* 0.2))
+
+            # Get dataset metadata
+            if forecast_type == 'global':
+                data = metadata[metadata['file'] == csv_file.replace('csv', 'tsf')]
+
+                # Update: No target required for global forecasters
+                # target_name = None
+                # # As target names not currently known:
+                # for col in test_df.columns:
+                #     percentage_nan = test_df[col].isnull().sum() * 100 / len(test_df)
+                #     print(col, percentage_nan, percentage_nan < 0.5)
+                #     if percentage_nan < 0.5: # i.e. at least 50% values present
+                #         target_name = col
+                #         break
+                # if target_name is None:
+                #     raise ValueError(f'Failed to find suitable forecasting target in {csv_file}')
+
+                frequency = data['frequency'].iloc[0]
+                horizon = data['horizon'].iloc[0]
+                if pd.isna(horizon):
+                    raise ValueError(f'Missing horizon in 0_metadata.csv for {csv_file}')
+                horizon = int(horizon)
+
+                # TODO: revise frequencies, determine and data formatting stage
+                if pd.isna(frequency) and 'm3_other_dataset.csv' in csv_file:
+                    frequency = 'yearly'
+
+            else:
+                data = metadata[metadata['file'] == csv_file]
+                frequency = int(data['frequency'].iloc[0])
+                horizon = int(data['horizon'].iloc[0])
+                # Impute any missing test values
+                if test_df.isnull().values.any():
+                    imputer = IterativeImputer(max_iter=10, random_state=0)
+                    test_df = imputer.fit_transform(test_df).ravel()
+
 
             # Run each forecaster on the dataset
             for forecaster_name in config.libraries:
                 # Initialize forecaster and estimate a time/iterations limit
                 forecaster = Forecasting._init_forecaster(forecaster_name)
                 limit = forecaster.estimate_initial_limit(config.time_limit)
-                results_subdir = os.path.join(config.results_dir, 'univariate_holdout', dataset_name,
-                                              f'{config.nproc}proc_{limit}sec')
+                results_subdir = os.path.join(config.results_dir, f'{forecast_type}_forecasting',
+                                              dataset_name, f'{config.nproc}proc_{limit}sec')
 
                 # Run forecaster and record total runtime
                 Forecasting.logger.info(f'Applying {forecaster_name} to {dataset_path}')
+                # simulation_valid = False
+                # attempts = 0
+                # while not simulation_valid and attempts < 10:
+                    # attempts += 1
+
                 start_time = time.perf_counter()
                 tmp_dir = os.path.join('tmp', dataset_name, forecaster_name)
                 os.makedirs(tmp_dir, exist_ok=True)
@@ -112,125 +163,6 @@ class Forecasting():
                 except: pass
 
                 Utils.plot_forecast(test_df.reset_index(drop=True).values, predictions, results_subdir,
-                                    f'{forecaster_name}_{round(scores["R2"], 2)}')
-
-
-            # Rolling Origin
-            # TODO
-
-
-    @staticmethod
-    def run_global_forecasting_libraries(config):
-        """Entrypoint to run global forecasting libraries on available datasets
-
-        :param argparse.Namespace config: arguments from command line
-        """
-
-        Forecasting._validate_inputs(config)
-
-        csv_files = Utils.get_csv_datasets(config.global_forecasting_data_dir)
-        # for i in range(len(csv_files)): print(i, csv_files[i])
-        # csv_files = [ csv_files[0] ] # TODO: For development only. To be removed
-        metadata = pd.read_csv(os.path.join(config.global_forecasting_data_dir, '0_metadata.csv'))
-
-        for csv_file in csv_files:
-            dataset_name = csv_file.split('.')[0]
-
-            # Filter datasets based on "Monash Time Series Forecasting Archive" by Godahewa et al. (2021)
-            # we do not consider the London smart meters, wind farms, solar power, and wind power datasets
-            # for both univariate and global model evaluations, the Kaggle web traffic daily dataset for
-            # the global model evaluations and the solar 10 minutely dataset for the WaveNet evaluation
-            filter_forecast_datasets = True # TODO: make an env variable
-            if filter_forecast_datasets and dataset_name in Forecasting.omitted_datasets:
-                Forecasting.logger.debug(f'Skipping dataset {dataset_name}')
-
-            # Read dataset
-            dataset_path = os.path.join(config.global_forecasting_data_dir, csv_file)
-            Forecasting.logger.debug(f'Reading dataset {dataset_path}')
-            df = pd.read_csv(dataset_path, index_col=0)
-
-
-            # Holdout for model testing (80% training, 20% testing). This seems to be used by Godahewa et al.:
-            # https://github.com/rakshitha123/TSForecasting/blob/master/experiments/rolling_origin.R#L10
-            train_df = df.head(int(len(df)* 0.8))
-            test_df = df.tail(int(len(df)* 0.2))
-
-            # Get dataset metadata
-            data = metadata[metadata['file'] == csv_file.replace('csv', 'tsf')]
-
-            # Update: No target required for global forecasters
-            # target_name = None
-            # # As target names not currently known:
-            # for col in test_df.columns:
-            #     percentage_nan = test_df[col].isnull().sum() * 100 / len(test_df)
-            #     print(col, percentage_nan, percentage_nan < 0.5)
-            #     if percentage_nan < 0.5: # i.e. at least 50% values present
-            #         target_name = col
-            #         break
-
-            # if target_name is None:
-            #     raise ValueError(f'Failed to find suitable forecasting target in {csv_file}')
-
-            frequency = data['frequency'].iloc[0]
-            horizon = data['horizon'].iloc[0]
-            if pd.isna(horizon):
-                raise ValueError(f'Missing horizon in 0_metadata.csv for {csv_file}')
-            horizon = int(horizon)
-
-            # TODO: revise frequencies, determine and data formatting stage
-            if pd.isna(frequency) and 'm3_other_dataset.csv' in csv_file:
-                frequency = 'yearly'
-
-            # Update: No target required for global forecasters
-            # # Interpolate any missing values in the target
-            # if test_df[target_name].isnull().values.any():
-            #     imputer = IterativeImputer(max_iter=10, random_state=0)
-            #     # imputer = SimpleImputer()
-            #     test_df[target_name] = imputer.fit_transform(test_df[[target_name]]).ravel()
-
-            raise NotImplementedError('Global forecasting not implemented yet')
-
-            # Run each forecaster on the dataset
-            for forecaster_name in config.libraries:
-                # Initialize forecaster and estimate a time/iterations limit
-                forecaster = Forecasting._init_global_forecaster(forecaster_name)
-                limit = forecaster.estimate_initial_limit(config.time_limit)
-                results_subdir = os.path.join(config.results_dir, 'global_forecasting',
-                                              dataset_name, f'{target_name}_{config.nproc}proc_{limit}sec')
-
-                # Run forecaster and record total runtime
-                Forecasting.logger.info(f'Applying {forecaster_name} to {dataset_path}')
-                # simulation_valid = False
-                # attempts = 0
-                # while not simulation_valid and attempts < 10:
-                    # attempts += 1
-
-                start_time = time.perf_counter()
-                tmp_dir = os.path.join('tmp', dataset_name, forecaster_name)
-                os.makedirs(tmp_dir, exist_ok=True)
-                predictions = forecaster.forecast(train_df, test_df, target_name, horizon, limit, frequency, tmp_dir)
-                duration = time.perf_counter() - start_time
-                Utils.logger.debug(f'{forecaster_name} took {duration} seconds {csv_file}')
-
-                # Check that model outputted enough predictions
-                actual = test_df[target_name]
-                if actual.shape[0] > predictions.shape[0]:
-                    raise ValueError(f'Not enough predictions {predictions.shape[0]} for test set {actual.shape[0]}')
-
-                # Truncate and flatten predictions if needed
-                if actual.shape[0] < predictions.shape[0]:
-                    predictions = predictions.head(actual.shape[0])
-                predictions = predictions.flatten()
-
-                # Save regression scores and plots
-                scores = Utils.regression_scores(actual, predictions, results_subdir, forecaster_name,
-                                                duration=duration)
-
-                try: # If pandas Series
-                    predictions = predictions.reset_index(drop=True)
-                except: pass
-
-                Utils.plot_forecast(actual.reset_index(drop=True).values, predictions, results_subdir,
                                     f'{forecaster_name}_{round(scores["R2"], 2)}')
                     # # Only valid if time limit not exceeded
                     # if duration <= limit:
@@ -284,8 +216,15 @@ class Forecasting():
         return forecaster
 
 
-    def _validate_inputs(config):
+    def _validate_inputs(config, forecast_type):
         """Validation inputs for entrypoint run_forecasting_libraries()"""
+
+        options = ['global', 'multivariate', 'univariate']
+        if forecast_type not in options:
+            raise ValueError(f'Unrecognised forecast type: {forecast_type}. Options: {options}')
+
+        if forecast_type == 'multivariate':
+            raise NotImplementedError('multivariate forecasting not implemented')
 
         if config.libraries == 'all':
             config.libraries = Forecasting.global_forecaster_names

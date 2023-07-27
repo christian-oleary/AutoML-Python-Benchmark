@@ -89,11 +89,12 @@ if __name__ == '__main__': # Needed for any multiprocessing
     DatasetFormatting.format_univariate_forecasting_data(args.univariate_forecasting_data_dir)
 
     # Run univariate forecasting models
-    Forecasting.run_univariate_forecasting_libraries(args)
+    data_dir = args.univariate_forecasting_data_dir
+    Forecasting.run_forecasting_libraries(data_dir, args, 'univariate')
 
     # Run global forecasting models
-    # Needs refactoring
-    # Forecasting.run_global_forecasting_libraries(args)
+    data_dir = args.global_forecasting_data_dir
+    # Forecasting.run_forecasting_libraries(data_dir, args, 'global')
 
     # Calculate runtime
     print(f'\nFinished at {datetime.now().strftime("%d-%m-%y %H:%M:%S")}')

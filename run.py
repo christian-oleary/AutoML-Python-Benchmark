@@ -21,11 +21,10 @@ if __name__ == '__main__': # Needed for any multiprocessing
                         default=os.path.join('data', 'anomaly_detection'),
                         help='directory containing anomaly detection datasets')
 
-    parser.add_argument('--forecasting_data_dir', metavar='-F', type=str, nargs='?',
-                        default=os.path.join('data', 'forecasting'),
+    parser.add_argument('--global_forecasting_data_dir', metavar='-GF', type=str, nargs='?',
+                        default=os.path.join('data', 'global_forecasting'),
                         # default='./tests/data/forecasting/', # test data
-                        # default='./data/other/', # other datasets
-                        help='directory containing forecasting datasets')
+                        help='directory containing global forecasting datasets')
 
     library_options = [
                         'all', # Will run all libraries
@@ -78,10 +77,10 @@ if __name__ == '__main__': # Needed for any multiprocessing
         os.environ['CUDA_VISIBLE_DEVICES'] = '-1' # Use CPU instead of GPU
 
     # Download data if needed
-    exp_dir = os.path.join('data', 'forecasting')
-    if args.forecasting_data_dir == exp_dir:
+    exp_dir = os.path.join('data', 'global_forecasting')
+    if args.global_forecasting_data_dir == exp_dir:
         gather_metadata = not os.path.exists(os.path.join(exp_dir, '0_metadata.csv'))
-        DatasetFormatting.format_forecasting_data(args.forecasting_data_dir, gather_metadata=gather_metadata)
+        DatasetFormatting.format_forecasting_data(args.global_forecasting_data_dir, gather_metadata=gather_metadata)
 
     exp_dir = os.path.join('data', 'anomaly_detection')
     if args.anomaly_data_dir == exp_dir:
@@ -89,7 +88,7 @@ if __name__ == '__main__': # Needed for any multiprocessing
         DatasetFormatting.format_anomaly_data(args.anomaly_data_dir)
 
     # Run forecasting models
-    Forecasting.run_forecasting_libraries(args)
+    Forecasting.run_global_forecasting_libraries(args)
 
     # Calculate runtime
     print(f'\nFinished at {datetime.now().strftime("%d-%m-%y %H:%M:%S")}')

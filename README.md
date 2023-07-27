@@ -4,6 +4,14 @@ Benchmarks of AutoML Frameworks for time series forecasting and anomaly detectio
 
 These experiments are run with Python 3.8 and CUDA versions 11.2 and 11.7.
 
+## Downloading Datasets
+
+```bash
+./shell/download_univariate_forecasting_dataset.sh
+./shell/download_global_forecasting_dataset.sh
+./shell/download_anomaly_detection_dataset.sh
+```
+
 ## CUDA Setup
 
 To run this code, you will need to install CUDA for TensorFlow and PyTorch.

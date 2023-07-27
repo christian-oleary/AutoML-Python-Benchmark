@@ -17,7 +17,7 @@ class Forecasting():
 
     logger = Utils.logger
 
-    forecaster_names = [ 'autogluon', 'autokeras', 'autots', 'autopytorch',
+    global_forecaster_names = [ 'autogluon', 'autokeras', 'autots', 'autopytorch',
                         # 'etna', # Internal library errors
                         'evalml', 'fedot', 'flaml', 'ludwig', 'pycaret']
 
@@ -42,7 +42,7 @@ class Forecasting():
 
 
     @staticmethod
-    def run_forecasting_libraries(config):
+    def run_global_forecasting_libraries(config):
         """Intended entrypoint to run forecasting libraries on the davailable datasets
 
         :param config: Program configuration
@@ -50,10 +50,10 @@ class Forecasting():
 
         Forecasting._validate_inputs(config)
 
-        csv_files = Utils.get_csv_datasets(config.forecasting_data_dir)
+        csv_files = Utils.get_csv_datasets(config.global_forecasting_data_dir)
         # for i in range(len(csv_files)): print(i, csv_files[i])
         # csv_files = [ csv_files[0] ] # TODO: For development only. To be removed
-        metadata = pd.read_csv(os.path.join(config.forecasting_data_dir, '0_metadata.csv'))
+        metadata = pd.read_csv(os.path.join(config.global_forecasting_data_dir, '0_metadata.csv'))
 
         for csv_file in csv_files:
             dataset_name = csv_file.split('.')[0]
@@ -67,9 +67,10 @@ class Forecasting():
                 Forecasting.logger.debug(f'Skipping dataset {dataset_name}')
 
             # Read dataset
-            dataset_path = os.path.join(config.forecasting_data_dir, csv_file)
+            dataset_path = os.path.join(config.global_forecasting_data_dir, csv_file)
             Forecasting.logger.debug(f'Reading dataset {dataset_path}')
             df = pd.read_csv(dataset_path, index_col=0)
+
 
             # Holdout for model testing (80% training, 20% testing). This seems to be used by Godahewa et al.:
             # https://github.com/rakshitha123/TSForecasting/blob/master/experiments/rolling_origin.R#L10
@@ -78,17 +79,19 @@ class Forecasting():
 
             # Get dataset metadata
             data = metadata[metadata['file'] == csv_file.replace('csv', 'tsf')]
-            target_name = None
-            # As target names not currently known:
-            for col in test_df.columns:
-                percentage_nan = test_df[col].isnull().sum() * 100 / len(test_df)
-                print(col, percentage_nan, percentage_nan < 0.5)
-                if percentage_nan < 0.5: # i.e. at least 50% values present
-                    target_name = col
-                    break
 
-            if target_name is None:
-                raise ValueError(f'Failed to find suitable forecasting target in {csv_file}')
+            # Update: No target required for global forecasters
+            # target_name = None
+            # # As target names not currently known:
+            # for col in test_df.columns:
+            #     percentage_nan = test_df[col].isnull().sum() * 100 / len(test_df)
+            #     print(col, percentage_nan, percentage_nan < 0.5)
+            #     if percentage_nan < 0.5: # i.e. at least 50% values present
+            #         target_name = col
+            #         break
+
+            # if target_name is None:
+            #     raise ValueError(f'Failed to find suitable forecasting target in {csv_file}')
 
             frequency = data['frequency'].iloc[0]
             horizon = data['horizon'].iloc[0]
@@ -100,18 +103,22 @@ class Forecasting():
             if pd.isna(frequency) and 'm3_other_dataset.csv' in csv_file:
                 frequency = 'yearly'
 
-            # Interpolate any missing values in the test data
-            if test_df[target_name].isnull().values.any():
-                imputer = IterativeImputer(max_iter=10, random_state=0)
-                # imputer = SimpleImputer()
-                test_df[target_name] = imputer.fit_transform(test_df[[target_name]]).ravel()
+            # Update: No target required for global forecasters
+            # # Interpolate any missing values in the target
+            # if test_df[target_name].isnull().values.any():
+            #     imputer = IterativeImputer(max_iter=10, random_state=0)
+            #     # imputer = SimpleImputer()
+            #     test_df[target_name] = imputer.fit_transform(test_df[[target_name]]).ravel()
+
+            raise NotImplementedError('Global forecasting not implemented yet')
 
             # Run each forecaster on the dataset
             for forecaster_name in config.libraries:
                 # Initialize forecaster and estimate a time/iterations limit
-                forecaster = Forecasting._init_forecaster(forecaster_name)
+                forecaster = Forecasting._init_global_forecaster(forecaster_name)
                 limit = forecaster.estimate_initial_limit(config.time_limit)
-                results_subdir = os.path.join(config.results_dir, dataset_name, f'{target_name}_{config.nproc}proc_{limit}sec')
+                results_subdir = os.path.join(config.results_dir, 'global_forecasting',
+                                              dataset_name, f'{target_name}_{config.nproc}proc_{limit}sec')
 
                 # Run forecaster and record total runtime
                 Forecasting.logger.info(f'Applying {forecaster_name} to {dataset_path}')
@@ -195,7 +202,7 @@ class Forecasting():
             from src.pycaret.models import PyCaretForecaster
             forecaster = PyCaretForecaster()
         else:
-            raise ValueError(f'Unknown forecaster {forecaster_name}. Options: {Forecasting.forecaster_names}')
+            raise ValueError(f'Unknown forecaster {forecaster_name}. Options: {Forecasting.global_forecaster_names}')
         return forecaster
 
 
@@ -203,7 +210,7 @@ class Forecasting():
         """Validation inputs for entrypoint run_forecasting_libraries()"""
 
         if config.libraries == 'all':
-            config.libraries = Forecasting.forecaster_names
+            config.libraries = Forecasting.global_forecaster_names
 
         elif config.libraries == 'installed':
             config = Forecasting._check_installed(config)
@@ -213,8 +220,8 @@ class Forecasting():
                 raise TypeError(f'forecaster_names must be a list or "all". Received: {type(config.libraries)}')
 
             for name in config.libraries:
-                if name not in Forecasting.forecaster_names:
-                    raise ValueError(f'Unknown forecaster. Options: {Forecasting.forecaster_names}')
+                if name not in Forecasting.global_forecaster_names:
+                    raise ValueError(f'Unknown forecaster. Options: {Forecasting.global_forecaster_names}')
 
         try:
             _ = os.listdir(config.forecasting_data_dir)
@@ -306,9 +313,9 @@ class Forecasting():
 
 
     @staticmethod
-    def get_forecaster_names():
+    def get_global_forecaster_names():
         """Return list of forecaster names
 
         :return: list of forecaster names (str)
         """
-        return Forecasting.forecaster_names
+        return Forecasting.global_forecaster_names

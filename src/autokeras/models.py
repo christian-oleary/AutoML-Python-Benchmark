@@ -1,6 +1,10 @@
 import os
+import shutil
 
 import autokeras as ak
+import pandas as pd
+from sklearn.impute import IterativeImputer
+import tensorflow as tf
 
 from src.abstract import Forecaster
 
@@ -15,7 +19,7 @@ class AutoKerasForecaster(Forecaster):
 
     def forecast(self, train_df, test_df, forecast_type, horizon, limit, frequency, tmp_dir,
                  preset='greedy',
-                 target_name=None):
+                 **kwargs):
         """Perform time series forecasting
 
         :param pd.DataFrame train_df: Dataframe of training data
@@ -26,68 +30,93 @@ class AutoKerasForecaster(Forecaster):
         :param int frequency: Data frequency
         :param str tmp_dir: Path to directory to store temporary files
         :param preset: Model configuration to use
-        :param str target_name: Name of target variable for multivariate forecasting, defaults to None
         :return predictions: Numpy array of predictions
         """
 
-        import warnings
-        warnings.warn('NOT USING LAGGED FEATURES FROM TARGET VARIABLE')
+        # Cannot use tmp_dir due to internal bugs with AutoKeras
+        tmp_dir = 'time_series_forecaster'
+        shutil.rmtree(tmp_dir, ignore_errors=True)
 
-        # Split target from features
-        train_y = train_df[target_name]
-        train_X = train_df.drop(target_name, axis=1)
-        test_X = test_df.drop(target_name, axis=1)
+        if forecast_type == 'univariate':
+            step_size = kwargs['step_size']
+            target_name = 'target'
+            train_df.columns = [ target_name ]
+            test_df.columns = [ target_name ]
 
-        # Split train data into train and validation
-        val_split = int(len(train_df) * 0.1)
-        val_y = train_y[:val_split]
-        val_X = train_X[:val_split]
-        train_y = train_y[val_split:]
-        train_X = train_X[val_split:]
+            train_y = train_df[target_name]
 
-        limit = 100 # do we get pred length errors if > 1?
-        epochs = 10 # do we get pred length errors if > 1?
-        preset = 'greedy'
+            # Provide AutoKeras with some feature data
+            train_X = train_df[[target_name]].shift(step_size)
+            test_X = test_df[[target_name]].shift(step_size)
+            imputer = IterativeImputer(max_iter=5, random_state=0)
+            train_X = pd.DataFrame(imputer.fit_transform(train_X), columns=[target_name])
+            test_X = pd.DataFrame(imputer.fit_transform(test_X), columns=[target_name])
+
+            objective = 'val_loss'
+
+        else:
+            import warnings
+            warnings.warn('NOT USING LAGGED FEATURES FROM TARGET VARIABLE')
+
+            # Split target from features
+            target_name = kwargs['target_name']
+            train_y = train_df[target_name]
+            train_X = train_df.drop(target_name, axis=1)
+            test_X = test_df.drop(target_name, axis=1)
+
+            objective = 'val_loss'
+
+        epochs = 1000 # AK default
         tmp_dir = os.path.join(tmp_dir, f'{preset}_{epochs}epochs')
 
         # Initialise forecaster
-        clf = ak.TimeseriesForecaster(
-            directory=tmp_dir,
-            lookback=horizon,
-            max_trials=limit,
-            objective='val_loss',
-            overwrite=False,
-            predict_from=1,
-            predict_until=horizon,
-            seed=limit,
-            tuner=preset,
+        params = {
+            # 'directory': tmp_dir, # Internal errors with AutoKeras
+            'lookback': horizon,
+            'max_trials': limit,
+            'objective': objective,
+            'overwrite': False,
+            'predict_from': 1,
+            'predict_until': horizon,
+            'seed': limit,
+            'tuner': preset,
+        }
+        clf = ak.TimeseriesForecaster(**params)
+
+        # model_path = os.path.join(tmp_dir, 'time_series_forecaster', 'best_pipeline')
+        # print(tmp_dir)
+        # print(model_path)
+        # if not os.path.exists(model_path):
+
+        # "lookback" must be divisable by batch size due to library bug:
+        # https://github.com/keras-team/autokeras/issues/1720
+        # Start at 512 as batch size and decrease until a factor is found
+        # Counting down prevents unnecessarily small batch sizes being selected
+        batch_size = None
+        size = 512 # Prospective batch size
+        while batch_size == None:
+            if (horizon / size).is_integer(): # i.e. is a factor
+                batch_size = size
+            else:
+                size -= 1
+
+        # Train models
+        clf.fit(
+            x=train_X,
+            y=train_y,
+            validation_split=0.2,
+            batch_size=batch_size,
+            epochs=epochs,
+            verbose=0
         )
 
-        model_path = os.path.join(tmp_dir, 'time_series_forecaster', 'best_pipeline')
-        if not os.path.exists(model_path):
-            # "lookback" must be divisable by batch size due to library bug:
-            # https://github.com/keras-team/autokeras/issues/1720
-            # Start at 512 as batch size and decrease until a factor is found
-            # Counting down prevents unnecessarily small batch sizes being selected
-            batch_size = None
-            size = 512 # Prospective batch size
-            while batch_size == None:
-                if (horizon / size).is_integer(): # i.e. is a factor
-                    batch_size = size
-                else:
-                    size -= 1
-
-            # Train models
-            clf.fit(
-                x=train_X,
-                y=train_y,
-                validation_data=(val_X, val_y),
-                batch_size=batch_size,
-                epochs=epochs,
-                verbose=0
-            )
-
-        predictions = self.rolling_origin_forecast(clf, train_X, test_X, horizon)
+        try:  # Issue with AutoKeras and tmp dir
+            predictions = self.rolling_origin_forecast(clf, train_X, test_X, horizon, **kwargs)
+            # print(clf.tuner.best_pipeline_path) # AK bug: This is wrong if "directory" is set
+            assert len(predictions) > 0
+        except AssertionError:
+            clf = ak.TimeseriesForecaster(params)
+            predictions = self.rolling_origin_forecast(clf, train_X, test_X, horizon, **kwargs)
         return predictions
 
 

@@ -4,6 +4,8 @@ import os
 import time
 import warnings
 
+from sklearn.experimental import enable_iterative_imputer # import needed for IterativeImputer
+
 from src.dataset_formatting import DatasetFormatting
 from src.forecasting import Forecasting
 from tests import gpu_test

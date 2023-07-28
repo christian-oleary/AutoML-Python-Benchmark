@@ -1,4 +1,4 @@
-# Project specific
+# --- PROJECT SPECIFIC --- #
 *.txt
 *.csv
 *.ignore
@@ -16,11 +16,17 @@ tmp/
 catboost_info
 .lock_preprocessing
 
+# AutoKeras
+time_series_forecaster
+
 # PyTorch (building from source)
 pytorch
 
 # Anaconda installation scripts
 Anaconda3*.sh
+
+# Ludwig
+*.meta.json
 
 # Images
 *.png
@@ -28,8 +34,8 @@ Anaconda3*.sh
 *.jpeg
 *.gif
 
-# Ludwig
-*.meta.json
+
+# --- GENERAL --- #
 
 # Generated
 bin

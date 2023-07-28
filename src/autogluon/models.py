@@ -19,7 +19,7 @@ class AutoGluonForecaster(Forecaster):
 
     def forecast(self, train_df, test_df, forecast_type, horizon, limit, frequency, tmp_dir,
                  preset='fast_training',
-                 target_name=None):
+                 **kwargs):
         """Perform time series forecasting using AutoGluon TimeSeriesPredictor
 
         :param pd.DataFrame train_df: Dataframe of training data
@@ -30,7 +30,6 @@ class AutoGluonForecaster(Forecaster):
         :param int frequency: Data frequency
         :param str tmp_dir: Path to directory to store temporary files
         :param str preset: Model configuration to use, defaults to 'fast_training'
-        :param str target_name: Name of target variable for multivariate forecasting, defaults to None
         :return np.array: Predictions
         """
 
@@ -97,7 +96,7 @@ class AutoGluonForecaster(Forecaster):
         # Get predictions
         # predictions = predictor.predict(train_data) # forecast
         # predictions = predictions['mean'].values # other values available for probabilistic forecast
-        predictions = self.rolling_origin_forecast(predictor, train_data, test_data, horizon, column='mean')
+        predictions = self.rolling_origin_forecast(predictor, train_data, test_data, horizon, column='mean', **kwargs)
         return predictions
 
 

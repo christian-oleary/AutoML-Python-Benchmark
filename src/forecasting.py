@@ -6,7 +6,6 @@ import os
 import time
 
 import pandas as pd
-from sklearn.experimental import enable_iterative_imputer # import needed for IterativeImputer
 from sklearn.impute import IterativeImputer
 
 from src.util import Utils
@@ -113,16 +112,25 @@ class Forecasting():
                 if pd.isna(frequency) and 'm3_other_dataset.csv' in csv_file:
                     frequency = 'yearly'
                 actual = test_df.values
+                kwargs = {}
 
             else:
                 data = metadata[metadata['file'] == csv_file]
                 frequency = int(data['frequency'].iloc[0])
                 horizon = int(data['horizon'].iloc[0])
+                origin_index = int(data['origin_index'].iloc[0])
+                step_size = int(data['step_size'].iloc[0])
+
                 # Impute any missing test values
                 if test_df.isnull().values.any():
                     imputer = IterativeImputer(max_iter=10, random_state=0)
                     test_df = imputer.fit_transform(test_df).ravel()
                 actual = test_df.values.flatten()
+
+                kwargs = {
+                    # 'origin_index': origin_index, # TODO: for rolling origin index
+                    'step_size': step_size
+                    }
 
             # Run each forecaster on the dataset
             for forecaster_name in config.libraries:
@@ -130,7 +138,7 @@ class Forecasting():
                 forecaster = Forecasting._init_forecaster(forecaster_name)
                 limit = forecaster.estimate_initial_limit(config.time_limit)
                 results_subdir = os.path.join(config.results_dir, f'{forecast_type}_forecasting',
-                                              dataset_name, f'{config.nproc}proc_{limit}sec')
+                                              dataset_name, f'proc-{config.nproc}_limit-{limit}')
 
                 # Run forecaster and record total runtime
                 Forecasting.logger.info(f'Applying {forecaster_name} to {dataset_path}')
@@ -142,7 +150,8 @@ class Forecasting():
                 start_time = time.perf_counter()
                 tmp_dir = os.path.join('tmp', dataset_name, forecaster_name)
                 os.makedirs(tmp_dir, exist_ok=True)
-                predictions = forecaster.forecast(train_df, test_df, forecast_type, horizon, limit, frequency, tmp_dir)
+                predictions = forecaster.forecast(train_df, test_df, forecast_type, horizon, limit, frequency, tmp_dir,
+                                                  **kwargs)
                 duration = time.perf_counter() - start_time
                 Utils.logger.debug(f'{forecaster_name} took {duration} seconds {csv_file}')
 

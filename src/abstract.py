@@ -13,7 +13,7 @@ class Forecaster(ABC):
     """Abstract Forecaster"""
 
     @abstractmethod
-    def forecast(self, train_df, test_df, forecast_type, horizon, limit, frequency, tmp_dir):
+    def forecast(self, train_df, test_df, forecast_type, horizon, limit, frequency, tmp_dir, **kwargs):
         """Perform time series forecasting
 
         :param train_df: Dataframe of training data
@@ -59,7 +59,9 @@ class Forecaster(ABC):
         return new_limit
 
 
-    def rolling_origin_forecast(self, model, X_train, X_test, horizon, column=None, step_size=None):
+    def rolling_origin_forecast(self, model, X_train, X_test, horizon,
+                                column=None,
+                                step_size=None):
         """Iteratively forecast over increasing dataset
 
         :param model: Forecasting model, must have predict()

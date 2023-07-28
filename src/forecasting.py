@@ -112,6 +112,7 @@ class Forecasting():
                 # TODO: revise frequencies, determine and data formatting stage
                 if pd.isna(frequency) and 'm3_other_dataset.csv' in csv_file:
                     frequency = 'yearly'
+                actual = test_df.values
 
             else:
                 data = metadata[metadata['file'] == csv_file]
@@ -121,6 +122,7 @@ class Forecasting():
                 if test_df.isnull().values.any():
                     imputer = IterativeImputer(max_iter=10, random_state=0)
                     test_df = imputer.fit_transform(test_df).ravel()
+                actual = test_df.values.flatten()
 
             # Run each forecaster on the dataset
             for forecaster_name in config.libraries:
@@ -145,16 +147,16 @@ class Forecasting():
                 Utils.logger.debug(f'{forecaster_name} took {duration} seconds {csv_file}')
 
                 # Check that model outputted enough predictions
-                if test_df.shape[0] > predictions.shape[0]:
+                if actual.shape[0] > predictions.shape[0]:
                     raise ValueError(f'Not enough predictions {predictions.shape[0]} for test set {test_df.shape[0]}')
 
                 # Truncate and flatten predictions if needed
-                if test_df.shape[0] < predictions.shape[0]:
-                    predictions = predictions.head(test_df.shape[0])
+                if actual.shape[0] < predictions.shape[0]:
+                    predictions = predictions.head(actual.shape[0])
                 predictions = predictions.flatten()
 
                 # Save regression scores and plots
-                scores = Utils.regression_scores(test_df, predictions, results_subdir, forecaster_name,
+                scores = Utils.regression_scores(actual, predictions, results_subdir, forecaster_name,
                                                 duration=duration)
 
                 try: # If pandas Series

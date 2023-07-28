@@ -14,6 +14,7 @@ tmp/
 !requirements.txt
 
 catboost_info
+.lock_preprocessing
 
 # PyTorch (building from source)
 pytorch

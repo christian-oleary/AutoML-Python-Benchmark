@@ -21,18 +21,21 @@ class FEDOTForecaster(Forecaster):
     initial_training_fraction = 0.95
 
 
-    def forecast(self, train_df, test_df, target_name, horizon, limit, frequency, tmp_dir, preset='fast_train'):
+    def forecast(self, train_df, test_df, forecast_type, horizon, limit, frequency, tmp_dir,
+                 preset='fast_train',
+                 target_name=None):
         """Perform time series forecasting
 
-        :param train_df: Dataframe of training data
-        :param test_df: Dataframe of test data
-        :param target_name: Name of target variable to forecast (str)
-        :param horizon: Forecast horizon (how far ahead to predict) (int)
-        :param limit: Iterations limit (int)
-        :param frequency: Data frequency (str)
-        :param tmp_dir: Path to directory to store temporary files (str)
-        :param preset: Model configuration to use
-        :return predictions: TODO
+        :param pd.DataFrame train_df: Dataframe of training data
+        :param pd.DataFrame test_df: Dataframe of test data
+        :param str forecast_type: Type of forecasting, i.e. 'global', 'multivariate' or 'univariate'
+        :param int horizon: Forecast horizon (how far ahead to predict)
+        :param int limit: Time limit in seconds
+        :param int frequency: Data frequency
+        :param str tmp_dir: Path to directory to store temporary files
+        :param str preset: Model configuration to use, defaults to 'default'
+        :param str target_name: Name of target variable for multivariate forecasting, defaults to None
+        :return predictions: Numpy array of predictions
         """
 
         # Split target from features

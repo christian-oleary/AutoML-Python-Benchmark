@@ -50,7 +50,7 @@ class Forecasting():
 
         :param str data_dir: Path to datasets directory
         :param argparse.Namespace config: arguments from command line
-        :param str data_dir: Type of forecasting, i.e. 'global', 'multivariate' or 'univariate'
+        :param str forecast_type: Type of forecasting, i.e. 'global', 'multivariate' or 'univariate'
         """
 
         Forecasting._validate_inputs(config, forecast_type)

@@ -17,19 +17,23 @@ class AutoGluonForecaster(Forecaster):
     initial_training_fraction = 0.9
 
 
-    def forecast(self, train_df, test_df, target_name, horizon, limit, frequency, tmp_dir, preset='best_quality'):
+    def forecast(self, train_df, test_df, forecast_type, horizon, limit, frequency, tmp_dir,
+                 preset='fast_training',
+                 target_name=None):
         """Perform time series forecasting using AutoGluon TimeSeriesPredictor
 
-        :param train_df: Dataframe of training data
-        :param test_df: Dataframe of test data
-        :param target_name: Name of target variable to forecast (str)
-        :param horizon: Forecast horizon (how far ahead to predict) (int)
-        :param limit: Time limit in seconds (int)
-        :param frequency: Data frequency (str)
-        :param tmp_dir: Path to directory to store temporary files (str)
-        :param preset: Model configuration to use
-        :return predictions: Numpy array of predictions
+        :param pd.DataFrame train_df: Dataframe of training data
+        :param pd.DataFrame test_df: Dataframe of test data
+        :param str forecast_type: Type of forecasting, i.e. 'global', 'multivariate' or 'univariate'
+        :param int horizon: Forecast horizon (how far ahead to predict)
+        :param int limit: Time limit in seconds
+        :param int frequency: Data frequency
+        :param str tmp_dir: Path to directory to store temporary files
+        :param str preset: Model configuration to use, defaults to 'fast_training'
+        :param str target_name: Name of target variable for multivariate forecasting, defaults to None
+        :return np.array: Predictions
         """
+
 
         try:
             train_df = train_df.reset_index(names=['timestamp'])

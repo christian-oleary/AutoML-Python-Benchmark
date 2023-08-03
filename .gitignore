@@ -7,6 +7,7 @@
 env*/
 data/
 ignore/
+logs/
 repositories/
 results/
 tmp/

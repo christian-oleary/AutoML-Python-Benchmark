@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 from autots import AutoTS
 
-from src.abstract import Forecaster
+from src.base import Forecaster
 from src.util import Utils
 from src.TSForecasting.data_loader import FREQUENCY_MAP
 

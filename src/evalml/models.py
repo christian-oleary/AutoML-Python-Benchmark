@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 from evalml.automl import AutoMLSearch
 
-from src.abstract import Forecaster
+from src.base import Forecaster
 from src.util import Utils
 
 

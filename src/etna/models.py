@@ -6,7 +6,7 @@ from etna.datasets.tsdataset import TSDataset
 from etna.metrics import SMAPE
 import pandas as pd
 
-from src.abstract import Forecaster
+from src.base import Forecaster
 from src.TSForecasting.data_loader import FREQUENCY_MAP
 
 
@@ -16,8 +16,11 @@ class ETNAForecaster(Forecaster):
 
     initial_training_fraction = 0.95 # Use 95% of max. time for trainig in initial experiment
 
+    presets = [ 'none' ]
 
-    def forecast(self, train_df, test_df, forecast_type, horizon, limit, frequency, tmp_dir, target_name=None):
+    def forecast(self, train_df, test_df, forecast_type, horizon, limit, frequency, tmp_dir,
+                 target_name=None,
+                 presets='none'):
         """Perform time series forecasting
 
         :param pd.DataFrame train_df: Dataframe of training data

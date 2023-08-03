@@ -17,17 +17,11 @@ from sklearn.metrics import (mean_absolute_error, mean_absolute_percentage_error
                              mean_squared_error, r2_score)
 from sktime.performance_metrics.forecasting import MeanAbsoluteScaledError
 
-
-logger_name = 'Benchmark'
-logger = logging.getLogger(logger_name)
-logger.addHandler(logging.StreamHandler(sys.stdout))
-logger.setLevel(level=logging.DEBUG)
+from src.logs import logger
 
 
 class Utils:
     """Utility functions"""
-
-    logger = logging.getLogger(logger_name)
 
 
     @staticmethod
@@ -191,6 +185,7 @@ class Utils:
         output_dir = os.path.join(results_subdir, 'plots')
         os.makedirs(output_dir, exist_ok=True)
         plt.savefig(os.path.join(output_dir, f'{forecaster_name}.png'), bbox_inches='tight')
+        plt.clf()
 
 
     @staticmethod
@@ -228,7 +223,7 @@ class Utils:
 
         test_splits = []
         total = 0 # total length of test splits
-        for _ in range(int(len(test_df) / horizon)):
+        for _ in range(int(len(test_df) / horizon)-1):
             try:
                 test_splits.append(test_df.iloc[total:total+horizon, :])
             except: # If 1D (series)

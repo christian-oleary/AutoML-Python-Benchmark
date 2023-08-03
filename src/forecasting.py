@@ -8,13 +8,14 @@ import time
 import pandas as pd
 from sklearn.impute import IterativeImputer
 
+from src.base import Forecaster
+from src.logs import logger
 from src.util import Utils
 
 
 class Forecasting():
     """Functionality for applying forecasting libraries to existing datasets"""
 
-    logger = Utils.logger
 
     univariate_forecaster_names = [ 'autogluon', 'autokeras', 'autots', 'autopytorch',
                                     'evalml', 'fedot', 'flaml', 'ludwig', 'pycaret']
@@ -43,8 +44,7 @@ class Forecasting():
         ]
 
 
-    @staticmethod
-    def run_forecasting_libraries(data_dir, config, forecast_type):
+    def run_forecasting_libraries(self, data_dir, config, forecast_type):
         """Entrypoint to run forecasting libraries on available datasets
 
         :param str data_dir: Path to datasets directory
@@ -52,7 +52,7 @@ class Forecasting():
         :param str forecast_type: Type of forecasting, i.e. 'global', 'multivariate' or 'univariate'
         """
 
-        Forecasting._validate_inputs(config, forecast_type)
+        self._validate_inputs(config, forecast_type)
 
         csv_files = Utils.get_csv_datasets(data_dir)
         # for i in range(len(csv_files)): print(i, csv_files[i])
@@ -67,17 +67,17 @@ class Forecasting():
             # for both univariate and global model evaluations, the Kaggle web traffic daily dataset for
             # the global model evaluations and the solar 10 minutely dataset for the WaveNet evaluation
             filter_forecast_datasets = True # TODO: make an env variable
-            if filter_forecast_datasets and dataset_name in Forecasting.omitted_datasets:
-                Forecasting.logger.debug(f'Skipping dataset {dataset_name}')
+            if filter_forecast_datasets and dataset_name in self.omitted_datasets:
+                logger.debug(f'Skipping dataset {dataset_name}')
                 continue
 
             # Read dataset
             dataset_path = os.path.join(data_dir, csv_file)
-            Forecasting.logger.debug(f'Reading dataset {dataset_path}')
+            logger.debug(f'Reading dataset {dataset_path}')
             if forecast_type == 'global':
                 df = pd.read_csv(dataset_path, index_col=0)
             else:
-                df = pd.read_csv(dataset_path)
+                df = pd.read_csv(dataset_path, header=None)
 
             # Holdout for model testing (80% training, 20% testing).
             # This seems to be used by Godahewa et al. for global forecasting:
@@ -88,19 +88,8 @@ class Forecasting():
 
             # Get dataset metadata
             if forecast_type == 'global':
+                raise NotImplementedError()
                 data = metadata[metadata['file'] == csv_file.replace('csv', 'tsf')]
-
-                # Update: No target required for global forecasters
-                # target_name = None
-                # # As target names not currently known:
-                # for col in test_df.columns:
-                #     percentage_nan = test_df[col].isnull().sum() * 100 / len(test_df)
-                #     print(col, percentage_nan, percentage_nan < 0.5)
-                #     if percentage_nan < 0.5: # i.e. at least 50% values present
-                #         target_name = col
-                #         break
-                # if target_name is None:
-                #     raise ValueError(f'Failed to find suitable forecasting target in {csv_file}')
 
                 frequency = data['frequency'].iloc[0]
                 horizon = data['horizon'].iloc[0]
@@ -112,77 +101,79 @@ class Forecasting():
                 if pd.isna(frequency) and 'm3_other_dataset.csv' in csv_file:
                     frequency = 'yearly'
                 actual = test_df.values
-                kwargs = {}
 
             else:
                 data = metadata[metadata['file'] == csv_file]
                 frequency = int(data['frequency'].iloc[0])
                 horizon = int(data['horizon'].iloc[0])
-                origin_index = int(data['origin_index'].iloc[0])
-                step_size = int(data['step_size'].iloc[0])
-
-                # Impute any missing test values
-                if test_df.isnull().values.any():
-                    imputer = IterativeImputer(max_iter=10, random_state=0)
-                    test_df = imputer.fit_transform(test_df).ravel()
-                actual = test_df.values.flatten()
-
-                kwargs = {
-                    # 'origin_index': origin_index, # TODO: for rolling origin index
-                    'step_size': step_size
-                    }
+                actual = test_df.copy().values.flatten()
+                # Libra's custom rolling origin forecast:
+                # kwargs = {
+                #     'origin_index': int(data['origin_index'].iloc[0]),
+                #     'step_size': int(data['step_size'].iloc[0])
+                #     }
 
             # Run each forecaster on the dataset
             for forecaster_name in config.libraries:
                 # Initialize forecaster and estimate a time/iterations limit
-                forecaster = Forecasting._init_forecaster(forecaster_name)
+                forecaster = self._init_forecaster(forecaster_name)
                 limit = forecaster.estimate_initial_limit(config.time_limit)
-                results_subdir = os.path.join(config.results_dir, f'{forecast_type}_forecasting',
-                                              dataset_name, f'proc-{config.nproc}_limit-{limit}')
 
-                # Run forecaster and record total runtime
-                Forecasting.logger.info(f'Applying {forecaster_name} to {dataset_path}')
-                # simulation_valid = False
-                # attempts = 0
-                # while not simulation_valid and attempts < 10:
-                    # attempts += 1
+                for preset in forecaster.presets:
+                    if config.results_dir != None:
+                        results_subdir = os.path.join(config.results_dir, f'{forecast_type}_forecasting', dataset_name,
+                                                    forecaster_name, f'preset-{preset}_proc-{config.nproc}_limit-{limit}')
+                    else:
+                        results_subdir = None
 
-                start_time = time.perf_counter()
-                tmp_dir = os.path.join('tmp', dataset_name, forecaster_name)
-                os.makedirs(tmp_dir, exist_ok=True)
-                predictions = forecaster.forecast(train_df, test_df, forecast_type, horizon, limit, frequency, tmp_dir,
-                                                  **kwargs)
-                duration = time.perf_counter() - start_time
-                Utils.logger.debug(f'{forecaster_name} took {duration} seconds {csv_file}')
+                    # Run forecaster and record total runtime
+                    logger.info(f'Applying {forecaster_name} to {dataset_path}')
+                    start_time = time.perf_counter()
+                    tmp_dir = os.path.join('tmp', dataset_name, forecaster_name)
+                    os.makedirs(tmp_dir, exist_ok=True)
+                    predictions = forecaster.forecast(train_df.copy(), test_df.copy(), forecast_type, horizon, limit,
+                                                      frequency, tmp_dir, preset=preset)
+                    duration = time.perf_counter() - start_time
+                    logger.debug(f'{forecaster_name} took {duration} seconds {csv_file}')
 
-                # Check that model outputted enough predictions
-                if actual.shape[0] > predictions.shape[0]:
-                    raise ValueError(f'Not enough predictions {predictions.shape[0]} for test set {test_df.shape[0]}')
-
-                # Truncate and flatten predictions if needed
-                if actual.shape[0] < predictions.shape[0]:
-                    predictions = predictions.head(actual.shape[0])
-                predictions = predictions.flatten()
-
-                # Save regression scores and plots
-                scores = Utils.regression_scores(actual, predictions, results_subdir, forecaster_name,
-                                                duration=duration)
-
-                try: # If pandas Series
-                    predictions = predictions.reset_index(drop=True)
-                except: pass
-
-                Utils.plot_forecast(test_df.reset_index(drop=True).values, predictions, results_subdir,
-                                    f'{forecaster_name}_{round(scores["R2"], 2)}')
-                    # # Only valid if time limit not exceeded
-                    # if duration <= limit:
-                    #     simulation_valid = True
-                        # Re-estimate time/iterations limit based on previous duration
-                    #     limit = forecaster.estimate_new_limit(time_limit, limit, duration)
+                    self.evaluate_predictions(actual, predictions, results_subdir, forecaster_name, duration)
 
 
-    @staticmethod
-    def _init_forecaster(forecaster_name):
+    def evaluate_predictions(self, actual, predictions, results_subdir, forecaster_name, duration):
+        """Generate model scores and plots from predictions
+
+        :param np.array actual: Original data
+        :param np.array predictions: Predicted data
+        :param str results_subdir: Path to results subdirectory
+        :param str forecaster_name: Name of library
+        :param float duration: Duration of fitting/inference times
+        :raises ValueError: If predictions < actual
+        """
+        # Check that model outputted enough predictions
+        if actual.shape[0] > predictions.shape[0]:
+            raise ValueError(f'Not enough predictions {predictions.shape[0]} for test set {actual.shape[0]}')
+
+        # Truncate and flatten predictions if needed
+        if actual.shape[0] < predictions.shape[0]:
+            try:
+                predictions = predictions.head(actual.shape[0])
+            except:
+                predictions = predictions[:len(actual)]
+        predictions = predictions.flatten()
+
+        # Save regression scores and plots
+        scores = Utils.regression_scores(actual, predictions, results_subdir, forecaster_name,
+                                        duration=duration)
+
+        try: # If pandas Series
+            predictions = predictions.reset_index(drop=True)
+        except: pass
+
+        if results_subdir != None:
+            Utils.plot_forecast(actual, predictions, results_subdir, f'{forecaster_name}_{round(scores["R2"], 2)}')
+
+
+    def _init_forecaster(self, forecaster_name):
         """Create forecaster object from name (see Forecasting.get_forecaster_names())
 
         :param forecaster_name: Name of forecaster (str)
@@ -191,7 +182,9 @@ class Forecasting():
         """
 
         # Import statements included here to accomodate different/conflicting setups
-        if forecaster_name == 'autogluon':
+        if forecaster_name == 'test':
+            forecaster = Forecaster()
+        elif forecaster_name == 'autogluon':
             from src.autogluon.models import AutoGluonForecaster
             forecaster = AutoGluonForecaster()
         elif forecaster_name == 'autokeras':
@@ -222,11 +215,11 @@ class Forecasting():
             from src.pycaret.models import PyCaretForecaster
             forecaster = PyCaretForecaster()
         else:
-            raise ValueError(f'Unknown forecaster {forecaster_name}. Options: {Forecasting.global_forecaster_names}')
+            raise ValueError(f'Unknown forecaster {forecaster_name}. Options: {self.global_forecaster_names}')
         return forecaster
 
 
-    def _validate_inputs(config, forecast_type):
+    def _validate_inputs(self, config, forecast_type):
         """Validation inputs for entrypoint run_forecasting_libraries()"""
 
         options = ['global', 'multivariate', 'univariate']
@@ -237,18 +230,18 @@ class Forecasting():
             raise NotImplementedError('multivariate forecasting not implemented')
 
         if config.libraries == 'all':
-            config.libraries = Forecasting.global_forecaster_names
+            config.libraries = self.global_forecaster_names
 
         elif config.libraries == 'installed':
-            config = Forecasting._check_installed(config)
+            config = self._check_installed(config)
         else:
             print('config.libraries', config.libraries)
             if not isinstance(config.libraries, list):
                 raise TypeError(f'forecaster_names must be a list or "all". Received: {type(config.libraries)}')
 
             for name in config.libraries:
-                if name not in Forecasting.global_forecaster_names:
-                    raise ValueError(f'Unknown forecaster. Options: {Forecasting.global_forecaster_names}')
+                if name != 'test' and name not in self.global_forecaster_names:
+                    raise ValueError(f'Unknown forecaster. Options: {self.global_forecaster_names}')
 
         try:
             _ = os.listdir(config.univariate_forecasting_data_dir)
@@ -267,8 +260,7 @@ class Forecasting():
             raise ValueError(f'time_limit must be > 0. Received: {config.time_limit}')
 
 
-    @staticmethod
-    def _check_installed(config):
+    def _check_installed(self, config):
         """Determine which libararies are installed.
 
         :param config: Argparser configuration
@@ -281,73 +273,72 @@ class Forecasting():
             from src.autogluon.models import AutoGluonForecaster
             config.libraries.append('autogluon')
         except ModuleNotFoundError as e:
-            Forecasting.logger.debug('Not using AutoGluon')
+            logger.debug('Not using AutoGluon')
 
         try:
             from src.autokeras.models import AutoKerasForecaster
             config.libraries.append('autokeras')
         except ModuleNotFoundError as e:
-            Forecasting.logger.debug('Not using AutoKeras')
+            logger.debug('Not using AutoKeras')
 
         try:
             from src.autots.models import AutoTSForecaster
             config.libraries.append('autots')
         except ModuleNotFoundError as e:
-            Forecasting.logger.debug('Not using AutoTS')
+            logger.debug('Not using AutoTS')
 
         try:
             from src.autopytorch.models import AutoPyTorchForecaster
             config.libraries.append('autopytorch')
         except ModuleNotFoundError as e:
-            Forecasting.logger.debug('Not using AutoPyTorch')
+            logger.debug('Not using AutoPyTorch')
 
         try:
             from src.evalml.models import EvalMLForecaster
             config.libraries.append('evalml')
         except ModuleNotFoundError as e:
-            Forecasting.logger.debug('Not using EvalML')
+            logger.debug('Not using EvalML')
 
         try:
             from src.etna.models import ETNAForecaster
             config.libraries.append('etna')
         except ModuleNotFoundError as e:
-            Forecasting.logger.debug('Not using ETNA')
+            logger.debug('Not using ETNA')
 
         try:
             from src.fedot.models import FEDOTForecaster
             config.libraries.append('fedot')
         except ModuleNotFoundError as e:
-            Forecasting.logger.debug('Not using FEDOT')
+            logger.debug('Not using FEDOT')
 
         try:
             from src.flaml.models import FLAMLForecaster
             config.libraries.append('flaml')
         except:
-            Forecasting.logger.debug('Not using FLAML')
+            logger.debug('Not using FLAML')
 
         try:
             from src.ludwig.models import LudwigForecaster
             config.libraries.append('ludwig')
         except ModuleNotFoundError as e:
-            Forecasting.logger.debug('Not using Ludwig')
+            logger.debug('Not using Ludwig')
 
         try:
             from src.pycaret.models import PyCaretForecaster
             config.libraries.append('pycaret')
         except ModuleNotFoundError as e:
-            Forecasting.logger.debug('Not using PyCaret')
+            logger.debug('Not using PyCaret')
 
         if len(config.libraries) == 0:
             raise ValueError('No AutoML libraries can be imported. Are any installed?')
 
-        Forecasting.logger.info(f'Using Libraries: {config.libraries}')
+        logger.info(f'Using Libraries: {config.libraries}')
         return config
 
 
-    @staticmethod
-    def get_global_forecaster_names():
+    def get_global_forecaster_names(self):
         """Return list of forecaster names
 
         :return: list of forecaster names (str)
         """
-        return Forecasting.global_forecaster_names
+        return self.global_forecaster_names

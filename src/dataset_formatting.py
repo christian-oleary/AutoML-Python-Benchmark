@@ -10,9 +10,10 @@ import zipfile
 
 import pandas as pd
 
+from src.frequencies import frequencies
+from src.logs import logger
 from src.TSForecasting.data_loader import convert_tsf_to_dataframe, FREQUENCY_MAP
 from src.util import Utils
-from src.frequencies import frequencies
 
 
 class DatasetFormatting:
@@ -20,13 +21,10 @@ class DatasetFormatting:
 
     default_start_timestamp = datetime.strptime('1970-01-01 00-00-00', '%Y-%m-%d %H-%M-%S')
 
-    logger = Utils.logger
-
-
     @staticmethod
     def format_univariate_forecasting_data(data_dir):
 
-        Utils.logger.info('Reading univariate forecasting data...')
+        logger.info('Reading univariate forecasting data...')
 
         meta_data = {
             'file': [],
@@ -70,7 +68,7 @@ class DatasetFormatting:
         metadata_df = pd.DataFrame(meta_data)
         metadata_df.to_csv(os.path.join(data_dir, '0_metadata.csv'), index=False)
 
-        Utils.logger.info('Univariate forecasting data ready.')
+        logger.info('Univariate forecasting data ready.')
 
 
     @staticmethod
@@ -100,7 +98,7 @@ class DatasetFormatting:
 
             # Parse .tsf files and output dataframe
             if not os.path.exists(csv_path) or gather_metadata:
-                Utils.logger.info(f'Parsing {tsf_file}')
+                logger.info(f'Parsing {tsf_file}')
                 data, freq, horizon, has_nans, equal_length = convert_tsf_to_dataframe(
                     os.path.join(data_dir, tsf_file), 'NaN', 'value')
 
@@ -145,7 +143,7 @@ class DatasetFormatting:
             metadata_df = pd.DataFrame(meta_data)
             metadata_df.to_csv(os.path.join(data_dir, '0_metadata.csv'), index=False)
 
-        Utils.logger.info('Global forecasting data ready.')
+        logger.info('Global forecasting data ready.')
 
 
     @staticmethod
@@ -234,7 +232,7 @@ class DatasetFormatting:
 
     @staticmethod
     def extract_forecasting_data(data_dir):
-        """Read zip files from directory and
+        """Read zip files from directory and extract .tsf files
 
         :param data_dir: Path to data directory of zip files
         :raises NotADirectoryError: occurs if non-directory passed as parameter

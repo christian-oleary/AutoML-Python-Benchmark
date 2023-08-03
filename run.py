@@ -8,12 +8,13 @@ from sklearn.experimental import enable_iterative_imputer # import needed for It
 
 from src.dataset_formatting import DatasetFormatting
 from src.forecasting import Forecasting
+from src.logs import logger
 from tests import gpu_test
 
 if __name__ == '__main__': # Needed for any multiprocessing
 
     # Start timer
-    print(f'Started at {datetime.now().strftime("%d-%m-%y %H:%M:%S")}\n')
+    logger.info(f'Started at {datetime.now().strftime("%d-%m-%y %H:%M:%S")}\n')
     start_time = time.perf_counter()
 
     # Configuration is set up first
@@ -25,12 +26,13 @@ if __name__ == '__main__': # Needed for any multiprocessing
 
     parser.add_argument('--global_forecasting_data_dir', metavar='-GF', type=str, nargs='?',
                         default=os.path.join('data', 'global_forecasting'),
-                        # default='./tests/data/forecasting/', # test data
+                        # default='./tests/data/global/', # test data
                         help='directory containing global forecasting datasets')
 
     library_options = [
                         'all', # Will run all libraries
                         'installed', # Will run all libraries installed correctly
+                        'test', # Will run a test/placholder model
 
                         'autogluon',
                         'autokeras',
@@ -64,11 +66,11 @@ if __name__ == '__main__': # Needed for any multiprocessing
 
     parser.add_argument('--univariate_forecasting_data_dir', metavar='-UF', type=str, nargs='?',
                         default=os.path.join('data', 'univariate_forecasting'),
-                        # default='./tests/data/forecasting/', # test data
+                        # default='./tests/data/univariate/', # test data
                         help='directory containing univariate forecasting datasets')
 
     args = parser.parse_args()
-    print('CLI arguments:', args)
+    logger.info(f'CLI arguments: {args}')
 
     # Check GPU access
     if args.use_gpu:
@@ -92,13 +94,13 @@ if __name__ == '__main__': # Needed for any multiprocessing
 
     # Run univariate forecasting models
     data_dir = args.univariate_forecasting_data_dir
-    Forecasting.run_forecasting_libraries(data_dir, args, 'univariate')
+    Forecasting().run_forecasting_libraries(data_dir, args, 'univariate')
 
     # Run global forecasting models
     data_dir = args.global_forecasting_data_dir
-    # Forecasting.run_forecasting_libraries(data_dir, args, 'global')
+    # Forecasting().run_forecasting_libraries(data_dir, args, 'global')
 
     # Calculate runtime
-    print(f'\nFinished at {datetime.now().strftime("%d-%m-%y %H:%M:%S")}')
+    logger.info(f'\nFinished at {datetime.now().strftime("%d-%m-%y %H:%M:%S")}')
     duration = timedelta(seconds=time.perf_counter()-start_time)
-    print(f'Total time: {duration}')
+    logger.debug(f'Total time: {duration}')

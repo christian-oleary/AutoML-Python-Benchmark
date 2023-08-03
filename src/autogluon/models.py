@@ -1,9 +1,9 @@
 import warnings
 from autogluon.timeseries import TimeSeriesDataFrame, TimeSeriesPredictor
 
-from src.abstract import Forecaster
+from src.base import Forecaster
 from src.TSForecasting.data_loader import FREQUENCY_MAP
-from src.util import Utils
+from src.logs import logger
 
 
 class AutoGluonForecaster(Forecaster):
@@ -76,11 +76,11 @@ class AutoGluonForecaster(Forecaster):
         # If imputation (partially) failed, fill missing data with zeroes
         if train_data.isna().any().any():
             train_data = train_data.fillna(0)
-            Utils.logger.warning('Autogluon failed to impute some training data data. Filling with zeros')
+            logger.warning('Autogluon failed to impute some training data data. Filling with zeros')
 
         if test_data.isna().any().any():
             test_data = test_data.fillna(0)
-            Utils.logger.warning('Autogluon failed to impute some test data data. Filling with zeros')
+            logger.warning('Autogluon failed to impute some test data data. Filling with zeros')
 
         # Create Predictor
         predictor = TimeSeriesPredictor(prediction_length=horizon,

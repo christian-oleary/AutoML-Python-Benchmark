@@ -2,7 +2,7 @@ import copy
 
 from autoPyTorch.api.time_series_forecasting import TimeSeriesForecastingTask
 
-from src.abstract import Forecaster
+from src.base import Forecaster
 from src.TSForecasting.data_loader import FREQUENCY_MAP
 
 
@@ -13,7 +13,11 @@ class AutoPyTorchForecaster(Forecaster):
     # Use 95% of maximum available time for model training in initial experiment
     initial_training_fraction = 0.95
 
-    def forecast(self, train_df, test_df, forecast_type, horizon, limit, frequency, tmp_dir, target_name=None):
+    presets = [ 'none' ]
+
+    def forecast(self, train_df, test_df, forecast_type, horizon, limit, frequency, tmp_dir,
+                 target_name=None,
+                 presets='none'):
         """Perform time series forecasting
 
         :param pd.DataFrame train_df: Dataframe of training data

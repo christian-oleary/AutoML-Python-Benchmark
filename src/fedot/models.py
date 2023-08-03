@@ -7,7 +7,7 @@ from fedot.core.repository.tasks import Task, TaskTypesEnum, TsForecastingParams
 from fedot.utilities.ts_gapfilling import ModelGapFiller
 import pandas as pd
 
-from src.abstract import Forecaster
+from src.base import Forecaster
 
 
 class FEDOTForecaster(Forecaster):

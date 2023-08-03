@@ -4,7 +4,7 @@ from flaml import AutoML
 import numpy as np
 import pandas as pd
 
-from src.abstract import Forecaster
+from src.base import Forecaster
 from src.util import Utils
 
 
@@ -14,6 +14,8 @@ class FLAMLForecaster(Forecaster):
 
     # Use 95% of maximum available time for model training in initial experiment
     initial_training_fraction = 0.95
+
+    presets = ['auto']
 
     def forecast(self, train_df, test_df, forecast_type, horizon, limit, frequency, tmp_dir,
                  preset='auto',

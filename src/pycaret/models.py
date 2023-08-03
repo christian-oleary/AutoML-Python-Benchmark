@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 from pycaret.time_series import TSForecastingExperiment
 
-from src.abstract import Forecaster
+from src.base import Forecaster
 from src.TSForecasting.data_loader import FREQUENCY_MAP
 from src.util import Utils
 
@@ -13,8 +13,11 @@ class PyCaretForecaster(Forecaster):
 
     initial_training_fraction = 0.95 # Use 95% of max. time for trainig in initial experiment
 
+    presets = [ 'none' ]
 
-    def forecast(self, train_df, test_df, forecast_type, horizon, limit, frequency, tmp_dir, target_name=None):
+    def forecast(self, train_df, test_df, forecast_type, horizon, limit, frequency, tmp_dir,
+                 target_name=None,
+                 presets='none'):
         """Perform time series forecasting
 
         :param pd.DataFrame train_df: Dataframe of training data

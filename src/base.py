@@ -34,10 +34,12 @@ class Forecaster:
             target_col = 'target'
             train_df.columns = [ target_col ]
             test_df.columns = [ target_col ]
+            logger.debug('Formatting into tabular dataset...')
             X_train, y_train, X_test = self.create_tabular_dataset(train_df, test_df, horizon, target_col,
                                                                    frequency=frequency)
 
             # Fit model
+            logger.debug('Training Linear Regression model...')
             model = LinearRegression()
             model.fit(X_train, y_train)
 
@@ -78,7 +80,7 @@ class Forecaster:
         test_df, X_test, _ = self.create_tabular_data(test_df, lag, horizon, target_col)
 
         # Impute resulting missing values
-        imputer = IterativeImputer() # ~ 1 min
+        imputer = IterativeImputer(n_nearest_features=3, max_iter=5)
         y_train = imputer.fit_transform(y_train)
         X_train = pd.DataFrame(imputer.fit_transform(X_train), index=X_train.index, columns=X_train.columns)
         X_test = pd.DataFrame(imputer.transform(X_test), index=X_test.index, columns=X_test.columns)

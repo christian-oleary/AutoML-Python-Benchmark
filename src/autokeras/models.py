@@ -6,7 +6,7 @@ import pandas as pd
 from sklearn.impute import IterativeImputer
 import tensorflow as tf
 
-from src.abstract import Forecaster
+from src.base import Forecaster
 
 
 class AutoKerasForecaster(Forecaster):
@@ -18,8 +18,7 @@ class AutoKerasForecaster(Forecaster):
 
 
     def forecast(self, train_df, test_df, forecast_type, horizon, limit, frequency, tmp_dir,
-                 preset='greedy',
-                 **kwargs):
+                 preset='greedy'):
         """Perform time series forecasting
 
         :param pd.DataFrame train_df: Dataframe of training data
@@ -38,35 +37,15 @@ class AutoKerasForecaster(Forecaster):
         shutil.rmtree(tmp_dir, ignore_errors=True)
 
         if forecast_type == 'univariate':
-            step_size = kwargs['step_size']
             target_name = 'target'
             train_df.columns = [ target_name ]
             test_df.columns = [ target_name ]
-
-            train_y = train_df[target_name]
-
-            # Provide AutoKeras with some feature data
-            train_X = train_df[[target_name]].shift(step_size)
-            test_X = test_df[[target_name]].shift(step_size)
-            imputer = IterativeImputer(max_iter=5, random_state=0)
-            train_X = pd.DataFrame(imputer.fit_transform(train_X), columns=[target_name])
-            test_X = pd.DataFrame(imputer.fit_transform(test_X), columns=[target_name])
-
-            objective = 'val_loss'
-
+            lag = 1 # AK has lookback
+            X_train, y_train, X_test = self.create_tabular_dataset(train_df, test_df, horizon, target_name, lag=lag)
         else:
-            import warnings
-            warnings.warn('NOT USING LAGGED FEATURES FROM TARGET VARIABLE')
+            raise NotImplementedError()
 
-            # Split target from features
-            target_name = kwargs['target_name']
-            train_y = train_df[target_name]
-            train_X = train_df.drop(target_name, axis=1)
-            test_X = test_df.drop(target_name, axis=1)
-
-            objective = 'val_loss'
-
-        epochs = 1000 # AK default
+        epochs = 100000 # AK default
         tmp_dir = os.path.join(tmp_dir, f'{preset}_{epochs}epochs')
 
         # Initialise forecaster
@@ -74,7 +53,7 @@ class AutoKerasForecaster(Forecaster):
             # 'directory': tmp_dir, # Internal errors with AutoKeras
             'lookback': horizon,
             'max_trials': limit,
-            'objective': objective,
+            'objective': 'val_loss',
             'overwrite': False,
             'predict_from': 1,
             'predict_until': horizon,
@@ -82,11 +61,6 @@ class AutoKerasForecaster(Forecaster):
             'tuner': preset,
         }
         clf = ak.TimeseriesForecaster(**params)
-
-        # model_path = os.path.join(tmp_dir, 'time_series_forecaster', 'best_pipeline')
-        # print(tmp_dir)
-        # print(model_path)
-        # if not os.path.exists(model_path):
 
         # "lookback" must be divisable by batch size due to library bug:
         # https://github.com/keras-team/autokeras/issues/1720
@@ -102,21 +76,16 @@ class AutoKerasForecaster(Forecaster):
 
         # Train models
         clf.fit(
-            x=train_X,
-            y=train_y,
-            validation_split=0.2,
+            x=X_train,
+            y=y_train,
+            # validation_split=0.2, # Internal errors
+            validation_data=(X_train, y_train),
             batch_size=batch_size,
             epochs=epochs,
             verbose=0
         )
 
-        try:  # Issue with AutoKeras and tmp dir
-            predictions = self.rolling_origin_forecast(clf, train_X, test_X, horizon, **kwargs)
-            # print(clf.tuner.best_pipeline_path) # AK bug: This is wrong if "directory" is set
-            assert len(predictions) > 0
-        except AssertionError:
-            clf = ak.TimeseriesForecaster(params)
-            predictions = self.rolling_origin_forecast(clf, train_X, test_X, horizon, **kwargs)
+        predictions = self.rolling_origin_forecast(clf, X_train, X_test, horizon)
         return predictions
 
 

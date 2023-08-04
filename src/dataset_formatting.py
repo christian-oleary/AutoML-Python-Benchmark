@@ -56,7 +56,8 @@ class DatasetFormatting:
             #
             frequency = frequencies[csv_file]
             meta_data['file'].append(csv_file)
-            meta_data['horizon'].append(int(df.shape[0] * 0.2))
+            # meta_data['horizon'].append(int(df.shape[0] * 0.2))
+            meta_data['horizon'].append(int(min(df.shape[0]*0.2, 10*frequency)))
             meta_data['frequency'].append(frequency)
             meta_data['nan_count'].append(int(df.isna().sum()))
             meta_data['num_rows'].append(df.shape[0])

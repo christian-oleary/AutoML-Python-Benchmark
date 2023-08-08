@@ -9,6 +9,7 @@ import pandas as pd
 from sklearn.impute import IterativeImputer
 
 from src.base import Forecaster
+from src.errors import DatasetTooSmallError
 from src.logs import logger
 from src.util import Utils
 
@@ -131,8 +132,12 @@ class Forecasting():
                     start_time = time.perf_counter()
                     tmp_dir = os.path.join('tmp', dataset_name, forecaster_name)
                     os.makedirs(tmp_dir, exist_ok=True)
-                    predictions = forecaster.forecast(train_df.copy(), test_df.copy(), forecast_type, horizon, limit,
-                                                      frequency, tmp_dir, preset=preset)
+                    try:
+                        predictions = forecaster.forecast(train_df.copy(), test_df.copy(), forecast_type, horizon, limit,
+                                                        frequency, tmp_dir, preset=preset)
+                    except DatasetTooSmallError as e:
+                        logger.error('Failed to fit. Dataset too small for library.')
+                        continue
                     duration = time.perf_counter() - start_time
                     logger.debug(f'{forecaster_name} took {duration} seconds {csv_file}')
 

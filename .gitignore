@@ -16,6 +16,7 @@ tmp/
 
 catboost_info
 .lock_preprocessing
+checkpoints
 
 # AutoKeras
 time_series_forecaster

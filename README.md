@@ -39,7 +39,7 @@ conda update -n env -c defaults conda python=3.8
 Installation for AutoTS specifically:
 
 ```bash
-python -m pip install numpy==1.21 scipy scikit-learn statsmodels lightgbm xgboost numexpr bottleneck yfinance pytrends fredapi plotly --exists-action i && \
+python -m pip install numpy==1.21 scipy scikit-learn statsmodels lightgbm xgboost numexpr bottleneck yfinance pytrends fredapi plotly sktime==0.18.0 --exists-action i && \
 python -m pip install pystan prophet --exists-action i && \
 python -m pip install mxnet --no-deps && \
 python -m pip install gluonts arch && \

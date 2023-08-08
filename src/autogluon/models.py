@@ -17,9 +17,7 @@ class AutoGluonForecaster(Forecaster):
     initial_training_fraction = 0.9
 
 
-    def forecast(self, train_df, test_df, forecast_type, horizon, limit, frequency, tmp_dir,
-                 preset='fast_training',
-                 **kwargs):
+    def forecast(self, train_df, test_df, forecast_type, horizon, limit, frequency, tmp_dir, preset='fast_training'):
         """Perform time series forecasting using AutoGluon TimeSeriesPredictor
 
         :param pd.DataFrame train_df: Dataframe of training data
@@ -47,6 +45,8 @@ class AutoGluonForecaster(Forecaster):
             target_name = 'target'
             train_df.columns = [ timestamp_column, target_name ]
             test_df.columns = [ timestamp_column, target_name ]
+        else:
+            raise NotImplementedError()
 
         # AutoGluon requires an ID column
         train_df['ID'] = 1
@@ -96,7 +96,7 @@ class AutoGluonForecaster(Forecaster):
         # Get predictions
         # predictions = predictor.predict(train_data) # forecast
         # predictions = predictions['mean'].values # other values available for probabilistic forecast
-        predictions = self.rolling_origin_forecast(predictor, train_data, test_data, horizon, column='mean', **kwargs)
+        predictions = self.rolling_origin_forecast(predictor, train_data, test_data, horizon, column='mean')
         return predictions
 
 

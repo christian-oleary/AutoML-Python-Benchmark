@@ -2,7 +2,6 @@ import argparse
 from datetime import datetime, timedelta
 import os
 import time
-import warnings
 
 from sklearn.experimental import enable_iterative_imputer # import needed for IterativeImputer
 
@@ -75,10 +74,10 @@ if __name__ == '__main__': # Needed for any multiprocessing
     # Check GPU access
     if args.use_gpu:
         if not gpu_test.tensorflow_test():
-            warnings.warn('TensorFlow cannot access GPU')
+            logger.warning('TensorFlow cannot access GPU')
 
         if not gpu_test.pytorch_test():
-            warnings.warn('PyTorch cannot access GPU')
+            logger.warning('PyTorch cannot access GPU')
 
         # assert gpu_test.tensorflow_test(), 'TensorFlow cannot access GPU'
         # assert gpu_test.pytorch_test(), 'PyTorch cannot access GPU'

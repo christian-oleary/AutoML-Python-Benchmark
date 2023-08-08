@@ -58,14 +58,16 @@ class Forecaster:
         return predictions
 
 
-    def create_tabular_dataset(self, train_df, test_df, horizon, target_col, lag=None, frequency=None):
+    def create_tabular_dataset(self, train_df, test_df, horizon, target_col, tabular_y=True, lag=None, frequency=None):
         """Prepare training and test sets for tabular regression
 
         :param pd.DataFrame train_df: Training data
         :param pd.DataFrame test_df: Test data
         :param int horizon: Forecast horizon
         :param str target_col: Name of target column
+        :param bool tabular_y: Y returned with 'horizon' columns if true, as one column otherwise, defaults to False
         :param int lag: Lag/window size, defaults to None
+        :param int frequency: Dominant frequency of time series
         :return tuple: Tuple containing training features, training labels, test features
         """
         if lag == None and frequency == None:
@@ -74,20 +76,18 @@ class Forecaster:
         if lag == None:
             lag = int(1.25*frequency) # If this fails, horizon may be used (Monash 2021). Libra does not specify.
 
-        lag = 1
-
-        train_df, X_train, y_train = self.create_tabular_data(train_df, lag, horizon, target_col)
-        test_df, X_test, _ = self.create_tabular_data(test_df, lag, horizon, target_col)
+        train_df, X_train, y_train = self.create_tabular_data(train_df, lag, horizon, target_col, tabular_y)
+        test_df, X_test, _ = self.create_tabular_data(test_df, lag, horizon, target_col, tabular_y)
 
         # Impute resulting missing values
         imputer = IterativeImputer(n_nearest_features=3, max_iter=5)
-        y_train = imputer.fit_transform(y_train)
+        y_train = imputer.fit_transform(y_train).flatten()
         X_train = pd.DataFrame(imputer.fit_transform(X_train), index=X_train.index, columns=X_train.columns)
         X_test = pd.DataFrame(imputer.transform(X_test), index=X_test.index, columns=X_test.columns)
         return X_train, y_train, X_test
 
 
-    def create_tabular_data(self, df, lag, horizon, target, drop_original=False):
+    def create_tabular_data(self, df, lag, horizon, target, tabular_y, drop_original=False):
         """Prepare time series data for tabular regression
 
         :param pd.DataFrame df: Time series data
@@ -96,7 +96,10 @@ class Forecaster:
         :param str target: Name of target column to forecast
         :return pd.DataFrame(s): Dataframe, features and targets
         """
-        df, targets = self.create_future_values(df, horizon, target)
+        if tabular_y:
+            df, targets = self.create_future_values(df, horizon, target)
+        else:
+            targets = [ target ]
         df = self.create_lag_features(df, targets, window_size=lag)
 
         # Drop rows missing future target values

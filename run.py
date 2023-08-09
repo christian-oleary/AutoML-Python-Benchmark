@@ -13,7 +13,6 @@ from tests import gpu_test
 if __name__ == '__main__': # Needed for any multiprocessing
 
     # Start timer
-    logger.info(f'Started at {datetime.now().strftime("%d-%m-%y %H:%M:%S")}\n')
     start_time = time.perf_counter()
 
     # Configuration is set up first
@@ -100,6 +99,6 @@ if __name__ == '__main__': # Needed for any multiprocessing
     # Forecasting().run_forecasting_libraries(data_dir, args, 'global')
 
     # Calculate runtime
-    logger.info(f'\nFinished at {datetime.now().strftime("%d-%m-%y %H:%M:%S")}')
+    logger.info(f'Finished at {datetime.now().strftime("%d-%m-%y %H:%M:%S")}')
     duration = timedelta(seconds=time.perf_counter()-start_time)
     logger.debug(f'Total time: {duration}')

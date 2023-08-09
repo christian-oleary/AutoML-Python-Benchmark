@@ -36,6 +36,9 @@ class PyCaretForecaster(Forecaster):
         train_df.index = pd.to_datetime(train_df.index).to_period(freq)
         test_df.index = pd.to_datetime(test_df.index).to_period(freq)
 
+        if forecast_type == 'univariate' and target_name == None:
+            target_name = train_df.columns.tolist()[0]
+
         # Using the correct horizon causes a variety of internal library errors
         # during the forecasting stage (via predict_model())
         # TODO: Use the correct horizon if possible

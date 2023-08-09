@@ -52,7 +52,7 @@ class AutoKerasForecaster(Forecaster):
         # Initialise forecaster
         params = {
             # 'directory': tmp_dir, # Internal errors with AutoKeras
-            'lookback': horizon,
+            'lookback': self.get_default_lag(horizon),
             'max_trials': limit,
             'objective': 'val_loss',
             'overwrite': False,

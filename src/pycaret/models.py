@@ -3,8 +3,8 @@ import pandas as pd
 from pycaret.time_series import TSForecastingExperiment
 
 from src.base import Forecaster
+from src.logs import logger
 from src.TSForecasting.data_loader import FREQUENCY_MAP
-from src.util import Utils
 
 
 class PyCaretForecaster(Forecaster):
@@ -13,11 +13,11 @@ class PyCaretForecaster(Forecaster):
 
     initial_training_fraction = 0.95 # Use 95% of max. time for trainig in initial experiment
 
-    presets = [ 'none' ]
+    presets = [ '' ]
 
     def forecast(self, train_df, test_df, forecast_type, horizon, limit, frequency, tmp_dir,
                  target_name=None,
-                 presets='none'):
+                 preset=''):
         """Perform time series forecasting
 
         :param pd.DataFrame train_df: Dataframe of training data
@@ -32,17 +32,17 @@ class PyCaretForecaster(Forecaster):
         :return predictions: Numpy array of predictions
         """
 
-        freq = FREQUENCY_MAP[frequency].replace('1', '')
-        train_df.index = pd.to_datetime(train_df.index).to_period(freq)
-        test_df.index = pd.to_datetime(test_df.index).to_period(freq)
+        if forecast_type == 'global':
+            freq = FREQUENCY_MAP[frequency].replace('1', '')
+            train_df.index = pd.to_datetime(train_df.index).to_period(freq)
+            test_df.index = pd.to_datetime(test_df.index).to_period(freq)
 
-        if forecast_type == 'univariate' and target_name == None:
-            target_name = train_df.columns.tolist()[0]
-
-        # Using the correct horizon causes a variety of internal library errors
-        # during the forecasting stage (via predict_model())
-        # TODO: Use the correct horizon if possible
-        horizon = len(test_df)
+        # logger.error(f'horizon {horizon}')
+        # # Using the correct horizon causes a variety of internal library errors
+        # # during the forecasting stage (via predict_model())
+        # # TODO: Use the correct horizon if possible
+        # # horizon = len(test_df)
+        # logger.error(f'horizon {horizon}')
 
         exp = TSForecastingExperiment()
         exp.setup(train_df,
@@ -54,9 +54,14 @@ class PyCaretForecaster(Forecaster):
                   use_gpu=True,
                   )
 
+        logger.debug('Training models')
         model = exp.compare_models(budget_time=limit)
-        predictions = exp.predict_model(model, X=test_df.drop(target_name, axis=1), fh=horizon)
-        predictions = predictions['y_pred'].values
+
+        if forecast_type == 'global':
+            predictions = exp.predict_model(model, X=test_df.drop(target_name, axis=1), fh=horizon)
+            predictions = predictions['y_pred'].values
+        else:
+            predictions = self.rolling_origin_forecast(exp, model, train_df, test_df, horizon, column='y_pred')
         return predictions
 
 
@@ -68,3 +73,44 @@ class PyCaretForecaster(Forecaster):
         """
 
         return int((time_limit/60) * self.initial_training_fraction)
+
+
+
+    def rolling_origin_forecast(self, exp, model, X_train, X_test, horizon, column=None):
+        """Iteratively forecast over increasing dataset
+
+        :param model: Forecasting model, must have predict()
+        :param X_train: Training feature data (pandas DataFrame)
+        :param X_test: Test feature data (pandas DataFrame)
+        :param horizon: Forecast horizon (int)
+        :param column: Specifies forecast column if dataframe outputted, defaults to None
+        :return: Predictions (numpy array)
+        """
+
+        # Split test set
+        from src.util import Utils
+        test_splits = Utils.split_test_set(X_test, horizon)
+
+        # Make predictions
+        preds = exp.predict_model(model, X=X_train, fh=horizon)
+        if column != None:
+            preds = preds[column].values
+        predictions = [ preds ]
+
+        for s in test_splits:
+            X_train = pd.concat([X_train, s])
+
+            preds = exp.predict_model(model, X=X_train, fh=horizon)
+            if column != None:
+                preds = preds[column].values
+
+            predictions.append(preds)
+
+        # Flatten predictions and truncate if needed
+        try:
+            predictions = np.concatenate([ p.flatten() for p in predictions ])
+        except:
+            predictions = np.concatenate([ p.values.flatten() for p in predictions ])
+        predictions = predictions[:len(X_test)]
+        return predictions
+

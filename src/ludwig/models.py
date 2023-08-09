@@ -64,7 +64,14 @@ class LudwigForecaster(Forecaster):
         # Constructs Ludwig model from config dictionary
         model = LudwigModel(config, logging_level=logging.WARNING)
 
-        model.train(dataset=train_df, output_directory=tmp_dir, skip_save_log=True)
+        model.train(dataset=train_df, output_directory=tmp_dir,
+                    skip_save_training_description=True,
+                    skip_save_training_statistics=True,
+                    skip_save_model=True,
+                    skip_save_progress=True,
+                    skip_save_log=True,
+                    skip_save_processed_input=True,
+                    )
 
         _, predictions, __ = model.evaluate(test_df, collect_predictions=True, collect_overall_stats=True,
                                             output_directory=os.path.join(tmp_dir, 'evaluate'))

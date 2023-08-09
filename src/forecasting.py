@@ -335,7 +335,7 @@ class Forecasting():
             logger.debug('Not using PyCaret')
 
         if len(config.libraries) == 0:
-            raise ValueError('No AutoML libraries can be imported. Are any installed?')
+            raise ModuleNotFoundError('No AutoML libraries can be imported. Are any installed?')
 
         logger.info(f'Using Libraries: {config.libraries}')
         return config

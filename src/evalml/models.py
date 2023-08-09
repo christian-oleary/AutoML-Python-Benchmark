@@ -4,6 +4,7 @@ from evalml.automl import AutoMLSearch
 
 from src.base import Forecaster
 from src.util import Utils
+from src.errors import DatasetTooSmallError
 
 
 class EvalMLForecaster(Forecaster):
@@ -11,7 +12,8 @@ class EvalMLForecaster(Forecaster):
     name = 'EvalML'
 
     # Training configurations ordered from slowest to fastest
-    presets = [ 'default', 'iterative' ]
+    # presets = [ 'default', 'iterative' ]
+    presets = [ 'default', ]
 
     # Use 95% of maximum available time for model training in initial experiment
     initial_training_fraction = 0.95
@@ -34,19 +36,21 @@ class EvalMLForecaster(Forecaster):
         :return predictions: Numpy array of predictions
         """
 
-        train_df['time_index'] = pd.to_datetime(train_df.index)
-        test_df['time_index'] = pd.to_datetime(test_df.index)
-        train_df.index = pd.to_datetime(train_df.index)
-        test_df.index = pd.to_datetime(test_df.index)
+        # Prepare data
+        if target_name == None:
+            target_name = 'target'
+            train_df.columns = [target_name]
+            test_df.columns = [target_name]
 
-        # Split target from features
-        y_train = train_df[target_name]
-        X_train = train_df.drop(target_name, axis=1)
-        X_test = test_df.drop(target_name, axis=1)
+        lag = 1
+        X_train, y_train, X_test = self.create_tabular_dataset(train_df, test_df, horizon, target_name,
+                                                               tabular_y=False, lag=lag)
 
-        X_train = X_train.reset_index(drop=True)
-        X_test = X_test.reset_index(drop=True)
-        y_train = y_train.reset_index(drop=True)
+        X_train = X_train.astype(float)
+        X_test = X_test.astype(float)
+        X_train['time_index'] = pd.to_datetime(X_train.index, unit='D')
+        X_test['time_index'] = pd.to_datetime(X_test.index, unit='D')
+        y_train = pd.Series(y_train)
 
         problem_config = {
             'gap': 0,
@@ -58,14 +62,25 @@ class EvalMLForecaster(Forecaster):
         automl = AutoMLSearch(
             X_train,
             y_train,
-            allowed_model_families='regression',
+            allowed_model_families=[ 'regression' ],
             automl_algorithm=preset,
             problem_type='time series regression',
             problem_configuration=problem_config,
             max_time=limit,
             verbose=False,
         )
-        automl.search()
+
+        try:
+            automl.search()
+        except ValueError as e:
+            eval_size = horizon * 3 # as n_splits=3
+            train_size = len(train_df) - eval_size
+            window_size = problem_config['gap'] + problem_config['max_delay'] + horizon
+
+            if train_size <= window_size:
+                raise DatasetTooSmallError('Time series is too short for EvalML. Must be > 5*horizon',  e)
+            else:
+                raise e
 
         model = automl.best_pipeline
         predictions = self.rolling_origin_forecast(model, X_train, X_test, y_train, horizon)

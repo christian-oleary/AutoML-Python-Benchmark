@@ -17,26 +17,30 @@ class Forecaster:
     presets = [ 'none' ]
 
 
-    def forecast(self, train_df, test_df, forecast_type, horizon, limit, frequency, tmp_dir, **kwargs):
+    def forecast(self, train_df, test_df, forecast_type, horizon, limit, frequency, tmp_dir, preset=''):
         """Perform time series forecasting using a basic model
 
-        :param train_df: Dataframe of training data
-        :param test_df: Dataframe of test data
-        :param forecast_type: Type of forecasting, 'global', 'univariate' or 'multivariate'
-        :param horizon: Forecast horizon (how far ahead to predict) (int)
-        :param limit: Iterations limit (int)
-        :param frequency: Data frequency (str)
-        :param tmp_dir: Path to directory to store temporary files (str)
+        :param pd.DataFrametrain_df: Dataframe of training data
+        :param pd.DataFrame test_df: Dataframe of test data
+        :param str forecast_type: Type of forecasting, 'global', 'univariate' or 'multivariate'
+        :param int horizon: Forecast horizon (how far ahead to predict) (int)
+        :param int limit: Iterations limit (int)
+        :param int frequency: Data frequency (str)
+        :param str tmp_dir: Path to directory to store temporary files (str)
+        :param str preset: Modelling presets
         """
+
         if forecast_type == 'univariate':
             # Create tabular data
 
             target_col = 'target'
             train_df.columns = [ target_col ]
             test_df.columns = [ target_col ]
+
             logger.debug('Formatting into tabular dataset...')
+            lag = self.get_default_lag(horizon)
             X_train, y_train, X_test = self.create_tabular_dataset(train_df, test_df, horizon, target_col,
-                                                                   frequency=frequency)
+                                                                   lag=lag)
 
             # Fit model
             logger.debug('Training Linear Regression model...')
@@ -58,30 +62,41 @@ class Forecaster:
         return predictions
 
 
-    def create_tabular_dataset(self, train_df, test_df, horizon, target_col, tabular_y=True, lag=None, frequency=None):
+    def get_default_lag(self, horizon):
+        """Get default lag/lookback for generating a sliding window of features
+
+        :param int horizon: Prediction horizon
+        :return int: Equals horizon
+        """
+
+        return horizon # horizon may be used (Monash 2021). Libra does not specify.
+
+
+    def create_tabular_dataset(self, train_df, test_df, horizon, target_col, tabular_y=True, lag=None):
         """Prepare training and test sets for tabular regression
 
         :param pd.DataFrame train_df: Training data
         :param pd.DataFrame test_df: Test data
         :param int horizon: Forecast horizon
         :param str target_col: Name of target column
-        :param bool tabular_y: Y returned with 'horizon' columns if true, as one column otherwise, defaults to False
+        :param bool tabular_y: Target (y) returned with 'horizon' columns if true, as one column otherwise, defaults to False
         :param int lag: Lag/window size, defaults to None
-        :param int frequency: Dominant frequency of time series
         :return tuple: Tuple containing training features, training labels, test features
         """
-        if lag == None and frequency == None:
-            raise ValueError('Either lag or frequency must be provided')
+        if lag == None and horizon == None:
+            raise ValueError('Either lag or horizon must be provided')
 
         if lag == None:
-            lag = int(1.25*frequency) # If this fails, horizon may be used (Monash 2021). Libra does not specify.
+            lag = self.get_default_lag(horizon)
 
         train_df, X_train, y_train = self.create_tabular_data(train_df, lag, horizon, target_col, tabular_y)
         test_df, X_test, _ = self.create_tabular_data(test_df, lag, horizon, target_col, tabular_y)
 
         # Impute resulting missing values
         imputer = IterativeImputer(n_nearest_features=3, max_iter=5)
-        y_train = imputer.fit_transform(y_train).flatten()
+        y_train = imputer.fit_transform(y_train)
+        if not tabular_y:
+            y_train = y_train.flatten()
         X_train = pd.DataFrame(imputer.fit_transform(X_train), index=X_train.index, columns=X_train.columns)
         X_test = pd.DataFrame(imputer.transform(X_test), index=X_test.index, columns=X_test.columns)
         return X_train, y_train, X_test

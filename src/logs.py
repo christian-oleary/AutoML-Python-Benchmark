@@ -1,7 +1,7 @@
 import os
 from datetime import datetime
 import logging
-from logging.handlers import RotatingFileHandler, TimedRotatingFileHandler
+from logging.handlers import TimedRotatingFileHandler
 import sys
 
 # https://docs.python.org/3/library/logging.html#logrecord-attributes
@@ -47,7 +47,7 @@ logger = logging.getLogger('Benchmark')
 # Format logs for log files
 log_dir = 'logs'
 os.makedirs(log_dir, exist_ok=True)
-file_handler = TimedRotatingFileHandler(os.path.join(log_dir, 'log'),
+file_handler = TimedRotatingFileHandler(os.path.join(log_dir, 'log.log'),
                                         when='H', backupCount=24, utc=True)
 file_handler.setFormatter(logging.Formatter(log_format, time_format))
 logger.addHandler(file_handler)

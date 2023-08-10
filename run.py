@@ -13,7 +13,6 @@ from tests import gpu_test
 if __name__ == '__main__': # Needed for any multiprocessing
 
     # Start timer
-    logger.info(f'Started at {datetime.now().strftime("%d-%m-%y %H:%M:%S")}\n')
     start_time = time.perf_counter()
 
     # Configuration is set up first
@@ -50,18 +49,13 @@ if __name__ == '__main__': # Needed for any multiprocessing
     parser.add_argument('--nproc', metavar='-N', type=int, nargs='?', default=1,
                         help='Number of CPU processes to allow')
 
-    parser.add_argument('--preset', metavar='-P', type=str, nargs='?', default='best',
-                        choices=['best', 'fastest'],
-                        help='Library setup to use: "best" or "fastest". May be ignored.')
-
     parser.add_argument('--results_dir', metavar='-R', type=str, nargs='?', default='results',
                         help='Directory to store results')
 
     parser.add_argument('--time_limit', metavar='-T', type=int, nargs='?', default=3600,
                         help='Time limit in seconds for each library. May not be strictly adhered to.')
 
-    parser.add_argument('--use_gpu', metavar='-G', type=bool, nargs='?', default=True,
-                        help='Boolean to decide if libraries can use GPU')
+    parser.add_argument('--cpu_only', action='store_true', help='Only use CPU. No modelling on GPU.')
 
     parser.add_argument('--univariate_forecasting_data_dir', metavar='-UF', type=str, nargs='?',
                         default=os.path.join('data', 'univariate_forecasting'),
@@ -72,7 +66,9 @@ if __name__ == '__main__': # Needed for any multiprocessing
     logger.info(f'CLI arguments: {args}')
 
     # Check GPU access
-    if args.use_gpu:
+    if args.cpu_only:
+        os.environ['CUDA_VISIBLE_DEVICES'] = '-1' # Use CPU instead of GPU
+    else:
         if not gpu_test.tensorflow_test():
             logger.warning('TensorFlow cannot access GPU')
 
@@ -81,8 +77,6 @@ if __name__ == '__main__': # Needed for any multiprocessing
 
         # assert gpu_test.tensorflow_test(), 'TensorFlow cannot access GPU'
         # assert gpu_test.pytorch_test(), 'PyTorch cannot access GPU'
-    else:
-        os.environ['CUDA_VISIBLE_DEVICES'] = '-1' # Use CPU instead of GPU
 
     # Format datasets if needed
     gather_metadata = not os.path.exists(os.path.join(args.global_forecasting_data_dir, '0_metadata.csv'))
@@ -100,6 +94,6 @@ if __name__ == '__main__': # Needed for any multiprocessing
     # Forecasting().run_forecasting_libraries(data_dir, args, 'global')
 
     # Calculate runtime
-    logger.info(f'\nFinished at {datetime.now().strftime("%d-%m-%y %H:%M:%S")}')
+    logger.info(f'Finished at {datetime.now().strftime("%d-%m-%y %H:%M:%S")}')
     duration = timedelta(seconds=time.perf_counter()-start_time)
     logger.debug(f'Total time: {duration}')

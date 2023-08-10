@@ -77,8 +77,11 @@ class Forecasting():
             logger.debug(f'Reading dataset {dataset_path}')
             if forecast_type == 'global':
                 df = pd.read_csv(dataset_path, index_col=0)
-            else:
+            elif forecast_type == 'univariate':
                 df = pd.read_csv(dataset_path, header=None)
+                df.columns = [ 'target' ]
+            else:
+                raise NotImplementedError()
 
             # Holdout for model testing (80% training, 20% testing).
             # This seems to be used by Godahewa et al. for global forecasting:

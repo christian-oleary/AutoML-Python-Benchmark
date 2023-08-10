@@ -38,10 +38,8 @@ class FEDOTForecaster(Forecaster):
         :return predictions: Numpy array of predictions
         """
 
-        # Split target from features
-        y_train = train_df[target_name]
-        X_train = train_df.drop(target_name, axis=1)
-        X_test = test_df.drop(target_name, axis=1)
+        X_train, y_train, X_test = self.create_tabular_dataset(train_df, test_df, horizon, target_name,
+                                                                   tabular_y=False, lag=None)
 
         task = Task(TaskTypesEnum.ts_forecasting, TsForecastingParams(forecast_length=horizon))
 

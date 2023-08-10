@@ -5,6 +5,8 @@ import numpy as np
 import pandas as pd
 
 from src.base import Forecaster
+from src.errors import DatasetTooSmallError
+from src.logs import logger
 from src.util import Utils
 
 
@@ -34,14 +36,30 @@ class FLAMLForecaster(Forecaster):
         :return predictions: Numpy array of predictions
         """
 
+        if len(test_df) <= horizon + 1:
+            raise DatasetTooSmallError('Dataset too small for FLAML', ValueError())
+
         os.makedirs(tmp_dir, exist_ok=True)
 
-        train_df.index = pd.to_datetime(train_df.index)
-        test_df.index = pd.to_datetime(test_df.index)
+        if forecast_type == 'univariate':
+            train_df.index = pd.to_datetime(train_df.index, unit='D')
+            test_df.index = pd.to_datetime(test_df.index, unit='D')
+        else:
+            train_df.index = pd.to_datetime(train_df.index)
+            test_df.index = pd.to_datetime(test_df.index)
+
+        if forecast_type == 'univariate':
+            target_name = 'target'
+            train_df.columns = [ target_name ]
+            test_df.columns = [ target_name ]
+
+        _, y_train, __ = self.create_tabular_dataset(train_df.copy(), test_df.copy(), horizon, target_name,
+                                                     tabular_y=False, lag=None)
 
         automl = AutoML()
-        automl.fit(X_train=train_df.index.to_series().values,
-                   y_train=train_df[target_name].values,
+        logger.debug('Training models...')
+        automl.fit(X_train=train_df.index.index.to_series().values,
+                   y_train=y_train,
                    estimator_list=preset,
                    eval_method='auto',
                    log_file_name=os.path.join(tmp_dir, 'ts_forecast.log'),

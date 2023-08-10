@@ -58,6 +58,7 @@ class PyCaretForecaster(Forecaster):
         model = exp.compare_models(budget_time=limit)
 
         if forecast_type == 'global':
+            raise NotImplementedError()
             predictions = exp.predict_model(model, X=test_df.drop(target_name, axis=1), fh=horizon)
             predictions = predictions['y_pred'].values
         else:

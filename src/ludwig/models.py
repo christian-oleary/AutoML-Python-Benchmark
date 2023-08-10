@@ -50,8 +50,8 @@ class LudwigForecaster(Forecaster):
             test_df.columns = [target_name]
 
         # Format DataFrame
-        add_sequence_feature_column(train_df, target_name, horizon)
-        add_sequence_feature_column(test_df, target_name, horizon)
+        add_sequence_feature_column(train_df, target_name, self.get_default_lag())
+        add_sequence_feature_column(test_df, target_name, self.get_default_lag())
 
 
         config = {

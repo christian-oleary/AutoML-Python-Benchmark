@@ -42,9 +42,12 @@ class FLAMLForecaster(Forecaster):
         os.makedirs(tmp_dir, exist_ok=True)
 
         if forecast_type == 'univariate':
+            target_name = train_df.columns.tolist()[0]
             train_df.index = pd.to_datetime(train_df.index, unit='D')
             test_df.index = pd.to_datetime(test_df.index, unit='D')
+            y_train = train_df[target_name].values
         else:
+            raise NotImplementedError()
             train_df.index = pd.to_datetime(train_df.index)
             test_df.index = pd.to_datetime(test_df.index)
 
@@ -53,12 +56,9 @@ class FLAMLForecaster(Forecaster):
             train_df.columns = [ target_name ]
             test_df.columns = [ target_name ]
 
-        _, y_train, __ = self.create_tabular_dataset(train_df.copy(), test_df.copy(), horizon, target_name,
-                                                     tabular_y=False, lag=None)
-
         automl = AutoML()
         logger.debug('Training models...')
-        automl.fit(X_train=train_df.index.index.to_series().values,
+        automl.fit(X_train=train_df.index.to_series().values,
                    y_train=y_train,
                    estimator_list=preset,
                    eval_method='auto',
@@ -66,6 +66,7 @@ class FLAMLForecaster(Forecaster):
                    period=horizon, # AssertionError: Model is optimized for horizon, length of X must be equal to `period`.
                    task='ts_forecast',
                    time_budget=limit, # 15
+                   verbose=1, # Higher = more messages
                    )
 
         predictions = self.rolling_origin_forecast(automl, train_df.index.to_series().to_frame(),

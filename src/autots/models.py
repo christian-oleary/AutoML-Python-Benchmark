@@ -3,8 +3,10 @@ import pandas as pd
 from autots import AutoTS
 
 from src.base import Forecaster
-from src.util import Utils
+from src.errors import DatasetTooSmallError
+from src.logs import logger
 from src.TSForecasting.data_loader import FREQUENCY_MAP
+from src.util import Utils
 
 
 class AutoTSForecaster(Forecaster):
@@ -31,40 +33,71 @@ class AutoTSForecaster(Forecaster):
         :return predictions: Numpy array of predictions
         """
 
-        freq = FREQUENCY_MAP[frequency].replace('1', '').replace('min', 'T')
-
-        train_df = train_df[target_name]
-        test_df = test_df[target_name]
+        # if forecast_type == 'global':
+        #     freq = FREQUENCY_MAP[frequency].replace('1', '').replace('min', 'T')
+        # else:
+        #     freq = frequency
 
         train_df.index = pd.to_datetime(train_df.index)
         test_df.index = pd.to_datetime(test_df.index)
 
+        # from sklearn.impute import IterativeImputer
+        # imputer = IterativeImputer(n_nearest_features=3, max_iter=5)
+        # train_df = pd.DataFrame(imputer.fit_transform(train_df), index=train_df.index, columns=train_df.columns)
+        # test_df = pd.DataFrame(imputer.transform(test_df), index=test_df.index, columns=test_df.columns)
+
+        min_allowed_train_percent = 0.1
         model = AutoTS(
             ensemble=['auto'],
-            frequency=freq,
-            # frequency='infer',
+            # frequency=freq,
+            frequency='infer',
             forecast_length=horizon,
             max_generations=limit,
             model_list=preset,
             models_to_validate=0.2,
-            n_jobs='auto',
-            # n_jobs=1,
-            # num_validations=2,
+            n_jobs=1,
+            # num_validations=1,
             prediction_interval=0.95,
             random_seed=limit,
             transformer_list='all',
-            validation_method='similarity',
+            # validation_method='similarity',
+            min_allowed_train_percent=min_allowed_train_percent
         )
 
+        logger.debug('Training model...')
+
+        print('horizon', horizon)
+        print('min_allowed_train_percent', min_allowed_train_percent)
+        print('train_df.shape[0]', train_df.shape[0])
+        print('horizon * min_allowed_train_percent', horizon * min_allowed_train_percent)
+        print('int((train_df.shape[0]) - horizon)', int((train_df.shape[0]) - horizon))
+        print((horizon * min_allowed_train_percent) > int(
+            (train_df.shape[0]) - horizon))
+
+        # horizon 4
+        # min_allowed_train_percent 0.5
+        # train_df.shape[0] 16
+        # horizon * min_allowed_train_percent 2.0
+        # int((train_df.shape[0]) - horizon) 12
+        # False
+
+        # forecast_length 4
+        # min_allowed_train_percent 0.5
+        # df.shape[0] 4
+        # forecast_length * min_allowed_train_percent 2.0
+        # int((df.shape[0]) - forecast_length) 0
+        # True
+
+        if (horizon * min_allowed_train_percent) > int((train_df.shape[0]/4) - horizon):
+            raise DatasetTooSmallError('Time series is too short for AutoTS', ValueError())
+
         # We need to pass future_regressor to be able to do rolling origin forecasting
-        model = model.fit(train_df, future_regressor=train_df)
+        model = model.fit(train_df)#, future_regressor=train_df)
+        # model = model.fit(train_df, future_regressor=train_df)
+        exit()
+
+        logger.debug('Making predictions...')
         predictions = self.rolling_origin_forecast(model, train_df, test_df, horizon)
-
-        # model = model.fit(train_df)
-        # predictions = model.predict(len(test_df), just_point_forecast=True)[target_name].values
-        # predictions = prediction.forecast[target_name].values
-
-        # print(model)
         return predictions
 
 

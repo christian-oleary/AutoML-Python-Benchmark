@@ -174,7 +174,7 @@ class Utils:
         pd.plotting.register_matplotlib_converters()
 
         # Create plot
-        plt.figure(figsize=(20, 3))
+        plt.figure(0, figsize=(20, 3)) # Pass plot ID to prevent memory issues
         plt.plot(actual, label='actual')
         plt.plot(predicted, label='predicted')
 
@@ -186,6 +186,7 @@ class Utils:
         os.makedirs(output_dir, exist_ok=True)
         plt.savefig(os.path.join(output_dir, f'{forecaster_name}.png'), bbox_inches='tight')
         plt.clf()
+        plt.close('all')
 
 
     @staticmethod

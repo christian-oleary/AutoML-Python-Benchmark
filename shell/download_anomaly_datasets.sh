@@ -9,7 +9,6 @@ mkdir -p ./data/repositories
 # Numenta Anomaly detection Benchmark (NAB) - AGPL-3.0 license, commercial use allowed
 # https://github.com/numenta/NAB
 mkdir -p ./data/anomaly_detection/NAB
-mkdir -p ./data/repositories/NAB
 if cd ./data/repositories/NAB; then git pull && cd ../../../; else git clone https://github.com/numenta/NAB.git ./data/repositories/NAB; fi
 
 cp -r ./data/repositories/NAB/data/* ./data/anomaly_detection/NAB

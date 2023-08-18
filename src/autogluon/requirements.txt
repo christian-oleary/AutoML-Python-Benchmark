@@ -1,4 +1,4 @@
-# autogluon==0.8.2 # Handled separately. See README.md
+autogluon==0.8.2
 plotly==5.15.0
 # numpy==1.23.5
 numpy==1.22

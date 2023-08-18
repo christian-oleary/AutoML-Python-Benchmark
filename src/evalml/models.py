@@ -43,8 +43,8 @@ class EvalMLForecaster(Forecaster):
             test_df.columns = [target_name]
 
         lag = 1
-        X_train, y_train, X_test = self.create_tabular_dataset(train_df, test_df, horizon, target_name,
-                                                               tabular_y=False, lag=lag)
+        X_train, y_train, X_test, _ = self.create_tabular_dataset(train_df, test_df, horizon, target_name,
+                                                                  tabular_y=False, lag=lag)
 
         X_train = X_train.astype(float)
         X_test = X_test.astype(float)

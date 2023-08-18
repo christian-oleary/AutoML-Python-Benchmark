@@ -3,16 +3,14 @@ Utility functions
 """
 
 import csv
-import logging
 import math
 import os
 import time
-import sys
 
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from scipy.stats import pearsonr, spearmanr, t
+from scipy.stats import pearsonr, spearmanr
 from sklearn.metrics import (mean_absolute_error, mean_absolute_percentage_error, median_absolute_error,
                              mean_squared_error, r2_score)
 from sktime.performance_metrics.forecasting import MeanAbsoluteScaledError

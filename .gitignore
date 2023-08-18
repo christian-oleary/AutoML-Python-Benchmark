@@ -24,6 +24,9 @@ time_series_forecaster
 # PyTorch (building from source)
 pytorch
 
+# WSL and CUDA
+cuda_12.2.1_535.86.10_linux.run
+
 # Anaconda installation scripts
 Anaconda3*.sh
 

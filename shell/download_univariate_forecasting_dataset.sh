@@ -11,6 +11,7 @@ _start=1
 _end=100
 for i in $(seq ${_start} ${_end})
 do
+    echo $i%
     curl --silent $url/economics_$i.csv --output $output_dir/economics_$i.csv
     curl --silent $url/finance_$i.csv --output $output_dir/finance_$i.csv
     curl --silent $url/human_$i.csv --output $output_dir/human_$i.csv

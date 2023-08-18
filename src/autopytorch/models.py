@@ -1,6 +1,7 @@
 import copy
 
 from autoPyTorch.api.time_series_forecasting import TimeSeriesForecastingTask
+import pandas as pd
 
 from src.base import Forecaster
 from src.TSForecasting.data_loader import FREQUENCY_MAP
@@ -13,11 +14,11 @@ class AutoPyTorchForecaster(Forecaster):
     # Use 95% of maximum available time for model training in initial experiment
     initial_training_fraction = 0.95
 
-    presets = [ '' ]
+    presets = [ 20, 40, 60, 80, 100 ]
 
     def forecast(self, train_df, test_df, forecast_type, horizon, limit, frequency, tmp_dir,
                  target_name=None,
-                 presets=''):
+                 preset=20):
         """Perform time series forecasting
 
         :param pd.DataFrame train_df: Dataframe of training data
@@ -31,19 +32,29 @@ class AutoPyTorchForecaster(Forecaster):
         :return predictions: Numpy array of predictions
         """
 
-        y_train = train_df[[target_name]]
-        X_train = train_df.drop(target_name, axis=1)
-        y_test = test_df[[target_name]]
-        X_test = test_df.drop(target_name, axis=1)
+        if forecast_type == 'univariate':
+            target_name = 'target'
+            train_df.columns = [ target_name ]
+            test_df.columns = [ target_name ]
+            lag = 1 # AK has lookback
+            X_train, y_train, X_test, y_test = self.create_tabular_dataset(train_df, test_df, horizon, target_name,
+                                                                           tabular_y=False, lag=lag)
 
-        freq = FREQUENCY_MAP[frequency].replace('1', '').replace('min', 'T')
+            # freq = f'D{frequency}'
+            freq = frequency
+            X_train.index = pd.to_datetime(X_train.index, unit='D')
+            X_test.index = pd.to_datetime(X_test.index, unit='D')
+            y_train = pd.Series(y_train, index=X_train.index)
+            y_test = pd.Series(y_test, index=X_test.index)
+        else:
+            raise NotImplementedError()
+            # freq = FREQUENCY_MAP[frequency].replace('1', '').replace('min', 'T')
+            y_train = y_train.reset_index(drop=True)
+            X_train = X_train.reset_index(drop=True)
+            y_test = y_test.reset_index(drop=True)
+            X_test = X_test.reset_index(drop=True)
 
-        y_train = y_train.reset_index(drop=True)
-        X_train = X_train.reset_index(drop=True)
-        y_test = y_test.reset_index(drop=True)
-        X_test = X_test.reset_index(drop=True)
-
-        api = TimeSeriesForecastingTask(ensemble_size=50)
+        api = TimeSeriesForecastingTask(ensemble_size=preset)
 
         api.search(
             X_train=[X_train],

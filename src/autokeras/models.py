@@ -41,12 +41,12 @@ class AutoKerasForecaster(Forecaster):
             train_df.columns = [ target_name ]
             test_df.columns = [ target_name ]
             lag = 1 # AK has lookback
-            X_train, y_train, X_test = self.create_tabular_dataset(train_df, test_df, horizon, target_name,
-                                                                   tabular_y=False, lag=lag)
+            X_train, y_train, X_test, _ = self.create_tabular_dataset(train_df, test_df, horizon, target_name,
+                                                                      tabular_y=False, lag=lag)
         else:
             raise NotImplementedError()
 
-        epochs = 1000 # AK default
+        epochs = 100 # AK default
         tmp_dir = os.path.join(tmp_dir, f'{preset}_{epochs}epochs')
 
         # Initialise forecaster

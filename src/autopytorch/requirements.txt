@@ -4,3 +4,4 @@ pytorch_forecasting==0.10.3
 swig==4.1.1
 numpy==1.23.5
 # autoPyTorch[forecasting]
+sktime

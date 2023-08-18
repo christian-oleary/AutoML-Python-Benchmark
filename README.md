@@ -33,13 +33,16 @@ Replace pip with pip3 if not using Windows.
 Auto-PyTorch requires Linux. PyCaret and EvalML may conflict. Other conflicts are to be expected if you try to install every library.
 
 ```bash
-conda update -n env -c defaults conda python=3.8
+# AutoML library-specific envs recommended
+conda create -n env python=3.9
 ```
 
 Installation for AutoTS specifically:
 
 ```bash
+python -m pip install torch torchvision torchaudio --extra-index-url https://download.pytorch.org/whl/cu117 && \
 python -m pip install numpy==1.21 scipy scikit-learn statsmodels lightgbm xgboost numexpr bottleneck yfinance pytrends fredapi plotly sktime==0.18.0 --exists-action i && \
+python -m pip install Cython --exists-action i && \
 python -m pip install pystan prophet --exists-action i && \
 python -m pip install mxnet --no-deps && \
 python -m pip install gluonts arch && \
@@ -47,12 +50,18 @@ python -m pip install holidays==0.24  holidays-ext pmdarima dill greykite --exis
 python -m pip install holidays==0.24 prophet==1.1.3 cvxpy neuralprophet pytorch-forecasting && \
 python -m pip install pandas --exists-action i && \
 python -m pip install numpy==1.21 i && \
+python -m pip install tensorflow==2.10.0 i && \
+python -m pip install torch torchvision torchaudio --extra-index-url https://download.pytorch.org/whl/cu117 && \
 python -m pip install autots --exists-action i
 ```
 
 Installation for Auto-PyTorch specifically. Auto-PyTorch is Linux only:
 
 ```bash
+# For CUDA setup in WSL:
+# wget https://developer.download.nvidia.com/compute/cuda/12.2.1/local_installers/cuda_12.2.1_535.86.10_linux.run
+# sudo sh cuda_12.2.1_535.86.10_linux.run
+
 sudo apt-get update && sudo apt-get install ffmpeg libsm6 libxext6  -y
 sudo add-apt-repository multiverse
 sudo apt update
@@ -60,19 +69,25 @@ sudo apt install nvidia-cuda-toolkit
 conda config --append channels conda-forge
 conda install -c conda-forge pytorch # can also try: conda install -c conda-forge torch
 pip install --force-reinstall charset-normalizer==3.1.0
+pip install -r requirements.txt
 pip3 install -r ./src/autopytorch/requirements.txt
 ```
 
 Initial steps for AutoGluon:
 
+<!-- # Conda does not support PyTorch installation for AutoGluon with GPU support
+# conda install -y -c conda-forge mamba
+# mamba install -y -c conda-forge autogluon -->
 ```bash
-conda install -y -c conda-forge mamba
-mamba install -y -c conda-forge autogluon
+pip install torch==1.13.1+cu117 torchvision==0.14.1+cu117 --extra-index-url https://download.pytorch.org/whl/cu117
+pip install git+https://github.com/keras-team/keras-tuner.git
+pip install -r requirements.txt
+pip install -r ./src/autogluon/requirements.txt
 ```
 
 Note: AutoGluon does not work with PyTorch 2.* yet: <https://github.com/autogluon/autogluon/issues/3250>
 
-For all libraries except AutoTS and AutoPyTorch:
+For all libraries except AutoGluon, AutoTS and AutoPyTorch:
 
 ```bash
 pip install torch torchvision torchaudio --extra-index-url https://download.pytorch.org/whl/cu117
@@ -83,7 +98,6 @@ pip install -r requirements.txt
 Install the libraries you want to run (they may conflict). One per environment is recommended.
 
 ```bash
-pip install -r ./src/autogluon/requirements.txt
 pip install -r ./src/autokeras/requirements.txt
 pip install -r ./src/etna/requirements.txt
 pip install -r ./src/evalml/requirements.txt

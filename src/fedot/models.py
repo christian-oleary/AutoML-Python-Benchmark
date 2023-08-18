@@ -43,8 +43,8 @@ class FEDOTForecaster(Forecaster):
             train_df.columns = [ target_name ]
             test_df.columns = [ target_name ]
 
-        X_train, y_train, X_test = self.create_tabular_dataset(train_df, test_df, horizon, target_name,
-                                                               tabular_y=False, lag=None)
+        X_train, y_train, X_test, _ = self.create_tabular_dataset(train_df, test_df, horizon, target_name,
+                                                                  tabular_y=False, lag=None)
 
         task = Task(TaskTypesEnum.ts_forecasting, TsForecastingParams(forecast_length=horizon))
 

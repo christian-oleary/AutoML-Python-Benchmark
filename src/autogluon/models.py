@@ -31,6 +31,10 @@ class AutoGluonForecaster(Forecaster):
         :return np.array: Predictions
         """
 
+        if len(train_df) < 30:
+            from src.errors import DatasetTooSmallError
+            raise DatasetTooSmallError('', ValueError())
+
         # Format index
         timestamp_column = 'timestamp'
         try:

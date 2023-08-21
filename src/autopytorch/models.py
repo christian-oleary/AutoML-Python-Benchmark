@@ -36,12 +36,11 @@ class AutoPyTorchForecaster(Forecaster):
             target_name = 'target'
             train_df.columns = [ target_name ]
             test_df.columns = [ target_name ]
-            lag = 1 # AK has lookback
+            lag = 1
             X_train, y_train, X_test, y_test = self.create_tabular_dataset(train_df, test_df, horizon, target_name,
                                                                            tabular_y=False, lag=lag)
 
-            # freq = f'D{frequency}'
-            freq = frequency
+            freq = 'D'
             X_train.index = pd.to_datetime(X_train.index, unit='D')
             X_test.index = pd.to_datetime(X_test.index, unit='D')
             y_train = pd.Series(y_train, index=X_train.index)
@@ -54,6 +53,8 @@ class AutoPyTorchForecaster(Forecaster):
             y_test = y_test.reset_index(drop=True)
             X_test = X_test.reset_index(drop=True)
 
+        horizon = y_test.shape[0] # Limitation of AutoPyTorch
+
         api = TimeSeriesForecastingTask(ensemble_size=preset)
 
         api.search(
@@ -63,8 +64,7 @@ class AutoPyTorchForecaster(Forecaster):
             y_test=[copy.deepcopy(y_test)],
             freq=freq,
             n_prediction_steps=y_test.shape[0],
-            # n_prediction_steps=horizon,
-            memory_limit=32 * 1024,
+            memory_limit=32*1024,
             total_walltime_limit=limit,
             # min_num_test_instances=100, # proxy validation sets for the tasks with more than 100 series
             optimize_metric='mean_MASE_forecasting',

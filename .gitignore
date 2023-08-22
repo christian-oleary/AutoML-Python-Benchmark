@@ -33,6 +33,9 @@ Anaconda3*.sh
 # Ludwig
 *.meta.json
 
+# AutoTS
+.lr_find_*
+
 # Images
 *.png
 *.jpg

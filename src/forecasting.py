@@ -131,7 +131,7 @@ class Forecasting():
                         results_subdir = None
 
                     # Run forecaster and record total runtime
-                    logger.info(f'Applying {forecaster_name} to {dataset_path}')
+                    logger.info(f'Applying {forecaster_name} (preset: {preset}) to {dataset_path}')
                     start_time = time.perf_counter()
                     tmp_dir = os.path.join('tmp', dataset_name, forecaster_name)
                     os.makedirs(tmp_dir, exist_ok=True)
@@ -142,7 +142,7 @@ class Forecasting():
                         logger.error('Failed to fit. Dataset too small for library.')
                         continue
                     duration = time.perf_counter() - start_time
-                    logger.debug(f'{forecaster_name} took {duration} seconds {csv_file}')
+                    logger.debug(f'{forecaster_name} took {duration} seconds for {csv_file}')
 
                     self.evaluate_predictions(actual, predictions, results_subdir, forecaster_name, duration)
 

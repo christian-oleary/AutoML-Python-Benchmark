@@ -222,7 +222,7 @@ class Utils:
 
         test_splits = []
         total = 0 # total length of test splits
-        for _ in range(int(len(test_df) / horizon)-1):
+        for _ in range(0, len(test_df)-1, horizon): # The -1 is because the last split may be less than horizon
             try:
                 test_splits.append(test_df.iloc[total:total+horizon, :])
             except: # If 1D (series)

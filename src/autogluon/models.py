@@ -1,7 +1,8 @@
-import warnings
 from autogluon.timeseries import TimeSeriesDataFrame, TimeSeriesPredictor
+from networkx.exception import NetworkXError
 
 from src.base import Forecaster
+from src.errors import AutomlLibraryError
 from src.TSForecasting.data_loader import FREQUENCY_MAP
 from src.logs import logger
 
@@ -30,10 +31,6 @@ class AutoGluonForecaster(Forecaster):
         :param str preset: Model configuration to use, defaults to 'fast_training'
         :return np.array: Predictions
         """
-
-        if len(train_df) < 30:
-            from src.errors import DatasetTooSmallError
-            raise DatasetTooSmallError('', ValueError())
 
         # Format index
         timestamp_column = 'timestamp'
@@ -94,13 +91,13 @@ class AutoGluonForecaster(Forecaster):
                                         verbosity=0,
                                         eval_metric='sMAPE')
 
+        try:
         # Train models
-        predictor.fit(train_data, presets=preset, random_seed=limit, time_limit=limit)
-
-        # Get predictions
-        # predictions = predictor.predict(train_data) # forecast
-        # predictions = predictions['mean'].values # other values available for probabilistic forecast
-        predictions = self.rolling_origin_forecast(predictor, train_data, test_data, horizon, column='mean')
+            predictor.fit(train_data, presets=preset, random_seed=limit, time_limit=limit)
+            # Get predictions
+            predictions = self.rolling_origin_forecast(predictor, train_data, test_data, horizon, column='mean')
+        except NetworkXError as error:
+            raise AutomlLibraryError('AutoGluon failed to fit/predict due to NetworkX', NetworkXError())
         return predictions
 
 

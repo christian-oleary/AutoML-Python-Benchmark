@@ -13,4 +13,4 @@ class AutomlLibraryError(Exception):
     """Should be called when an AutoML library fails to fit or predict"""
 
     def __init__(self, message, errors):
-        super(DatasetTooSmallError, self).__init__(message)
+        super(AutomlLibraryError, self).__init__(message)

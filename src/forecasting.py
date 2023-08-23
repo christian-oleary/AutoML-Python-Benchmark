@@ -143,6 +143,7 @@ class Forecasting():
                         continue
                     except AutomlLibraryError as e2:
                         logger.error(f'{forecaster_name} (preset: {preset}) failed to fit.')
+                        continue
 
                     duration = time.perf_counter() - start_time
                     logger.debug(f'{forecaster_name} (preset: {preset}) took {duration} seconds for {csv_file}')

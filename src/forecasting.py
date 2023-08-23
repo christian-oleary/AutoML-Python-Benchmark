@@ -9,7 +9,7 @@ import pandas as pd
 from sklearn.impute import IterativeImputer
 
 from src.base import Forecaster
-from src.errors import DatasetTooSmallError
+from src.errors import AutomlLibraryError, DatasetTooSmallError
 from src.logs import logger
 from src.util import Utils
 
@@ -141,6 +141,9 @@ class Forecasting():
                     except DatasetTooSmallError as e:
                         logger.error('Failed to fit. Dataset too small for library.')
                         continue
+                    except AutomlLibraryError as e2:
+                        logger.error(f'{forecaster_name} (preset: {preset}) failed to fit.')
+
                     duration = time.perf_counter() - start_time
                     logger.debug(f'{forecaster_name} (preset: {preset}) took {duration} seconds for {csv_file}')
 

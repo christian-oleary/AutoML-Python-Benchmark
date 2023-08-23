@@ -76,8 +76,9 @@ pip3 install -r ./src/autopytorch/requirements.txt
 Initial steps for AutoGluon:
 
 <!-- # Conda does not support PyTorch installation for AutoGluon with GPU support
-# conda install -y -c conda-forge mamba
-# mamba install -y -c conda-forge autogluon -->
+conda install -y -c conda-forge mamba
+mamba install -y -c conda-forge autogluon
+-->
 ```bash
 pip install torch==1.13.1+cu117 torchvision==0.14.1+cu117 --extra-index-url https://download.pytorch.org/whl/cu117
 pip install git+https://github.com/keras-team/keras-tuner.git

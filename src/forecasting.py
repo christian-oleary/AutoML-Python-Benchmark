@@ -56,8 +56,7 @@ class Forecasting():
         self._validate_inputs(config, forecast_type)
 
         csv_files = Utils.get_csv_datasets(data_dir)
-        # for i in range(len(csv_files)): print(i, csv_files[i])
-        # csv_files = [ csv_files[0] ] # TODO: For development only. To be removed
+        # csv_files = csv_files[csv_files.index('finance_87.csv')] # Testing only
         metadata = pd.read_csv(os.path.join(data_dir, '0_metadata.csv'))
 
         for csv_file in csv_files:

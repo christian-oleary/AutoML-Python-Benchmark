@@ -117,15 +117,10 @@ class AutoTSForecaster(Forecaster):
         # Split test set
         test_splits = Utils.split_test_set(test_X, horizon)
 
-        print('horizon', horizon)
-        print('test_X', test_X.shape)
-        print('test_splits', len(test_splits))
-
         # Make predictions
         predictions = []
         for s in test_splits:
             # train_X = pd.concat([train_X, s])
-            print('len(s), horizon', len(s), horizon)
             if len(s) < horizon:
                 horizon = len(s)
             preds = model.predict(future_regressor=s, forecast_length=horizon).forecast.values

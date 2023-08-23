@@ -145,7 +145,7 @@ class Forecasting():
                         logger.error(f'{forecaster_name} (preset: {preset}) failed to fit.')
 
                     duration = time.perf_counter() - start_time
-                    logger.debug(f'{forecaster_name} took {duration} seconds for {csv_file}')
+                    logger.debug(f'{forecaster_name} (preset: {preset}) took {duration} seconds for {csv_file}')
 
                     self.evaluate_predictions(actual, predictions, results_subdir, forecaster_name, duration)
 

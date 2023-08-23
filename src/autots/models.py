@@ -56,6 +56,7 @@ class AutoTSForecaster(Forecaster):
         else:
             train_df.index = pd.to_datetime(train_df.index, unit='D')
             test_df.index = pd.to_datetime(test_df.index, unit='D')
+            # We need to pass future_regressor to be able to do rolling origin forecasting
             train_regressors = train_df
 
         min_allowed_train_percent = 0.1
@@ -82,8 +83,11 @@ class AutoTSForecaster(Forecaster):
         if forecast_type == 'global':
             raise NotImplementedError()
         else:
-            # We need to pass future_regressor to be able to do rolling origin forecasting
-            model = model.fit(train_df, future_regressor=train_regressors)
+            # Can randomly fail: https://github.com/winedarksea/AutoTS/issues/140
+            try:
+                model = model.fit(train_df, future_regressor=train_regressors)
+            except:
+                model = model.fit(train_df, future_regressor=train_regressors)
 
         logger.debug('Making predictions...')
         predictions = self.rolling_origin_forecast(model, train_df, test_df, horizon)

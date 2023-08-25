@@ -102,9 +102,15 @@ class AutoGluonForecaster(Forecaster):
                                         verbosity=0,
                                         eval_metric='sMAPE')
 
+        if nproc == 1:
+            hyperparameters = None
+        else:
+            hyperparameters = { 'env.num_gpus': nproc }
+
         try:
-        # Train models
-            predictor.fit(train_data, presets=preset, random_seed=limit, time_limit=limit)
+            # Train models
+            predictor.fit(train_data, presets=preset, random_seed=limit, time_limit=limit,
+                          hyperparameters=hyperparameters)
             # Get predictions
             predictions = self.rolling_origin_forecast(predictor, train_data, test_data, horizon, column='mean')
         except NetworkXError as error:

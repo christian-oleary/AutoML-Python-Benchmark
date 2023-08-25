@@ -140,7 +140,7 @@ class Forecasting():
                     os.makedirs(tmp_dir, exist_ok=True)
                     try:
                         predictions = forecaster.forecast(train_df.copy(), test_df.copy(), forecast_type, horizon,
-                                                          limit, frequency, tmp_dir, preset=preset)
+                                                          limit, frequency, tmp_dir, nproc=config.nproc, preset=preset)
                     except DatasetTooSmallError as e:
                         logger.error('Failed to fit. Dataset too small for library.')
                         continue
@@ -274,6 +274,12 @@ class Forecasting():
             for name in config.libraries:
                 if name != 'test' and name not in self.global_forecaster_names:
                     raise ValueError(f'Unknown forecaster. Options: {self.global_forecaster_names}')
+
+        if not isinstance(config.nproc, int):
+            raise TypeError(f'nproc must be an int. Received {type(config.nproc)}')
+
+        if config.nproc == 0 or config.nproc < -1:
+            raise ValueError(f'nproc must be -1 or a positive int. Received {config.nproc}')
 
         try:
             _ = os.listdir(config.univariate_forecasting_data_dir)

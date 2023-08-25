@@ -65,6 +65,7 @@ class FLAMLForecaster(Forecaster):
                    estimator_list=preset,
                    eval_method='auto',
                    log_file_name=os.path.join(tmp_dir, 'ts_forecast.log'),
+                   n_jobs=nproc,
                    period=horizon, # AssertionError: Model is optimized for horizon, length of X must be equal to `period`.
                    task='ts_forecast',
                    time_budget=limit, # 15

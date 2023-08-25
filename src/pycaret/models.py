@@ -51,6 +51,7 @@ class PyCaretForecaster(Forecaster):
                   target=target_name,
                   fh=horizon,
                   fold=2, # Lower folds prevents errors with short time series
+                  n_jobs=nproc,
                   numeric_imputation_target='ffill',
                   numeric_imputation_exogenous='ffill',
                   use_gpu=True,

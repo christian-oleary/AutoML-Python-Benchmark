@@ -69,7 +69,7 @@ class AutoTSForecaster(Forecaster):
             max_generations=limit,
             model_list=preset,
             models_to_validate=0.2,
-            n_jobs=1,
+            n_jobs=nproc,
             prediction_interval=0.95,
             random_seed=limit,
             transformer_list='all',

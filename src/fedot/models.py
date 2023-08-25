@@ -77,7 +77,7 @@ class FEDOTForecaster(Forecaster):
                     timeout=limit, # minutes
                     preset=preset,
                     seed=limit,
-                    # n_jobs=-1,
+                    n_jobs=nproc,
                     )
 
         model.fit(X_train, y_train)

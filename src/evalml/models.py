@@ -69,6 +69,7 @@ class EvalMLForecaster(Forecaster):
             problem_type='time series regression',
             problem_configuration=problem_config,
             max_time=limit,
+            n_jobs=nproc,
             verbose=False,
         )
 

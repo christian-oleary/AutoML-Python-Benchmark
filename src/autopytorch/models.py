@@ -67,6 +67,7 @@ class AutoPyTorchForecaster(Forecaster):
             y_test=[copy.deepcopy(y_test)],
             freq=freq,
             n_prediction_steps=y_test.shape[0],
+            n_jobs=nproc,
             memory_limit=32*1024,
             total_walltime_limit=limit,
             # min_num_test_instances=100, # proxy validation sets for the tasks with more than 100 series

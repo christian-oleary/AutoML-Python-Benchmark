@@ -102,19 +102,13 @@ class AutoGluonForecaster(Forecaster):
                                         verbosity=0,
                                         eval_metric='sMAPE')
 
-        if nproc == 1:
-            hyperparameters = None
-        else:
-            hyperparameters = { 'env.num_gpus': nproc }
-
         try:
             # Train models
-            predictor.fit(train_data, presets=preset, random_seed=limit, time_limit=limit,
-                          hyperparameters=hyperparameters)
+            predictor.fit(train_data, presets=preset, random_seed=limit, time_limit=limit)
             # Get predictions
             predictions = self.rolling_origin_forecast(predictor, train_data, test_data, horizon, column='mean')
         except NetworkXError as error:
-            raise AutomlLibraryError('AutoGluon failed to fit/predict due to NetworkX', NetworkXError())
+            raise AutomlLibraryError('AutoGluon failed to fit/predict due to NetworkX', error)
         return predictions
 
 

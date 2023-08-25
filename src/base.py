@@ -17,7 +17,10 @@ class Forecaster:
     presets = [ 'none' ]
 
 
-    def forecast(self, train_df, test_df, forecast_type, horizon, limit, frequency, tmp_dir, preset=''):
+    def forecast(self, train_df, test_df, forecast_type, horizon, limit, frequency, tmp_dir,
+                 nproc=1,
+                 preset='',
+                 target=None):
         """Perform time series forecasting using a basic model
 
         :param pd.DataFrametrain_df: Dataframe of training data
@@ -27,7 +30,9 @@ class Forecaster:
         :param int limit: Iterations limit (int)
         :param int frequency: Data frequency (str)
         :param str tmp_dir: Path to directory to store temporary files (str)
+        :param int nproc: Number of threads/processes allowed, defaults to 1
         :param str preset: Modelling presets
+        :param str target_name: Name of target variable for multivariate forecasting, defaults to None
         """
 
         if forecast_type == 'univariate':

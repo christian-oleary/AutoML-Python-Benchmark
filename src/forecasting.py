@@ -141,11 +141,13 @@ class Forecasting():
                     try:
                         predictions = forecaster.forecast(train_df.copy(), test_df.copy(), forecast_type, horizon,
                                                           limit, frequency, tmp_dir, nproc=config.nproc, preset=preset)
-                    except DatasetTooSmallError as e:
+                    except DatasetTooSmallError as e1:
                         logger.error('Failed to fit. Dataset too small for library.')
+                        self.record_failure(results_subdir, e1)
                         continue
                     except AutomlLibraryError as e2:
                         logger.error(f'{forecaster_name} (preset: {preset}) failed to fit.')
+                        self.record_failure(results_subdir, e2)
                         continue
 
                     duration = time.perf_counter() - start_time
@@ -169,6 +171,12 @@ class Forecasting():
         else:
             results_exist = False
         return results_exist
+
+
+    def record_failure(self, results_subdir, error):
+        os.makedirs(results_subdir, exist_ok=True)
+        with open(os.path.join(results_subdir, 'failed.txt'), 'w') as fh:
+            fh.write(str(error))
 
 
     def evaluate_predictions(self, actual, predictions, results_subdir, forecaster_name, duration):

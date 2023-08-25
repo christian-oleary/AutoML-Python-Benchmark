@@ -236,7 +236,7 @@ class Utils:
 
 
     @staticmethod
-    def analyse_dataset_results(results_dir, plots=True):
+    def summarize_dataset_results(results_dir, plots=True):
         """Analyse results saved to file
 
         :param str results_subdir: Path to relevant results directory
@@ -244,11 +244,12 @@ class Utils:
         """
 
         stats_dir = os.path.join(results_dir, 'statistics')
-        output_file = os.path.join(stats_dir, 'scores.csv')
 
         test_results = []
         failed = []
         dataset = os.path.basename(os.path.normpath(results_dir))
+
+        # For each library/preset, get mean scores
         for library in os.listdir(results_dir):
             subdir = os.path.join(results_dir, library)
             for preset in os.listdir(subdir):
@@ -261,19 +262,44 @@ class Utils:
 
                 if os.path.exists(scores_path):
                     df = pd.read_csv(scores_path, index_col=False)
-                    test_results.append({'library': library, 'preset': preset, 'file': dataset,
+                    test_results.append({'library': library, 'preset': preset, 'file': dataset, 'failed': 0,
                                          **df.mean(numeric_only=True).to_dict() })
                 elif os.path.exists(failed_path):
-                    failed.append({'library': library, 'preset': preset, 'file': dataset})
+                    failed.append({'library': library, 'preset': preset, 'file': dataset, 'failed': 1})
                 else:
                     raise FileNotFoundError(f'Results file(s) missing in {preset_dir}')
 
-
-        logger.debug(f'Compiling test scores in {output_file}')
         os.makedirs(stats_dir, exist_ok=True)
+
+        # Combine scores into one CSV file
         test_scores = pd.DataFrame(test_results)
         if len(test_scores) > 0:
             failed = pd.DataFrame(failed)
-            df = pd.concat([test_scores, failed])
-        df.to_csv(output_file, index=False)
+            test_scores = pd.concat([test_scores, failed])
+
+        output_file = os.path.join(stats_dir, '1_all_scores.csv')
+        test_scores.to_csv(output_file, index=False)
+
+        # Mean scores per library across all presets and failed training counts
+        df_failed = test_scores[['library', 'failed']]
+        df_failed = df_failed.set_index('library')
+        df_failed = df_failed.groupby('library').sum()
+
+        df_by_library = test_scores.drop(['preset', 'file', 'failed'], axis=1).groupby('library')
+        df_by_library.index = df_by_library['library']
+        df_max = df_by_library.max()
+        df_min = df_by_library.min()
+        df_mean = df_by_library.mean()
+
+        df_max.columns = [ f'{c}_max' for c in df_max.columns.tolist() ]
+        df_min.columns = [ f'{c}_min' for c in df_max.columns.tolist() ]
+        df_mean.columns = [ f'{c}_mean' for c in df_max.columns.tolist() ]
+
+        mean_scores = pd.concat([df_failed, df_max, df_min, df_mean], axis=1)
+
+        output_file = os.path.join(stats_dir, '2_mean_scores.csv')
+        mean_scores.to_csv(output_file)
+
+        # Add plots
+        # TODO
 

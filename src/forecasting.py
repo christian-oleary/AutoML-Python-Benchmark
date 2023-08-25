@@ -157,7 +157,7 @@ class Forecasting():
                     self.evaluate_predictions(actual, predictions, results_subdir, forecaster_name, duration)
 
                     # Summarize experiment results
-                    Utils.analyse_dataset_results(os.path.join(config.results_dir, f'{forecast_type}_forecasting',
+                    Utils.summarize_dataset_results(os.path.join(config.results_dir, f'{forecast_type}_forecasting',
                                                                dataset_name))
 
 

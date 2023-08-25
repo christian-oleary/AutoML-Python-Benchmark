@@ -12,13 +12,22 @@ class AutoGluonForecaster(Forecaster):
     name = 'AutoGluon'
 
     # Training configurations ordered from slowest/"best" to fastest/"worst"
-    presets = [ 'best_quality', 'high_quality', 'medium_quality', 'fast_training' ]
+    presets = [
+        'best_quality',
+        # The following often result in NetworkX errors
+        'high_quality',
+        'medium_quality',
+        'fast_training'
+        ]
 
     # Use 90% of maximum available time for model training in initial experiment
     initial_training_fraction = 0.9
 
 
-    def forecast(self, train_df, test_df, forecast_type, horizon, limit, frequency, tmp_dir, preset='fast_training'):
+    def forecast(self, train_df, test_df, forecast_type, horizon, limit, frequency, tmp_dir,
+                 nproc=1,
+                 preset='fast_training',
+                 target_name=None):
         """Perform time series forecasting using AutoGluon TimeSeriesPredictor
 
         :param pd.DataFrame train_df: Dataframe of training data
@@ -28,7 +37,9 @@ class AutoGluonForecaster(Forecaster):
         :param int limit: Time limit in seconds
         :param int frequency: Data frequency
         :param str tmp_dir: Path to directory to store temporary files
+        :param int nproc: Number of threads/processes allowed, defaults to 1
         :param str preset: Model configuration to use, defaults to 'fast_training'
+        :param str target_name: Name of target variable for multivariate forecasting, defaults to None
         :return np.array: Predictions
         """
 

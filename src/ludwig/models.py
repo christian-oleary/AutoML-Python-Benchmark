@@ -17,8 +17,9 @@ class LudwigForecaster(Forecaster):
     presets = [ 10, 100, 1000 ]
 
     def forecast(self, train_df, test_df, forecast_type, horizon, limit, frequency, tmp_dir,
-                 target_name=None,
-                 preset=10):
+                 nproc=1,
+                 preset=10,
+                 target_name=None):
         """Perform time series forecasting
 
         :param pd.DataFrame train_df: Dataframe of training data
@@ -28,8 +29,9 @@ class LudwigForecaster(Forecaster):
         :param int limit: Time limit in seconds
         :param int frequency: Data frequency
         :param str tmp_dir: Path to directory to store temporary files
+        :param int nproc: Number of threads/processes allowed, defaults to 1
+        :param int preset: Number of epochs, defaults to 10
         :param str target_name: Name of target variable for multivariate forecasting, defaults to None
-        :param int preset: Number of epochs
         :return predictions: Numpy array of predictions
         """
 

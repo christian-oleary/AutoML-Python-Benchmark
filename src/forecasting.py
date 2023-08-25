@@ -139,8 +139,8 @@ class Forecasting():
                     tmp_dir = os.path.join('tmp', dataset_name, forecaster_name)
                     os.makedirs(tmp_dir, exist_ok=True)
                     try:
-                        predictions = forecaster.forecast(train_df.copy(), test_df.copy(), forecast_type, horizon, limit,
-                                                        frequency, tmp_dir, preset=preset)
+                        predictions = forecaster.forecast(train_df.copy(), test_df.copy(), forecast_type, horizon,
+                                                          limit, frequency, tmp_dir, preset=preset)
                     except DatasetTooSmallError as e:
                         logger.error('Failed to fit. Dataset too small for library.')
                         continue

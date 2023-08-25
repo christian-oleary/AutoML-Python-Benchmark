@@ -17,8 +17,9 @@ class AutoPyTorchForecaster(Forecaster):
     presets = [ 20, 40, 60, 80, 100 ]
 
     def forecast(self, train_df, test_df, forecast_type, horizon, limit, frequency, tmp_dir,
-                 target_name=None,
-                 preset=20):
+                 nproc=1,
+                 preset=20,
+                 target_name=None):
         """Perform time series forecasting
 
         :param pd.DataFrame train_df: Dataframe of training data
@@ -28,6 +29,8 @@ class AutoPyTorchForecaster(Forecaster):
         :param int limit: Time limit in seconds
         :param int frequency: Data frequency
         :param str tmp_dir: Path to directory to store temporary files
+        :param int nproc: Number of threads/processes allowed, defaults to 1
+        :param str preset: Ensemble size, defaults to 20
         :param str target_name: Name of target variable for multivariate forecasting, defaults to None
         :return predictions: Numpy array of predictions
         """

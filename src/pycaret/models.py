@@ -16,8 +16,9 @@ class PyCaretForecaster(Forecaster):
     presets = [ '' ]
 
     def forecast(self, train_df, test_df, forecast_type, horizon, limit, frequency, tmp_dir,
-                 target_name=None,
-                 preset=''):
+                 nproc=1,
+                 preset='',
+                 target_name=None):
         """Perform time series forecasting
 
         :param pd.DataFrame train_df: Dataframe of training data
@@ -27,7 +28,8 @@ class PyCaretForecaster(Forecaster):
         :param int limit: Time limit in seconds
         :param int frequency: Data frequency
         :param str tmp_dir: Path to directory to store temporary files
-        :param str preset: Model configuration to use, defaults to 'auto'
+        :param int nproc: Number of threads/processes allowed, defaults to 1
+        :param str preset: Model configuration to use, defaults to ''
         :param str target_name: Name of target variable for multivariate forecasting, defaults to None
         :return predictions: Numpy array of predictions
         """

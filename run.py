@@ -47,7 +47,7 @@ if __name__ == '__main__': # Needed for any multiprocessing
                         choices=library_options, help=f'AutoML libraries to run: {library_options}')
 
     parser.add_argument('--nproc', metavar='-N', type=int, nargs='?', default=1,
-                        help='Number of CPU processes to allow')
+                        help='Number of processes to allow')
 
     parser.add_argument('--repeat_results', action='store_true', help='Train even if results exist for experiment')
 
@@ -82,10 +82,10 @@ if __name__ == '__main__': # Needed for any multiprocessing
 
     # Format datasets if needed
     gather_metadata = not os.path.exists(os.path.join(args.global_forecasting_data_dir, '0_metadata.csv'))
+    DatasetFormatting.format_univariate_forecasting_data(args.univariate_forecasting_data_dir)
     DatasetFormatting.format_global_forecasting_data(args.global_forecasting_data_dir,
                                                         gather_metadata=gather_metadata)
     DatasetFormatting.format_anomaly_data(args.anomaly_data_dir)
-    DatasetFormatting.format_univariate_forecasting_data(args.univariate_forecasting_data_dir)
 
     # Run univariate forecasting models
     data_dir = args.univariate_forecasting_data_dir

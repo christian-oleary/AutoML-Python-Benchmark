@@ -19,8 +19,9 @@ class ETNAForecaster(Forecaster):
     presets = [ 'none' ]
 
     def forecast(self, train_df, test_df, forecast_type, horizon, limit, frequency, tmp_dir,
-                 target_name=None,
-                 presets='none'):
+                 nproc=1,
+                 presets='none',
+                 target_name=None):
         """Perform time series forecasting
 
         :param pd.DataFrame train_df: Dataframe of training data
@@ -30,6 +31,8 @@ class ETNAForecaster(Forecaster):
         :param int limit: Time limit in seconds
         :param int frequency: Data frequency
         :param str tmp_dir: Path to directory to store temporary files
+        :param int nproc: Number of threads/processes allowed, defaults to 1
+        :param str preset: (Included for API compatibility)
         :param str target_name: Name of target variable for multivariate forecasting, defaults to None
         :return predictions: Numpy array of predictions
         """

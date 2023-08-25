@@ -49,6 +49,8 @@ if __name__ == '__main__': # Needed for any multiprocessing
     parser.add_argument('--nproc', metavar='-N', type=int, nargs='?', default=1,
                         help='Number of CPU processes to allow')
 
+    parser.add_argument('--repeat_results', action='store_true', help='Train even if results exist for experiment')
+
     parser.add_argument('--results_dir', metavar='-R', type=str, nargs='?', default='results',
                         help='Directory to store results')
 

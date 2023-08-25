@@ -56,7 +56,6 @@ class Forecasting():
         self._validate_inputs(config, forecast_type)
 
         csv_files = Utils.get_csv_datasets(data_dir)
-        # csv_files = csv_files[csv_files.index('finance_87.csv')] # Testing only
         metadata = pd.read_csv(os.path.join(data_dir, '0_metadata.csv'))
 
         for csv_file in csv_files:
@@ -73,7 +72,7 @@ class Forecasting():
 
             # Read dataset
             dataset_path = os.path.join(data_dir, csv_file)
-            logger.debug(f'Reading dataset {dataset_path}')
+            logger.info(f'Reading dataset {dataset_path}')
             if forecast_type == 'global':
                 df = pd.read_csv(dataset_path, index_col=0)
             elif forecast_type == 'univariate':
@@ -129,6 +128,11 @@ class Forecasting():
                     else:
                         results_subdir = None
 
+                    # Option to skip training if completed previously
+                    if not config.repeat_results and self.results_exist(results_subdir, forecaster_name):
+                        logger.info(f'Results found for {results_subdir}. Skipping training')
+                        continue
+
                     # Run forecaster and record total runtime
                     logger.info(f'Applying {forecaster_name} (preset: {preset}) to {dataset_path}')
                     start_time = time.perf_counter()
@@ -148,6 +152,23 @@ class Forecasting():
                     logger.debug(f'{forecaster_name} (preset: {preset}) took {duration} seconds for {csv_file}')
 
                     self.evaluate_predictions(actual, predictions, results_subdir, forecaster_name, duration)
+
+
+    def results_exist(self, results_subdir, forecaster_name):
+        """Check if results have been generated for a given experiment
+
+        :param str results_subdir: Path to results directory
+        :param str forecaster_name: Name of forecasting model
+        :return bool: True if results exist, False otherwise
+        """
+        results_csv_exists = os.path.exists(os.path.join(results_subdir, f'{forecaster_name}.csv'))
+        plots_exist = os.path.exists(os.path.join(results_subdir, 'plots'))
+
+        if results_csv_exists and plots_exist:
+            results_exist = True
+        else:
+            results_exist = False
+        return results_exist
 
 
     def evaluate_predictions(self, actual, predictions, results_subdir, forecaster_name, duration):

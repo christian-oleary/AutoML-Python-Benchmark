@@ -233,3 +233,47 @@ class Utils:
         if total < len(test_df):
             test_splits.append(test_df.tail(len(test_df) - total))
         return test_splits
+
+
+    @staticmethod
+    def analyse_dataset_results(results_dir, plots=True):
+        """Analyse results saved to file
+
+        :param str results_subdir: Path to relevant results directory
+        :param bool plots: Save plots as images, defaults to True
+        """
+
+        stats_dir = os.path.join(results_dir, 'statistics')
+        output_file = os.path.join(stats_dir, 'scores.csv')
+
+        test_results = []
+        failed = []
+        dataset = os.path.basename(os.path.normpath(results_dir))
+        for library in os.listdir(results_dir):
+            subdir = os.path.join(results_dir, library)
+            for preset in os.listdir(subdir):
+                preset_dir = os.path.join(subdir, preset)
+                if subdir == stats_dir:
+                    continue
+
+                scores_path = os.path.join(preset_dir, f'{library}.csv')
+                failed_path = os.path.join(preset_dir, f'failed.txt')
+
+                if os.path.exists(scores_path):
+                    df = pd.read_csv(scores_path, index_col=False)
+                    test_results.append({'library': library, 'preset': preset, 'file': dataset,
+                                         **df.mean(numeric_only=True).to_dict() })
+                elif os.path.exists(failed_path):
+                    failed.append({'library': library, 'preset': preset, 'file': dataset})
+                else:
+                    raise FileNotFoundError(f'Results file(s) missing in {preset_dir}')
+
+
+        logger.debug(f'Compiling test scores in {output_file}')
+        os.makedirs(stats_dir, exist_ok=True)
+        test_scores = pd.DataFrame(test_results)
+        if len(test_scores) > 0:
+            failed = pd.DataFrame(failed)
+            df = pd.concat([test_scores, failed])
+        df.to_csv(output_file, index=False)
+

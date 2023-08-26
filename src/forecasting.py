@@ -131,6 +131,12 @@ class Forecasting():
                     # Option to skip training if completed previously
                     if not config.repeat_results and self.results_exist(results_subdir, forecaster_name):
                         logger.info(f'Results found for {results_subdir}. Skipping training')
+
+                        # Summarize experiment results
+                        if config.results_dir != None:
+                            Utils.summarize_dataset_results(
+                                os.path.join(config.results_dir, f'{forecast_type}_forecasting', dataset_name))
+
                         continue
 
                     # Run forecaster and record total runtime
@@ -141,24 +147,24 @@ class Forecasting():
                     try:
                         predictions = forecaster.forecast(train_df.copy(), test_df.copy(), forecast_type, horizon,
                                                           limit, frequency, tmp_dir, nproc=config.nproc, preset=preset)
+
+                        duration = time.perf_counter() - start_time
+                        logger.debug(f'{forecaster_name} (preset: {preset}) took {duration} seconds for {csv_file}')
+
+                        # Generate scores and plots
+                        self.evaluate_predictions(actual, predictions, results_subdir, forecaster_name, duration)
+
                     except DatasetTooSmallError as e1:
                         logger.error('Failed to fit. Dataset too small for library.')
                         self.record_failure(results_subdir, e1)
-                        continue
                     except AutomlLibraryError as e2:
                         logger.error(f'{forecaster_name} (preset: {preset}) failed to fit.')
                         self.record_failure(results_subdir, e2)
-                        continue
-
-                    duration = time.perf_counter() - start_time
-                    logger.debug(f'{forecaster_name} (preset: {preset}) took {duration} seconds for {csv_file}')
-
-                    # Generate scores and plots
-                    self.evaluate_predictions(actual, predictions, results_subdir, forecaster_name, duration)
 
                     # Summarize experiment results
-                    Utils.summarize_dataset_results(os.path.join(config.results_dir, f'{forecast_type}_forecasting',
-                                                               dataset_name))
+                    if config.results_dir != None:
+                        Utils.summarize_dataset_results(
+                            os.path.join(config.results_dir, f'{forecast_type}_forecasting', dataset_name))
 
 
     def results_exist(self, results_subdir, forecaster_name):

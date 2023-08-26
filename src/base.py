@@ -49,7 +49,7 @@ class Forecaster:
 
             # Fit model
             logger.debug('Training Linear Regression model...')
-            model = LinearRegression()
+            model = LinearRegression(n_jobs=nproc)
             model.fit(X_train, y_train)
 
             class Model:

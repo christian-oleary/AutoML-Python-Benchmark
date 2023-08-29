@@ -210,6 +210,7 @@ class Utils:
             plt.savefig(save_path, bbox_inches='tight')
         # Clear for next plot
         plt.clf()
+        plt.close('all')
 
 
     @staticmethod
@@ -325,18 +326,19 @@ class Utils:
         output_file = os.path.join(stats_dir, '2_mean_scores.csv')
         mean_scores.to_csv(output_file)
 
-        # Bar plot of failed training attempts
-        mean_scores.plot.bar(y='failed')
-        save_path = os.path.join(stats_dir, '3_failed_counts.png')
-        Utils.save_plot('Failed Counts', save_path=save_path)
+        if plots:
+            # Bar plot of failed training attempts
+            mean_scores.plot.bar(y='failed')
+            save_path = os.path.join(stats_dir, '3_failed_counts.png')
+            Utils.save_plot('Failed Counts', save_path=save_path)
 
-        # Boxplots
-        for col, filename, title in [
-            ('R2_mean', '4_R2_mean.png', 'Mean R2'),
-            ('MAE_mean', '5_MAE_mean.png', 'Mean MAE'),
-            ('MAPE_mean', '6_MAPE_mean.png', 'Mean MAPE'),
-            ('duration_mean', '6_duration_mean.png', 'Mean MAPE'),
-            ]:
-            mean_scores.boxplot(col, by='library')
-            save_path = os.path.join(stats_dir, filename)
-            Utils.save_plot(title, save_path=save_path)
+            # Boxplots
+            for col, filename, title in [
+                ('R2_mean', '4_R2_mean.png', 'Mean R2'),
+                ('MAE_mean', '5_MAE_mean.png', 'Mean MAE'),
+                ('MAPE_mean', '6_MAPE_mean.png', 'Mean MAPE'),
+                ('duration_mean', '6_duration_mean.png', 'Mean MAPE'),
+                ]:
+                mean_scores.boxplot(col, by='library')
+                save_path = os.path.join(stats_dir, filename)
+                Utils.save_plot(title, save_path=save_path)

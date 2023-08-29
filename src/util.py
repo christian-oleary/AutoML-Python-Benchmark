@@ -169,22 +169,47 @@ class Utils:
         :param str results_subdir: Path to output directory
         :param str forecaster_name: Model name
         """
+        plt.clf()
         pd.plotting.register_matplotlib_converters()
 
         # Create plot
         plt.figure(0, figsize=(20, 3)) # Pass plot ID to prevent memory issues
         plt.plot(actual, label='actual')
         plt.plot(predicted, label='predicted')
+        save_path = os.path.join(results_subdir, 'plots', f'{forecaster_name}.png')
+        Utils.save_plot(forecaster_name, save_path=save_path)
 
-        # Add title and legend
-        plt.title(forecaster_name)
-        plt.legend(loc='upper left')
 
-        output_dir = os.path.join(results_subdir, 'plots')
-        os.makedirs(output_dir, exist_ok=True)
-        plt.savefig(os.path.join(output_dir, f'{forecaster_name}.png'), bbox_inches='tight')
+    @staticmethod
+    def save_plot(title, xlabel=None, ylabel=None, suptitle='', show=False, legend=None, save_path=None):
+        """Apply title and axis labels to plot. Show and save to file. Clear plot.
+
+        :param title: Title for plot
+        :param xlabel: Plot X-axis label
+        :param ylabel: Plot Y-axis label
+        :param show: Show plot on screen, defaults to False
+        :param save_path: Save plot to file if not None, defaults to None
+        """
+
+        if xlabel != None:
+            plt.xlabel(xlabel)
+
+        if ylabel != None:
+            plt.ylabel(ylabel)
+
+        plt.title(title)
+        plt.suptitle(suptitle)
+        if legend != None:
+            plt.legend(legend, loc='upper left')
+
+        # Show plot
+        if show:
+            plt.show()
+        # Show plot as file
+        if save_path != None:
+            plt.savefig(save_path, bbox_inches='tight')
+        # Clear for next plot
         plt.clf()
-        plt.close('all')
 
 
     @staticmethod
@@ -292,14 +317,26 @@ class Utils:
         df_mean = df_by_library.mean()
 
         df_max.columns = [ f'{c}_max' for c in df_max.columns.tolist() ]
-        df_min.columns = [ f'{c}_min' for c in df_max.columns.tolist() ]
-        df_mean.columns = [ f'{c}_mean' for c in df_max.columns.tolist() ]
+        df_min.columns = [ f'{c}_min' for c in df_min.columns.tolist() ]
+        df_mean.columns = [ f'{c}_mean' for c in df_mean.columns.tolist() ]
 
         mean_scores = pd.concat([df_failed, df_max, df_min, df_mean], axis=1)
 
         output_file = os.path.join(stats_dir, '2_mean_scores.csv')
         mean_scores.to_csv(output_file)
 
-        # Add plots
-        # TODO
+        # Bar plot of failed training attempts
+        mean_scores.plot.bar(y='failed')
+        save_path = os.path.join(stats_dir, '3_failed_counts.png')
+        Utils.save_plot('Failed Counts', save_path=save_path)
 
+        # Boxplots
+        for col, filename, title in [
+            ('R2_mean', '4_R2_mean.png', 'Mean R2'),
+            ('MAE_mean', '5_MAE_mean.png', 'Mean MAE'),
+            ('MAPE_mean', '6_MAPE_mean.png', 'Mean MAPE'),
+            ('duration_mean', '6_duration_mean.png', 'Mean MAPE'),
+            ]:
+            mean_scores.boxplot(col, by='library')
+            save_path = os.path.join(stats_dir, filename)
+            Utils.save_plot(title, save_path=save_path)

@@ -179,6 +179,8 @@ class Forecasting():
 
         if results_csv_exists and plots_exist:
             results_exist = True
+        elif os.path.exists(os.path.join(results_subdir, 'failed.txt')):
+            results_exist = True
         else:
             results_exist = False
         return results_exist

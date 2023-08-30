@@ -12,11 +12,19 @@ _end=100
 for i in $(seq ${_start} ${_end})
 do
     echo $i%
-    curl --silent $url/economics_$i.csv --output $output_dir/economics_$i.csv
-    curl --silent $url/finance_$i.csv --output $output_dir/finance_$i.csv
-    curl --silent $url/human_$i.csv --output $output_dir/human_$i.csv
-    curl --silent $url/nature_$i.csv --output $output_dir/nature_$i.csv
-    # sleep 0.5 # May be needed to prevent timeouts from website
+    if ! [ -f $output_dir/economics_$i.csv ]; then
+        curl --silent $url/economics_$i.csv --output $output_dir/economics_$i.csv
+    fi
+    if ! [ -f $output_dir/finance_$i.csv ]; then
+        curl --silent $url/finance_$i.csv --output $output_dir/finance_$i.csv
+    fi
+    if ! [ -f $output_dir/human_$i.csv ]; then
+        curl --silent $url/human_$i.csv --output $output_dir/human_$i.csv
+    fi
+    if ! [ -f $output_dir/nature_$i.csv ]; then
+        curl --silent $url/nature_$i.csv --output $output_dir/nature_$i.csv
+    fi
+        # sleep 0.5 # May be needed to prevent timeouts from website
 done
 
 echo "Finshed downloading files to $output_dir."

@@ -135,7 +135,7 @@ class Forecasting():
                         # Summarize experiment results
                         if config.results_dir != None:
                             Utils.summarize_dataset_results(
-                                os.path.join(config.results_dir, f'{forecast_type}_forecasting', dataset_name))
+                                os.path.join(config.results_dir, f'{forecast_type}_forecasting', dataset_name), plots=False)
 
                         continue
 

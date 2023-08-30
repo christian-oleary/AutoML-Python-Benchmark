@@ -177,6 +177,7 @@ class Utils:
         plt.plot(actual, label='actual')
         plt.plot(predicted, label='predicted')
         save_path = os.path.join(results_subdir, 'plots', f'{forecaster_name}.png')
+        os.makedirs(os.path.join(results_subdir, 'plots'), exist_ok=True)
         Utils.save_plot(forecaster_name, save_path=save_path)
 
 

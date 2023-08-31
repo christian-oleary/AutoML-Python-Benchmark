@@ -223,7 +223,7 @@ class Forecasting():
         try:
             predictions.to_csv(preds_path)
         except:
-            np.savetxt(preds_path, predictions, fmt='%s', delimter=',')
+            np.savetxt(preds_path, predictions, fmt='%s', delimiter=',')
 
         try: # If pandas Series
             predictions = predictions.reset_index(drop=True)

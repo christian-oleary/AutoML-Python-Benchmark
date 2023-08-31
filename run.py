@@ -81,8 +81,8 @@ if __name__ == '__main__': # Needed for any multiprocessing
         # assert gpu_test.pytorch_test(), 'PyTorch cannot access GPU'
 
     # Format datasets if needed
-    gather_metadata = not os.path.exists(os.path.join(args.global_forecasting_data_dir, '0_metadata.csv'))
     DatasetFormatting.format_univariate_forecasting_data(args.univariate_forecasting_data_dir)
+    gather_metadata = not os.path.exists(os.path.join(args.global_forecasting_data_dir, '0_metadata.csv'))
     DatasetFormatting.format_global_forecasting_data(args.global_forecasting_data_dir,
                                                         gather_metadata=gather_metadata)
     DatasetFormatting.format_anomaly_data(args.anomaly_data_dir)

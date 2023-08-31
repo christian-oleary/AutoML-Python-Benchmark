@@ -5,6 +5,7 @@ Code for initiating forecasting experiments
 import os
 import time
 
+import numpy as np
 import pandas as pd
 from sklearn.impute import IterativeImputer
 
@@ -217,6 +218,12 @@ class Forecasting():
         # Save regression scores and plots
         scores = Utils.regression_scores(actual, predictions, results_subdir, forecaster_name,
                                         duration=duration)
+
+        preds_path = os.path.join(results_subdir, 'predictions.csv')
+        try:
+            predictions.to_csv(preds_path)
+        except:
+            np.savetxt(preds_path, predictions, fmt='%s', delimter=',')
 
         try: # If pandas Series
             predictions = predictions.reset_index(drop=True)

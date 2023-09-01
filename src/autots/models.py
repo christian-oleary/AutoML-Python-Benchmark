@@ -66,6 +66,7 @@ class AutoTSForecaster(Forecaster):
             # We need to pass future_regressor to be able to do rolling origin forecasting
             train_regressors = train_df
 
+        limit = int(limit)
         min_allowed_train_percent = 0.1
         model = AutoTS(
             ensemble=['auto'],

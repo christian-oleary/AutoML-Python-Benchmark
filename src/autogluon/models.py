@@ -57,7 +57,9 @@ class AutoGluonForecaster(Forecaster):
             target_name = 'target'
             train_df.columns = [ timestamp_column, target_name ]
             test_df.columns = [ timestamp_column, target_name ]
+            ignore_time_index = True
         else:
+            ignore_time_index = False
             raise NotImplementedError()
 
         # AutoGluon requires an ID column
@@ -98,7 +100,7 @@ class AutoGluonForecaster(Forecaster):
         predictor = TimeSeriesPredictor(prediction_length=horizon,
                                         path=tmp_dir,
                                         target=target_name,
-                                        ignore_time_index=True,
+                                        ignore_time_index=ignore_time_index,
                                         verbosity=0,
                                         eval_metric='sMAPE')
 
@@ -112,10 +114,11 @@ class AutoGluonForecaster(Forecaster):
         return predictions
 
 
-    def estimate_initial_limit(self, time_limit):
+    def estimate_initial_limit(self, time_limit, preset):
         """Estimate initial time limit to use for TimeSeriesPredictor fit()
 
         :param time_limit: Maximum time allowed for AutoGluonForecaster.forecast() (int)
+        :param str preset: Model configuration to use
         :return: Estimated time limit (int)
         """
 

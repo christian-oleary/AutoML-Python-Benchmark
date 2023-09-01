@@ -120,12 +120,17 @@ class Forecasting():
             for forecaster_name in config.libraries:
                 # Initialize forecaster and estimate a time/iterations limit
                 forecaster = self._init_forecaster(forecaster_name)
-                limit = forecaster.estimate_initial_limit(config.time_limit)
 
                 for preset in forecaster.presets:
+                    limit = forecaster.estimate_initial_limit(config.time_limit, preset)
+
                     if config.results_dir != None:
                         results_subdir = os.path.join(config.results_dir, f'{forecast_type}_forecasting', dataset_name,
                                                     forecaster_name, f'preset-{preset}_proc-{config.nproc}_limit-{limit}')
+                        # If results are invalid and need to be removed:
+                        # import shutil
+                        # if 'forecaster_name' in results_subdir and os.path.exists(results_subdir):
+                        #     shutil.rmtree(results_subdir)
                     else:
                         results_subdir = None
 

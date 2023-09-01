@@ -110,10 +110,11 @@ class ETNAForecaster(Forecaster):
         return predictions
 
 
-    def estimate_initial_limit(self, time_limit):
+    def estimate_initial_limit(self, time_limit, preset):
         """Estimate initial limit to use for training models
 
         :param time_limit: Maximum amount of time allowed for forecast() (int)
+        :param str preset: Model configuration to use
         :return: Time limit in seconds (int)
         """
 

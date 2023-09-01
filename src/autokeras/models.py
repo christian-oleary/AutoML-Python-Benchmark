@@ -1,3 +1,4 @@
+import itertools
 import os
 import shutil
 
@@ -8,18 +9,24 @@ import tensorflow as tf
 
 from src.base import Forecaster
 
+# Presets are every combination of the following:
+optimizers = ['greedy', 'bayesian', 'hyperband', 'random']
+epoch_limits = ['10', '50', '100', '150']
+time_limits = ['60', '300', '600'] # 1 min, 5 min, 10 min
+presets = list(itertools.product(optimizers, epoch_limits, time_limits))
+presets = [ '_'.join(p) for p in presets ]
 
 class AutoKerasForecaster(Forecaster):
 
     name = 'AutoKeras'
 
     # Training configurations (not ordered)
-    presets = ['greedy', 'bayesian', 'hyperband', 'random']
+    presets = presets
 
 
     def forecast(self, train_df, test_df, forecast_type, horizon, limit, frequency, tmp_dir,
                  nproc=1,
-                 preset='greedy',
+                 preset='greedy_32_60',
                  target_name=None):
         """Perform time series forecasting
 
@@ -36,6 +43,8 @@ class AutoKerasForecaster(Forecaster):
         :return predictions: Numpy array of predictions
         """
 
+        self.forecast_type = forecast_type
+
         # Cannot use tmp_dir due to internal bugs with AutoKeras
         tmp_dir = 'time_series_forecaster'
         shutil.rmtree(tmp_dir, ignore_errors=True)
@@ -50,20 +59,21 @@ class AutoKerasForecaster(Forecaster):
         else:
             raise NotImplementedError()
 
-        epochs = 100 # AK default
-        tmp_dir = os.path.join(tmp_dir, f'{preset}_{epochs}epochs')
+        optimizer = preset.split('_')[0]
+        epochs = int(preset.split('_')[1])
+        tmp_dir = os.path.join(tmp_dir, f'{optimizer}_{epochs}epochs_{limit}')
 
         # Initialise forecaster
         params = {
             # 'directory': tmp_dir, # Internal errors with AutoKeras
             'lookback': self.get_default_lag(horizon),
-            'max_trials': limit,
+            'max_trials': int(limit),
             'objective': 'val_loss',
             'overwrite': False,
             'predict_from': 1,
             'predict_until': horizon,
-            'seed': limit,
-            'tuner': preset,
+            'seed': int(limit),
+            'tuner': optimizer,
         }
         clf = ak.TimeseriesForecaster(**params)
 
@@ -94,12 +104,11 @@ class AutoKerasForecaster(Forecaster):
         return predictions
 
 
-    def estimate_initial_limit(self, time_limit):
+    def estimate_initial_limit(self, time_limit, preset):
         """Estimate initial limit to use for training models
 
         :param time_limit: Maximum amount of time allowed for forecast() (int)
+        :param str preset: Model configuration to use
         :return: Trials limit (int)
         """
-
-        # return int(time_limit / 900) # Estimate a trial takes about 15 minutes
-        return 1 # One trial
+        return int(time_limit / int(preset.split('_')[2]))

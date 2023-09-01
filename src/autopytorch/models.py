@@ -80,10 +80,11 @@ class AutoPyTorchForecaster(Forecaster):
         return predictions
 
 
-    def estimate_initial_limit(self, time_limit):
+    def estimate_initial_limit(self, time_limit, preset):
         """Estimate initial time limit to use for TimeSeriesPredictor fit()
 
         :param time_limit: Maximum time allowed for AutoGluonForecaster.forecast() (int)
+        :param str preset: Model configuration to use
         :return: Estimated time limit (int)
         """
 

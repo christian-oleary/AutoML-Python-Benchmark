@@ -1,3 +1,4 @@
+import itertools
 import logging
 
 import numpy as np
@@ -15,13 +16,18 @@ logger.addHandler(logging.NullHandler())
 logger.propagate = False
 logger.setLevel(logging.CRITICAL)
 
+# Presets are every combination of the following:
+configs = [ 'all', 'default', 'fast_parallel', 'fast', 'superfast' ]
+time_limits = ['60', '300', '600'] # 1 min, 5 min, 10 min
+presets = list(itertools.product(configs, time_limits))
+presets = [ '__'.join(p) for p in presets ]
 
 class AutoTSForecaster(Forecaster):
 
     name = 'AutoTS'
 
     # Training configurations ordered from slowest to fastest
-    presets = [ 'all', 'default', 'fast_parallel', 'fast', 'superfast' ]
+    presets = presets
 
     def forecast(self, train_df, test_df, forecast_type, horizon, limit, frequency, tmp_dir,
                  nproc=1,
@@ -41,7 +47,6 @@ class AutoTSForecaster(Forecaster):
         :param str target_name: Name of target variable for multivariate forecasting, defaults to None
         :return predictions: Numpy array of predictions
         """
-
 
         if forecast_type == 'global':
             raise NotImplementedError()
@@ -67,7 +72,7 @@ class AutoTSForecaster(Forecaster):
             frequency='infer',
             forecast_length=horizon,
             max_generations=limit,
-            model_list=preset,
+            model_list=preset.split('__')[0],
             models_to_validate=0.2,
             n_jobs=nproc,
             prediction_interval=0.95,
@@ -96,15 +101,15 @@ class AutoTSForecaster(Forecaster):
         return predictions
 
 
-    def estimate_initial_limit(self, time_limit):
+    def estimate_initial_limit(self, time_limit, preset):
         """Estimate initial limit to use for training models
 
         :param time_limit: Maximum amount of time allowed for forecast() (int)
+        :param str preset: Model configuration to use
         :return: Trials limit (int)
         """
 
-        # return (time_limit / 600) # Estimate a generation takes 10 minutes
-        return 1 # One GA generation
+        return (time_limit / int(preset.split('__')[1]))
 
 
     def rolling_origin_forecast(self, model, train_X, test_X, horizon):

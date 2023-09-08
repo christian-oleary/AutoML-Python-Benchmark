@@ -17,7 +17,7 @@ logger.propagate = False
 logger.setLevel(logging.CRITICAL)
 
 # Presets are every combination of the following:
-configs = [ 'all', 'default', 'fast_parallel', 'fast', 'superfast' ]
+configs = [ 'superfast', 'fast', 'fast_parallel', 'default', 'all' ]
 time_limits = ['60', '300', '600'] # 1 min, 5 min, 10 min
 presets = list(itertools.product(configs, time_limits))
 presets = [ '__'.join(p) for p in presets ]
@@ -61,10 +61,18 @@ class AutoTSForecaster(Forecaster):
                 fill_na='spline',
             )
         else:
+            if target_name == None:
+                target_name = 'target'
             train_df.index = pd.to_datetime(train_df.index, unit='D')
             test_df.index = pd.to_datetime(test_df.index, unit='D')
+            train_df.columns = [ target_name ]
+            test_df.columns = [ target_name ]
+
             # We need to pass future_regressor to be able to do rolling origin forecasting
-            train_regressors = train_df
+            X_train, _, X_test, __ = self.create_tabular_dataset(train_df, test_df, horizon, target_name,
+                                                                      tabular_y=False)
+            train_regressors = X_train[f'{target_name}-{horizon}']
+            test_regressors = X_test[f'{target_name}-{horizon}']
 
         limit = int(limit)
         min_allowed_train_percent = 0.1
@@ -98,7 +106,18 @@ class AutoTSForecaster(Forecaster):
                 model = model.fit(train_df, future_regressor=train_regressors)
 
         logger.debug('Making predictions...')
-        predictions = self.rolling_origin_forecast(model, train_df, test_df, horizon)
+        predictions = model.predict(future_regressor=test_regressors, forecast_length=horizon).forecast.values
+        # AutoTS will predict at every step, but we are using a step gap of length=horizon
+        predictions = np.array(predictions).T.tolist()
+        relevant_preds = predictions[::horizon-1] # i.e. only keep predictions with an interval=horizon
+        predictions = list(itertools.chain(*relevant_preds)) # Flatten to a 1D list
+        predictions = np.array(predictions[:len(X_test)]) # Drop any extra unused predictions
+        # print('predictions', predictions, len(predictions))
+        # print('horizon', horizon)
+        # print('test_regressors.shape', test_regressors.shape)
+        # print()
+        # exit()
+        # predictions = self.rolling_origin_forecast(model, test_df, test_regressors, horizon)
         return predictions
 
 
@@ -113,28 +132,36 @@ class AutoTSForecaster(Forecaster):
         return (time_limit / int(preset.split('__')[1]))
 
 
-    def rolling_origin_forecast(self, model, train_X, test_X, horizon):
-        """Iteratively forecast over increasing dataset
+    def rolling_origin_forecast(self, model, test_X, test_regressors, horizon):
+        """DEPRECATED. Iteratively forecast over increasing dataset
 
         :param model: Forecasting model, must have predict()
-        :param train_X: Training feature data (pandas DataFrame)
         :param test_X: Test feature data (pandas DataFrame)
+        :param test_regressors:
         :param horizon: Forecast horizon (int)
         :return: Predictions (numpy array)
         """
-        # Split test set
-        test_splits = Utils.split_test_set(test_X, horizon)
+        # # Split test set
+        # test_splits = Utils.split_test_set(test_X, horizon)
+        # regressor_splits = Utils.split_test_set(test_regressors, horizon)
+        # print('\n\n\n\n\n\n\n\n\n')
+        # print('test_X', test_X)
+        # print('test_regressors', test_regressors)
+        # print('test_splits', test_splits)
 
-        # Make predictions
-        predictions = []
-        for s in test_splits:
-            # train_X = pd.concat([train_X, s])
-            if len(s) < horizon:
-                horizon = len(s)
-            preds = model.predict(future_regressor=s, forecast_length=horizon).forecast.values
-            predictions.append(preds)
+        # # Make predictions
+        # predictions = []
+        # for s in regressor_splits:
+        #     # train_X = pd.concat([train_X, s])
+        #     if len(s) < horizon:
+        #         horizon = len(s)
+        #     print('\n\n')
+        #     print(s, s.shape, horizon)
+        #     print('\n\n')
+        #     preds = model.predict(future_regressor=s, forecast_length=horizon).forecast.values
+        #     predictions.append(preds)
 
-        # Flatten predictions and truncate if needed
-        predictions = np.concatenate([ p.flatten() for p in predictions ])
-        predictions = predictions[:len(test_X)]
-        return predictions
+        # # Flatten predictions and truncate if needed
+        # predictions = np.concatenate([ p.flatten() for p in predictions ])
+        # predictions = predictions[:len(test_X)]
+        # return predictions

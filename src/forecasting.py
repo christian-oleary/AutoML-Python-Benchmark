@@ -210,6 +210,8 @@ class Forecasting():
         """
         # Check that model outputted enough predictions
         if actual.shape[0] > predictions.shape[0]:
+            logger.error(f'Predictions: {predictions}')
+            logger.error(f'Actual: {actual}')
             raise ValueError(f'Not enough predictions {predictions.shape[0]} for test set {actual.shape[0]}')
 
         # Truncate and flatten predictions if needed

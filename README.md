@@ -81,9 +81,8 @@ mamba install -y -c conda-forge autogluon
 -->
 ```bash
 pip install torch==1.13.1+cu117 torchvision==0.14.1+cu117 --extra-index-url https://download.pytorch.org/whl/cu117
-pip install git+https://github.com/keras-team/keras-tuner.git
-pip install -r requirements.txt
 pip install -r ./src/autogluon/requirements.txt
+pip install tensorflow # Only used in tests
 ```
 
 Note: AutoGluon does not work with PyTorch 2.* yet: <https://github.com/autogluon/autogluon/issues/3250>

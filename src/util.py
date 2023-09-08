@@ -308,38 +308,39 @@ class Utils:
         test_scores.to_csv(output_file, index=False)
 
         # Mean scores per library across all presets and failed training counts
-        df_failed = test_scores[['library', 'failed']]
-        df_failed = df_failed.set_index('library')
-        df_failed = df_failed.groupby('library').sum()
+        if len(test_scores) > 0:
+            df_failed = test_scores[['library', 'failed']]
+            df_failed = df_failed.set_index('library')
+            df_failed = df_failed.groupby('library').sum()
 
-        df_by_library = test_scores.drop(['preset', 'file', 'failed'], axis=1).groupby('library')
-        df_by_library.index = df_by_library['library']
-        df_max = df_by_library.max()
-        df_min = df_by_library.min()
-        df_mean = df_by_library.mean()
+            df_by_library = test_scores.drop(['preset', 'file', 'failed'], axis=1).groupby('library')
+            df_by_library.index = df_by_library['library']
+            df_max = df_by_library.max()
+            df_min = df_by_library.min()
+            df_mean = df_by_library.mean()
 
-        df_max.columns = [ f'{c}_max' for c in df_max.columns.tolist() ]
-        df_min.columns = [ f'{c}_min' for c in df_min.columns.tolist() ]
-        df_mean.columns = [ f'{c}_mean' for c in df_mean.columns.tolist() ]
+            df_max.columns = [ f'{c}_max' for c in df_max.columns.tolist() ]
+            df_min.columns = [ f'{c}_min' for c in df_min.columns.tolist() ]
+            df_mean.columns = [ f'{c}_mean' for c in df_mean.columns.tolist() ]
 
-        mean_scores = pd.concat([df_failed, df_max, df_min, df_mean], axis=1)
+            mean_scores = pd.concat([df_failed, df_max, df_min, df_mean], axis=1)
 
-        output_file = os.path.join(stats_dir, '2_mean_scores.csv')
-        mean_scores.to_csv(output_file)
+            output_file = os.path.join(stats_dir, '2_mean_scores.csv')
+            mean_scores.to_csv(output_file)
 
-        if plots:
-            # Bar plot of failed training attempts
-            mean_scores.plot.bar(y='failed')
-            save_path = os.path.join(stats_dir, '3_failed_counts.png')
-            Utils.save_plot('Failed Counts', save_path=save_path)
+            if plots:
+                # Bar plot of failed training attempts
+                mean_scores.plot.bar(y='failed')
+                save_path = os.path.join(stats_dir, '3_failed_counts.png')
+                Utils.save_plot('Failed Counts', save_path=save_path)
 
-            # Boxplots
-            for col, filename, title in [
-                ('R2_mean', '4_R2_mean.png', 'Mean R2'),
-                ('MAE_mean', '5_MAE_mean.png', 'Mean MAE'),
-                ('MAPE_mean', '6_MAPE_mean.png', 'Mean MAPE'),
-                ('duration_mean', '6_duration_mean.png', 'Mean MAPE'),
-                ]:
-                mean_scores.boxplot(col, by='library')
-                save_path = os.path.join(stats_dir, filename)
-                Utils.save_plot(title, save_path=save_path)
+                # Boxplots
+                for col, filename, title in [
+                    ('R2_mean', '4_R2_mean.png', 'Mean R2'),
+                    ('MAE_mean', '5_MAE_mean.png', 'Mean MAE'),
+                    ('MAPE_mean', '6_MAPE_mean.png', 'Mean MAPE'),
+                    ('duration_mean', '6_duration_mean.png', 'Mean MAPE'),
+                    ]:
+                    mean_scores.boxplot(col, by='library')
+                    save_path = os.path.join(stats_dir, filename)
+                    Utils.save_plot(title, save_path=save_path)

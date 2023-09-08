@@ -300,7 +300,6 @@ class Forecasting():
         elif config.libraries == 'installed':
             config = self._check_installed(config)
         else:
-            print('config.libraries', config.libraries)
             if not isinstance(config.libraries, list):
                 raise TypeError(f'forecaster_names must be a list or "all". Received: {type(config.libraries)}')
 

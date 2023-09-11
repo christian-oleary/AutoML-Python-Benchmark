@@ -116,7 +116,15 @@ class EvalMLForecaster(Forecaster):
 
         predictions = []
         for s in test_splits:
-            preds = model.predict(s, objective=None, X_train=train_X, y_train=y_train).values
+            if horizon > len(s): # Pad with zeros to prevent errors with ARIMA
+                padding = horizon - len(s)
+                s = pd.concat([s, pd.DataFrame([s.values[0].tolist()] * padding, columns=s.columns)])
+                start_index = s.index.values[0]
+                s.index = np.arange(start_index, start_index + len(s))
+                preds = model.predict(s, objective=None, X_train=train_X, y_train=y_train).values
+                preds = preds[:len(s)] # Drop placeholder predictions
+            else:
+                preds = model.predict(s, objective=None, X_train=train_X, y_train=y_train).values
             predictions.append(preds)
             train_X = pd.concat([train_X, s])
 

@@ -167,6 +167,10 @@ class Forecasting():
                     except AutomlLibraryError as e2:
                         logger.error(f'{forecaster_name} (preset: {preset}) failed to fit.')
                         self.record_failure(results_subdir, e2)
+                    except Exception as e3:
+                        logger.critical(f'{forecaster_name} (preset: {preset}) failed!')
+                        logger.critical(e3)
+                        raise e3
 
                     # Summarize experiment results
                     if config.results_dir != None:

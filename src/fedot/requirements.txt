@@ -1,2 +1,5 @@
 fedot==0.6
+# fedot==0.7 # Internal errors: TypeError: boosting_mutation() missing 1 required positional argument: 'params'
 fedot[extra]
+
+# Note: cuDF is supported only on Linux, and with Python versions 3.9 and later.

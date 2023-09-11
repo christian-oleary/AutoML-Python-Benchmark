@@ -15,7 +15,13 @@ class FEDOTForecaster(Forecaster):
     name = 'FEDOT'
 
     # Training configurations approximately ordered from slowest to fastest
-    presets = [ 'best_quality', 'auto', 'gpu', 'stable', 'ts', 'fast_train' ]
+    presets = [
+                'fast_train',
+                'ts',
+                # 'gpu', # Errors with cudf and cuml
+                'stable',
+                'best_quality', 'auto',
+                ]
 
     # Use 95% of maximum available time for model training in initial experiment
     initial_training_fraction = 0.95

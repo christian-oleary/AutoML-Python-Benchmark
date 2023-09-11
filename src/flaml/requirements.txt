@@ -1,2 +1,5 @@
-FLAML==1.2.4
+# FLAML==1.2.4
+FLAML==2.0.2
+flaml[automl]
+flaml[forecast]
 flaml[ts_forecast]

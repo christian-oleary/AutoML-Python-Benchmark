@@ -168,7 +168,7 @@ class Forecasting():
                         self.record_failure(results_subdir, e2)
                     except Exception as e3:
                         logger.critical(f'{forecaster_name} (preset: {preset}) failed!')
-                        logger.critical(e3)
+                        logger.critical(e3, exc_info=True)
                         raise e3
 
                     # Summarize experiment results

@@ -34,7 +34,7 @@ Auto-PyTorch requires Linux. PyCaret and EvalML may conflict. Other conflicts ar
 
 ```bash
 # AutoML library-specific envs recommended
-conda create -n env python=3.9
+conda create -y -n env python=3.9
 ```
 
 Installation for AutoTS specifically:
@@ -70,7 +70,7 @@ conda config --append channels conda-forge
 conda install -c conda-forge pytorch # can also try: conda install -c conda-forge torch
 pip install --force-reinstall charset-normalizer==3.1.0
 pip install -r requirements.txt
-pip3 install -r ./src/autopytorch/requirements.txt
+pip install -r ./src/autopytorch/requirements.txt
 ```
 
 Initial steps for AutoGluon:

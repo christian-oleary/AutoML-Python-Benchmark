@@ -158,7 +158,8 @@ class Forecasting():
                         logger.debug(f'{forecaster_name} (preset: {preset}) took {duration} seconds for {csv_file}')
 
                         # Generate scores and plots
-                        self.evaluate_predictions(actual, predictions, results_subdir, forecaster_name, duration)
+                        if config.results_dir != None:
+                            self.evaluate_predictions(actual, predictions, results_subdir, forecaster_name, duration)
 
                     except DatasetTooSmallError as e1:
                         logger.error('Failed to fit. Dataset too small for library.')
@@ -314,6 +315,12 @@ class Forecasting():
 
         if config.nproc == 0 or config.nproc < -1:
             raise ValueError(f'nproc must be -1 or a positive int. Received {config.nproc}')
+
+        is_none = config.results_dir in ['None', 'none', None]
+        if not isinstance(config.results_dir, str) and not is_none:
+            raise TypeError(f'results_dir must be str or None. Received: {config.results_dir} ({type(config.results_dir)})')
+        elif is_none:
+            config.results_dir = None
 
         try:
             _ = os.listdir(config.univariate_forecasting_data_dir)

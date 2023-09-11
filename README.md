@@ -30,6 +30,8 @@ The following installation commands support *each* of the tested libraries. If y
 
 Replace pip with pip3 if not using Windows.
 
+Note: cuDF is supported only on Linux, and with Python versions 3.9 and later.
+
 Auto-PyTorch requires Linux. PyCaret and EvalML may conflict. Other conflicts are to be expected if you try to install every library.
 
 ```bash

@@ -86,7 +86,7 @@ class EvalMLForecaster(Forecaster):
                 raise e
 
         model = automl.best_pipeline
-        predictions = self.rolling_origin_forecast(model, X_train, X_test, y_train, horizon)
+        predictions = self.rolling_origin_forecast(model, X_train, X_test, y_train, horizon, forecast_type)
         return predictions
 
 
@@ -101,7 +101,7 @@ class EvalMLForecaster(Forecaster):
         return int(time_limit * self.initial_training_fraction)
 
 
-    def rolling_origin_forecast(self, model, train_X, test_X, y_train, horizon):
+    def rolling_origin_forecast(self, model, train_X, test_X, y_train, horizon, forecast_type):
         """Iteratively forecast over increasing dataset
 
         :param model: Forecasting model, must have predict()
@@ -109,6 +109,7 @@ class EvalMLForecaster(Forecaster):
         :param test_X: Test feature data (pandas DataFrame)
         :param horizon: Forecast horizon (int)
         :param column: Specifies forecast column if dataframe outputted, defaults to None
+        :param str forecast_type: Type of forecasting, i.e. 'global', 'multivariate' or 'univariate'
         :return: Predictions (numpy array)
         """
         # Split test set
@@ -121,6 +122,9 @@ class EvalMLForecaster(Forecaster):
                 s = pd.concat([s, pd.DataFrame([s.values[0].tolist()] * padding, columns=s.columns)])
                 start_index = s.index.values[0]
                 s.index = np.arange(start_index, start_index + len(s))
+                if forecast_type == 'univariate':
+                    s['time_index'] = pd.date_range(start=s['time_index'].values[0], periods=len(s))
+
                 preds = model.predict(s, objective=None, X_train=train_X, y_train=y_train).values
                 preds = preds[:len(s)] # Drop placeholder predictions
             else:

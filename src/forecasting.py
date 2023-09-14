@@ -3,6 +3,7 @@ Code for initiating forecasting experiments
 """
 
 import os
+from pathlib import Path
 import time
 
 import numpy as np
@@ -243,6 +244,49 @@ class Forecasting():
 
         if results_subdir != None:
             Utils.plot_forecast(actual, predictions, results_subdir, f'{forecaster_name}_{round(scores["R2"], 2)}')
+
+
+    def analyse_results(self, config, forecast_type, plots=True):
+        """Analyse the overall results of running AutoML libraries on datasets
+
+        :param str data_dir: Path to datasets directory
+        :param argparse.Namespace config: arguments from command line
+        :param str forecast_type: Type of forecasting, i.e. 'global', 'multivariate' or 'univariate'
+        :param bool plots: Save plots as images, defaults to True
+        """
+        logger.info(f'Analysing results ({forecast_type})')
+        self._validate_inputs(config, forecast_type)
+
+        if config.results_dir == None:
+            logger.warning('No results directory specified. Skipping')
+
+        elif not os.path.exists(config.results_dir):
+            logger.error(f'Results directory not found: {config.results_dir} ({type(config.results_dir)})')
+
+        else:
+            dataframes = []
+            results_dir = os.path.join(config.results_dir, f'{forecast_type}_forecasting')
+            for dirpath, _, filenames in os.walk(results_dir):
+                if 'statistics' in dirpath and len(filenames) > 0:
+                    all_scores_path = os.path.join(dirpath, '1_all_scores.csv')
+                    try:
+                        df = pd.read_csv(all_scores_path)
+                        dataframes.append(df)
+                    except pd.errors.EmptyDataError as _:
+                        logger.debug(f'No data found in {all_scores_path}. Skipping')
+
+            all_scores = pd.concat(dataframes, axis=0)
+
+            stats_dir = os.path.join(config.results_dir, f'{forecast_type}_statistics')
+            os.makedirs(stats_dir, exist_ok=True)
+
+            logger.debug(f'Compiling test scores in {all_scores_path}')
+            all_scores_path = os.path.join(stats_dir, 'all_scores.csv')
+            all_scores.to_csv(all_scores_path, index=False)
+
+            if plots:
+                logger.debug('Generating plots')
+                Utils.plot_test_scores(all_scores, stats_dir, plots)
 
 
     def _init_forecaster(self, forecaster_name):

@@ -104,7 +104,7 @@ pip install -r ./src/autokeras/requirements.txt
 pip install -r ./src/etna/requirements.txt
 pip install -r ./src/evalml/requirements.txt
 pip install -r ./src/fedot/requirements.txt
-pip install -r ./src/flaml/requirements.txt
+pip install -r ./src/flaml/requirements.txt && pip uninstall prophet # Prophet gives errors
 pip install -r ./src/ludwig/requirements.txt
 pip install -r ./src/pycaret/requirements.txt
 ```

@@ -18,7 +18,7 @@ logger.setLevel(logging.CRITICAL)
 
 # Presets are every combination of the following:
 configs = [ 'superfast', 'fast', 'fast_parallel', 'default', 'all' ]
-time_limits = ['60', '300', '600'] # 1 min, 5 min, 10 min
+time_limits = ['300', '600', '900'] # 5 min, 10 min, 15 min
 presets = list(itertools.product(configs, time_limits))
 presets = [ '__'.join(p) for p in presets ]
 
@@ -76,6 +76,9 @@ class AutoTSForecaster(Forecaster):
 
         limit = int(limit)
         min_allowed_train_percent = 0.1
+        if (horizon * min_allowed_train_percent) > int((train_df.shape[0]/4) - horizon):
+            raise DatasetTooSmallError('Time series is too short for AutoTS', ValueError())
+
         model = AutoTS(
             ensemble=['auto'],
             frequency='infer',
@@ -93,9 +96,6 @@ class AutoTSForecaster(Forecaster):
 
         logger.debug('Training model...')
 
-        if (horizon * min_allowed_train_percent) > int((train_df.shape[0]/4) - horizon):
-            raise DatasetTooSmallError('Time series is too short for AutoTS', ValueError())
-
         if forecast_type == 'global':
             raise NotImplementedError()
         else:
@@ -106,18 +106,15 @@ class AutoTSForecaster(Forecaster):
                 model = model.fit(train_df, future_regressor=train_regressors)
 
         logger.debug('Making predictions...')
+        # predictions = self.rolling_origin_forecast(model, test_df, test_regressors, horizon)
+
         predictions = model.predict(future_regressor=test_regressors, forecast_length=horizon).forecast.values
         # AutoTS will predict at every step, but we are using a step gap of length=horizon
         predictions = np.array(predictions).T.tolist()
         relevant_preds = predictions[::horizon-1] # i.e. only keep predictions with an interval=horizon
         predictions = list(itertools.chain(*relevant_preds)) # Flatten to a 1D list
         predictions = np.array(predictions[:len(X_test)]) # Drop any extra unused predictions
-        # print('predictions', predictions, len(predictions))
-        # print('horizon', horizon)
-        # print('test_regressors.shape', test_regressors.shape)
-        # print()
-        # exit()
-        # predictions = self.rolling_origin_forecast(model, test_df, test_regressors, horizon)
+
         return predictions
 
 

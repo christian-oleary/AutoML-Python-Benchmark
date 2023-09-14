@@ -3,6 +3,7 @@ Code for initiating forecasting experiments
 """
 
 import os
+from pathlib import Path
 import time
 
 import numpy as np
@@ -243,6 +244,27 @@ class Forecasting():
 
         if results_subdir != None:
             Utils.plot_forecast(actual, predictions, results_subdir, f'{forecaster_name}_{round(scores["R2"], 2)}')
+
+
+    def analyse_results(self, config, forecast_type, plots=True):
+        """Analyse the overall results of running AutoML libraries on datasets
+
+        :param str data_dir: Path to datasets directory
+        :param argparse.Namespace config: arguments from command line
+        :param str forecast_type: Type of forecasting, i.e. 'global', 'multivariate' or 'univariate'
+        :param bool plots: Save plots as images, defaults to True
+        """
+        logger.info(f'Analysing results ({forecast_type})')
+        self._validate_inputs(config, forecast_type)
+
+        if config.results_dir == None:
+            logger.warning('No results directory specified. Skipping')
+
+        elif not os.path.exists(config.results_dir):
+            logger.error(f'Results directory not found: {config.results_dir} ({type(config.results_dir)})')
+
+        else:
+            Utils.summarize_overall_results(config.results_dir, forecast_type)
 
 
     def _init_forecaster(self, forecaster_name):

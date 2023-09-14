@@ -8,7 +8,6 @@ from sklearn.experimental import enable_iterative_imputer # import needed for It
 from src.dataset_formatting import DatasetFormatting
 from src.forecasting import Forecasting
 from src.logs import logger
-from tests import gpu_test
 
 if __name__ == '__main__': # Needed for any multiprocessing
 
@@ -71,6 +70,8 @@ if __name__ == '__main__': # Needed for any multiprocessing
     if args.cpu_only:
         os.environ['CUDA_VISIBLE_DEVICES'] = '-1' # Use CPU instead of GPU
     else:
+        logger.info('Checking GPU access...')
+        from tests import gpu_test
         if not gpu_test.tensorflow_test():
             logger.warning('TensorFlow cannot access GPU')
 
@@ -90,10 +91,12 @@ if __name__ == '__main__': # Needed for any multiprocessing
     # Run univariate forecasting models
     data_dir = args.univariate_forecasting_data_dir
     Forecasting().run_forecasting_libraries(data_dir, args, 'univariate')
+    Forecasting().analyse_results(args, 'univariate')
 
     # Run global forecasting models
     data_dir = args.global_forecasting_data_dir
     # Forecasting().run_forecasting_libraries(data_dir, args, 'global')
+    # Forecasting().analyse_results(args, 'global')
 
     # Calculate runtime
     logger.info(f'Finished at {datetime.now().strftime("%d-%m-%y %H:%M:%S")}')

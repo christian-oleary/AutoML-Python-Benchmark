@@ -307,7 +307,7 @@ class Utils:
         output_file = os.path.join(stats_dir, '1_all_scores.csv')
         test_scores.to_csv(output_file, index=False)
 
-        # Mean scores per library across all presets and failed training counts
+        # Scores per library across all presets and failed training counts
         if len(test_scores) > 0:
             Utils.plot_test_scores(test_scores, stats_dir, plots)
 
@@ -316,10 +316,31 @@ class Utils:
     def plot_test_scores(test_scores, stats_dir, plots):
         """Plot test scores
 
-        :param pd.DataFrame test_scores: _description_
-        :param _type_ stats_dir: _description_
-        :param _type_ plots: _description_
+        :param pd.DataFrame test_scores: Test scores
+        :param str stats_dir: Path to output directory
+        :param bool plots: If True, generate plots
         """
+        test_scores['library'] = test_scores['library'].str.capitalize()
+
+        # Save overall scores and generate plots
+        if plots:
+            # Bar plot of failed training attempts
+            test_scores.plot.bar(y='failed')
+            save_path = os.path.join(stats_dir, '3_failed_counts.png')
+            Utils.save_plot('Failed Counts', save_path=save_path)
+
+            # Boxplots
+            for col, filename, title in [
+                ('R2', '4_R2_box.png', 'R2'),
+                ('MAE', '5_MAE_box.png', 'MAE'),
+                ('MAPE', '6_MAPE_box.png', 'MAPE'),
+                ('duration', '7_duration_box.png', 'duration'),
+                ]:
+                test_scores.boxplot(col, by='library')
+                save_path = os.path.join(stats_dir, filename)
+                Utils.save_plot(title, save_path=save_path)
+
+        # Save mean scores and generate plots
         df_failed = test_scores[['library', 'failed']]
         df_failed = df_failed.set_index('library')
         df_failed = df_failed.groupby('library').sum()
@@ -350,8 +371,44 @@ class Utils:
                 ('R2_mean', '4_R2_mean.png', 'Mean R2'),
                 ('MAE_mean', '5_MAE_mean.png', 'Mean MAE'),
                 ('MAPE_mean', '6_MAPE_mean.png', 'Mean MAPE'),
-                ('duration_mean', '6_duration_mean.png', 'Mean MAPE'),
+                ('duration_mean', '7_duration_mean.png', 'Mean Duration'),
                 ]:
-                mean_scores.boxplot(col, by='library')
+                mean_scores.plot.bar(y=col)
                 save_path = os.path.join(stats_dir, filename)
                 Utils.save_plot(title, save_path=save_path)
+
+
+    @staticmethod
+    def summarize_overall_results(results_dir, forecast_type, plots=True):
+        """Analyse results saved to file
+
+        :param str results_subdir: Path to relevant results directory
+        :param bool plots: Save plots as images, defaults to True
+        """
+
+        dataframes = []
+        results_subdir = os.path.join(results_dir, f'{forecast_type}_forecasting')
+        for dirpath, _, filenames in os.walk(results_subdir):
+            if 'statistics' in dirpath and len(filenames) > 0:
+                all_scores_path = os.path.join(dirpath, '1_all_scores.csv')
+                try:
+                    df = pd.read_csv(all_scores_path)
+                    dataframes.append(df)
+                except pd.errors.EmptyDataError as _:
+                    logger.debug(f'No data found in {all_scores_path}. Skipping')
+
+        all_scores = pd.concat(dataframes, axis=0)
+
+        if len(all_scores) == 0:
+            logger.warning('No results found. Skipping')
+        else:
+            stats_dir = os.path.join(results_dir, f'{forecast_type}_statistics')
+            os.makedirs(stats_dir, exist_ok=True)
+
+            logger.debug(f'Compiling test scores in {all_scores_path}')
+            all_scores_path = os.path.join(stats_dir, '1_all_scores.csv')
+            all_scores.to_csv(all_scores_path, index=False)
+
+            if plots:
+                logger.debug('Generating plots')
+                Utils.plot_test_scores(all_scores, stats_dir, plots)

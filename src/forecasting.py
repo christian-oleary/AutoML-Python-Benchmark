@@ -264,29 +264,7 @@ class Forecasting():
             logger.error(f'Results directory not found: {config.results_dir} ({type(config.results_dir)})')
 
         else:
-            dataframes = []
-            results_dir = os.path.join(config.results_dir, f'{forecast_type}_forecasting')
-            for dirpath, _, filenames in os.walk(results_dir):
-                if 'statistics' in dirpath and len(filenames) > 0:
-                    all_scores_path = os.path.join(dirpath, '1_all_scores.csv')
-                    try:
-                        df = pd.read_csv(all_scores_path)
-                        dataframes.append(df)
-                    except pd.errors.EmptyDataError as _:
-                        logger.debug(f'No data found in {all_scores_path}. Skipping')
-
-            all_scores = pd.concat(dataframes, axis=0)
-
-            stats_dir = os.path.join(config.results_dir, f'{forecast_type}_statistics')
-            os.makedirs(stats_dir, exist_ok=True)
-
-            logger.debug(f'Compiling test scores in {all_scores_path}')
-            all_scores_path = os.path.join(stats_dir, 'all_scores.csv')
-            all_scores.to_csv(all_scores_path, index=False)
-
-            if plots:
-                logger.debug('Generating plots')
-                Utils.plot_test_scores(all_scores, stats_dir, plots)
+            Utils.summarize_overall_results(config.results_dir, forecast_type)
 
 
     def _init_forecaster(self, forecaster_name):

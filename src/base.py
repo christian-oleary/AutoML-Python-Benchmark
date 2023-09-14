@@ -1,12 +1,14 @@
 """
 Base Classes
 """
+import math
 
 import numpy as np
 import pandas as pd
 from sklearn.linear_model import LinearRegression
 from sklearn.impute import IterativeImputer
 
+from src.errors import AutomlLibraryError
 from src.util import Utils
 from src.logs import logger
 
@@ -49,21 +51,28 @@ class Forecaster:
 
             # Fit model
             logger.debug('Training Linear Regression model...')
-            model = LinearRegression(n_jobs=nproc)
-            model.fit(X_train, y_train)
+            X_train = X_train.tail(10000)
+            y_train = y_train[-10000:]
+            predictions = self.train_lr_model(X_train, y_train, X_test, horizon, forecast_type, nproc)
+        else:
+            raise NotImplementedError('Linear Regression model not implemented for multivariate/global forecasting yet')
+        return predictions
 
-            class Model:
-                def __init__(self, model):
-                    self.model = model
 
-                def predict(self, X):
+    def train_lr_model(self, X_train, y_train, X_test, horizon, forecast_type, nproc):
+        model = LinearRegression(n_jobs=nproc)
+        model.fit(X_train, y_train)
+
+        class Model:
+            def __init__(self, model):
+                self.model = model
+
+            def predict(self, X):
                     return self.model.predict(X)[-1]
 
-            if forecast_type == 'univariate':
-                model = Model(model)
-                predictions = self.rolling_origin_forecast(model, X_train, X_test, horizon)
-        else:
-            raise NotImplementedError()
+        if forecast_type == 'univariate':
+            model = Model(model)
+            predictions = self.rolling_origin_forecast(model, X_train, X_test, horizon)
         return predictions
 
 

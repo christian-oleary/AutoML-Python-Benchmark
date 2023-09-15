@@ -30,6 +30,7 @@ if __name__ == '__main__': # Needed for any multiprocessing
                         'all', # Will run all libraries
                         'installed', # Will run all libraries installed correctly
                         'test', # Will run a test/placholder model
+                        'None', # No experiments (just other functions)
 
                         'autogluon',
                         'autokeras',
@@ -90,12 +91,14 @@ if __name__ == '__main__': # Needed for any multiprocessing
 
     # Run univariate forecasting models
     data_dir = args.univariate_forecasting_data_dir
-    Forecasting().run_forecasting_libraries(data_dir, args, 'univariate')
+    if 'None' not in args.libraries:
+        Forecasting().run_forecasting_libraries(data_dir, args, 'univariate')
     Forecasting().analyse_results(args, 'univariate')
 
     # Run global forecasting models
     data_dir = args.global_forecasting_data_dir
-    # Forecasting().run_forecasting_libraries(data_dir, args, 'global')
+    # if 'None' not in args.libraries:
+    #     Forecasting().run_forecasting_libraries(data_dir, args, 'global')
     # Forecasting().analyse_results(args, 'global')
 
     # Calculate runtime

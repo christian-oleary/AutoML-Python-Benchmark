@@ -362,6 +362,7 @@ class Utils:
 
         if plots:
             # Bar plot of failed training attempts
+            # TODO: Need to divide by number of presets
             mean_scores.plot.bar(y='failed')
             save_path = os.path.join(stats_dir, '3_failed_counts.png')
             Utils.save_plot('Failed Counts', save_path=save_path)

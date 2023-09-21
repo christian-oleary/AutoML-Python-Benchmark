@@ -333,7 +333,7 @@ class Forecasting():
                 raise TypeError(f'forecaster_names must be a list or "all". Received: {type(config.libraries)}')
 
             for name in config.libraries:
-                if name != 'test' and name not in self.global_forecaster_names:
+                if name not in [ 'None', 'test' ] and name not in self.global_forecaster_names:
                     raise ValueError(f'Unknown forecaster. Options: {self.global_forecaster_names}')
 
         if not isinstance(config.nproc, int):

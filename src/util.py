@@ -334,7 +334,7 @@ class Utils:
                 ('R2', '4_R2_box.png', 'R2'),
                 ('MAE', '5_MAE_box.png', 'MAE'),
                 ('MAPE', '6_MAPE_box.png', 'MAPE'),
-                ('duration', '7_duration_box.png', 'duration'),
+                ('duration', '7_duration_box.png', 'Duration (sec)'),
                 ]:
                 test_scores.boxplot(col, by='library')
                 save_path = os.path.join(stats_dir, filename)

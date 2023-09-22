@@ -182,14 +182,24 @@ class Utils:
 
 
     @staticmethod
-    def save_plot(title, xlabel=None, ylabel=None, suptitle='', show=False, legend=None, save_path=None):
+    def save_plot(title,
+                  xlabel=None,
+                  ylabel=None,
+                  suptitle='',
+                  show=False,
+                  legend=None,
+                  save_path=None,
+                  yscale='linear'):
         """Apply title and axis labels to plot. Show and save to file. Clear plot.
 
         :param title: Title for plot
         :param xlabel: Plot X-axis label
         :param ylabel: Plot Y-axis label
+        :param title: Subtitle for plot
         :param show: Show plot on screen, defaults to False
+        :param legend: Legend, defaults to None
         :param save_path: Save plot to file if not None, defaults to None
+        :param yscale: Y-Scale ('linear' or 'log'), defaults to 'linear'
         """
 
         if xlabel != None:
@@ -198,8 +208,11 @@ class Utils:
         if ylabel != None:
             plt.ylabel(ylabel)
 
+        plt.yscale(yscale)
+
         plt.title(title)
         plt.suptitle(suptitle)
+
         if legend != None:
             plt.legend(legend, loc='upper left')
 
@@ -209,7 +222,9 @@ class Utils:
         # Show plot as file
         if save_path != None:
             plt.savefig(save_path, bbox_inches='tight')
+
         # Clear for next plot
+        plt.cla()
         plt.clf()
         plt.close('all')
 
@@ -325,7 +340,7 @@ class Utils:
         # Save overall scores and generate plots
         if plots:
             # Bar plot of failed training attempts
-            test_scores.plot.bar(y='failed')
+            test_scores.plot.bar(y='failed', figsize=(35, 10))
             save_path = os.path.join(stats_dir, '3_failed_counts.png')
             Utils.save_plot('Failed Counts', save_path=save_path)
 
@@ -345,38 +360,52 @@ class Utils:
         df_failed = df_failed.set_index('library')
         df_failed = df_failed.groupby('library').sum()
 
-        df_by_library = test_scores.drop(['preset', 'file', 'failed'], axis=1).groupby('library')
-        df_by_library.index = df_by_library['library']
-        df_max = df_by_library.max()
-        df_min = df_by_library.min()
-        df_mean = df_by_library.mean()
+        def plot_averages(group_col, cols_to_drop, fig_width, fig_height):
+            df_grouped = test_scores.drop(cols_to_drop, axis=1).groupby(group_col)
 
-        df_max.columns = [ f'{c}_max' for c in df_max.columns.tolist() ]
-        df_min.columns = [ f'{c}_min' for c in df_min.columns.tolist() ]
-        df_mean.columns = [ f'{c}_mean' for c in df_mean.columns.tolist() ]
+            df_grouped.index = df_grouped[group_col]
+            df_max = df_grouped.max()
+            df_min = df_grouped.min()
+            df_mean = df_grouped.mean()
 
-        mean_scores = pd.concat([df_failed, df_max, df_min, df_mean], axis=1)
+            df_max.columns = [ f'{c}_max' for c in df_max.columns.tolist() ]
+            df_min.columns = [ f'{c}_min' for c in df_min.columns.tolist() ]
+            df_mean.columns = [ f'{c}_mean' for c in df_mean.columns.tolist() ]
 
-        output_file = os.path.join(stats_dir, '2_mean_scores.csv')
-        mean_scores.to_csv(output_file)
+            mean_scores = pd.concat([df_failed, df_max, df_min, df_mean], axis=1)
 
-        if plots:
-            # Bar plot of failed training attempts
-            # TODO: Need to divide by number of presets
-            mean_scores.plot.bar(y='failed')
-            save_path = os.path.join(stats_dir, '3_failed_counts.png')
-            Utils.save_plot('Failed Counts', save_path=save_path)
+            output_file = os.path.join(stats_dir, f'2_mean_scores_by_{group_col}.csv')
+            mean_scores.to_csv(output_file)
 
-            # Boxplots
-            for col, filename, title in [
-                ('R2_mean', '4_R2_mean.png', 'Mean R2'),
-                ('MAE_mean', '5_MAE_mean.png', 'Mean MAE'),
-                ('MAPE_mean', '6_MAPE_mean.png', 'Mean MAPE'),
-                ('duration_mean', '7_duration_mean.png', 'Mean Duration'),
-                ]:
-                mean_scores.plot.bar(y=col)
-                save_path = os.path.join(stats_dir, filename)
-                Utils.save_plot(title, save_path=save_path)
+            if plots:
+                # Bar plot of failed training attempts
+                mean_scores.plot.bar(y='failed', figsize=(fig_width, fig_height))
+                save_path = os.path.join(stats_dir, f'3_failed_counts_by_{group_col}.png')
+                Utils.save_plot(f'Failed Counts by {group_col}', save_path=save_path, legend=None, yscale='linear')
+
+                # Boxplots
+                for col, filename, title, yscale in [
+                    ('R2_mean', f'4_R2_mean_by_{group_col}.png', 'Mean R2', 'linear'),
+                    ('MAE_mean', f'5_MAE_mean_by_{group_col}.png', 'Mean MAE', 'linear'),
+                    ('MAPE_mean', f'6_MAPE_mean_by_{group_col}.png', 'Mean MAPE', 'linear'),
+                    ('duration_mean', f'7_duration_mean_by_{group_col}.png', 'Mean Duration', 'linear'),
+                    ]:
+                    mean_scores.plot.bar(y=col, figsize=(fig_width, fig_height))
+                    save_path = os.path.join(stats_dir, filename)
+                    Utils.save_plot(title, save_path=save_path, legend=None, yscale=yscale)
+
+        # Plot mean scores by library
+        plot_averages(group_col='library',
+                      cols_to_drop=['file', 'failed', 'preset'],
+                      fig_width=6,
+                      fig_height=3)
+
+        # Plot mean scores by library/preset
+        test_scores['library-preset'] = test_scores['library'] + ': ' + test_scores['preset']
+        plot_averages(group_col='library-preset',
+                      cols_to_drop=['file', 'failed', 'preset', 'library'],
+                      fig_width=35,
+                      fig_height=10)
 
 
     @staticmethod

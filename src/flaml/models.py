@@ -69,7 +69,7 @@ class FLAMLForecaster(Forecaster):
                    period=horizon, # AssertionError: Model is optimized for horizon, length of X must be equal to `period`.
                    task='ts_forecast',
                    time_budget=limit, # 15
-                   verbose=1, # Higher = more messages
+                   verbose=0, # Higher = more messages
                    )
 
         predictions = self.rolling_origin_forecast(automl, train_df.index.to_series().to_frame(),

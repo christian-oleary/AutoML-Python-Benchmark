@@ -21,6 +21,31 @@ from src.logs import logger
 class Utils:
     """Utility functions"""
 
+    ignored_presets = [
+        'preset-superfast__60_proc-1_limit-60.0', 'preset-superfast__1200_proc-1_limit-3.0',
+        'preset-superfast__900_proc-1_limit-4.0', 'preset-superfast__600_proc-1_limit-6.0',
+        'preset-superfast__600_proc-10_limit-6.0', 'preset-superfast__900_proc-10_limit-4.0',
+        'preset-superfast__300_proc-1_limit-12.0', 'preset-superfast__300_proc-10_limit-12.0',
+        'preset-fast__900_proc-1_limit-4.0', 'preset-fast__1200_proc-1_limit-3.0', 'preset-fast__600_proc-1_limit-6.0',
+        'preset-fast__900_proc-10_limit-4.0', 'preset-fast__300_proc-1_limit-12.0',
+        'preset-fast__600_proc-10_limit-6.0', 'preset-fast__60_proc-1_limit-60.0',
+        'preset-fast__300_proc-10_limit-12.0', 'preset-fast_parallel__1200_proc-1_limit-3.0',
+        'preset-default__900_proc-10_limit-4.0', 'preset-default__900_proc-1_limit-4.0',
+        'preset-fast_parallel__600_proc-10_limit-6.0', 'preset-fast_parallel__900_proc-10_limit-4.0',
+        'preset-default__1200_proc-1_limit-3.0', 'preset-default__600_proc-10_limit-6.0',
+        'preset-fast_parallel__900_proc-1_limit-4.0', 'preset-fast_parallel__300_proc-10_limit-12.0',
+        'preset-fast_parallel__600_proc-1_limit-6.0', 'preset-default__600_proc-1_limit-6.0',
+        'preset-default__300_proc-10_limit-12.0', 'preset-fast_parallel__300_proc-1_limit-12.0',
+        'preset-default__300_proc-1_limit-12.0', 'preset-fast_parallel__60_proc-1_limit-60.0',
+        'preset-default__60_proc-1_limit-60.0', 'preset-all__600_proc-1_limit-6.0',
+        'preset-all__900_proc-1_limit-4.0','preset-all__1200_proc-1_limit-3.0',
+        'preset-all__300_proc-1_limit-12.0','preset-all__300_proc-10_limit-12.0',
+        'preset-all_300_proc-1_limit-12.0', 'preset-all_600_proc-1_limit-6.0', 'preset-all_60_proc-1_limit-60.0',
+        'preset-all__600_proc-10_limit-6.0', 'preset-all__900_proc-10_limit-4.0',
+        'preset-default_300_proc-1_limit-12.0', 'preset-default_600_proc-1_limit-6.0',
+        'preset-default_60_proc-1_limit-60.0', 'preset-all__60_proc-1_limit-60.0',
+        ]
+
 
     @staticmethod
     def regression_scores(actual, predicted,
@@ -336,6 +361,9 @@ class Utils:
         :param bool plots: If True, generate plots
         """
         test_scores['library'] = test_scores['library'].str.capitalize()
+
+        # Ignore deprecated/unused presets
+        test_scores = test_scores[~test_scores['preset'].isin(Utils.ignored_presets)]
 
         # Save overall scores and generate plots
         if plots:

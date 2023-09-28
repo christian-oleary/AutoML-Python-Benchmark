@@ -38,31 +38,31 @@ class FLAMLForecaster(Forecaster):
         :return predictions: Numpy array of predictions
         """
 
-        if len(test_df) <= horizon + 1:
+        if len(test_df) <= horizon + 1: # 4 = lags
             raise DatasetTooSmallError('Dataset too small for FLAML', ValueError())
 
         os.makedirs(tmp_dir, exist_ok=True)
-
-        if forecast_type == 'univariate':
-            target_name = train_df.columns.tolist()[0]
-            train_df.index = pd.to_datetime(train_df.index, unit='D')
-            test_df.index = pd.to_datetime(test_df.index, unit='D')
-            y_train = train_df[target_name].values
-        else:
-            raise NotImplementedError()
-            train_df.index = pd.to_datetime(train_df.index)
-            test_df.index = pd.to_datetime(test_df.index)
 
         if forecast_type == 'univariate':
             target_name = 'target'
             train_df.columns = [ target_name ]
             test_df.columns = [ target_name ]
 
+            train_df.index = pd.to_datetime(train_df.index, unit='D')
+            test_df.index = pd.to_datetime(test_df.index, unit='D')
+            y_train = train_df[target_name]
+
+        else:
+            raise NotImplementedError()
+            train_df.index = pd.to_datetime(train_df.index)
+            test_df.index = pd.to_datetime(test_df.index)
+
         automl = AutoML()
         logger.debug('Training models...')
-        automl.fit(X_train=train_df.index.to_series().values,
+        automl.fit(X_train=train_df.index.to_series(name='ds').values,
                    y_train=y_train,
                    estimator_list=preset,
+                #    estimator_list=[ 'prophet', 'arima', 'sarimax' ],
                    eval_method='auto',
                    log_file_name=os.path.join(tmp_dir, 'ts_forecast.log'),
                    n_jobs=nproc,

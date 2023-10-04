@@ -24,6 +24,8 @@ class DatasetFormatting:
     @staticmethod
     def format_univariate_forecasting_data(data_dir):
 
+        headers_and_timestamps = 'libra' not in data_dir
+
         logger.info('Reading univariate forecasting data...')
 
         meta_data = {
@@ -33,38 +35,54 @@ class DatasetFormatting:
             'nan_count': [],
             'num_rows': [],
             'num_cols': [],
-            'origin_index': [],
-            'step_size': [],
             }
 
-        csv_files = [f for f in os.listdir(data_dir)
-                     if '0_metadata.csv' not in f and f.endswith('csv')]
+        if not headers_and_timestamps: # I-SEM data
+            meta_data['origin_index'] = []
+            meta_data['step_size'] = []
+
+        csv_files = [f for f in os.listdir(data_dir) if '0_metadata.csv' not in f and f.endswith('csv')]
 
         for csv_file in csv_files:
-            df = pd.read_csv(os.path.join(data_dir, csv_file), header=None)
-            assert df.shape[1] == 1
 
-            # The horizon/frequency are based on the paper:
-            # "Libra: A Benchmark for Time Series Forecasting Methods" Bauer 2021
-            #
-            # - "the horizon is 20% of the time series length"
-            #
-            # - "the [rolling origin] starting point is set either to [a maximum of] 40% of the time series or at two
-            #    times the frequency of the time series plus 1"
-            #
-            # - "the range between the starting point and endpoint is divided into 100 [equal (rounded up)] parts"
-            #
-            frequency = frequencies[csv_file]
-            meta_data['file'].append(csv_file)
-            # meta_data['horizon'].append(int(df.shape[0] * 0.2))
-            meta_data['horizon'].append(int(min(df.shape[0]*0.2, 10*frequency)))
-            meta_data['frequency'].append(frequency)
-            meta_data['nan_count'].append(int(df.isna().sum()))
-            meta_data['num_rows'].append(df.shape[0])
-            meta_data['num_cols'].append(df.shape[1])
-            meta_data['origin_index'].append(int(max(df.shape[0]*0.4, (2*frequency)+1)))
-            meta_data['step_size'].append(math.ceil((0.8*df.shape[0])/100))
+            # Read data into a DataFrame
+            csv_path = os.path.join(data_dir, csv_file)
+            if headers_and_timestamps: # I-SEM data
+                df = pd.read_csv(csv_path)
+                df = df.set_index('applicable_date')
+                assert df.shape[1] == 1
 
+                meta_data['file'].append(csv_file)
+                meta_data['horizon'].append(24) # hourly data
+                meta_data['frequency'].append(24) # hourly data
+                meta_data['nan_count'].append(int(df.isna().sum()))
+                meta_data['num_rows'].append(df.shape[0])
+                meta_data['num_cols'].append(df.shape[1])
+
+            else: # Libra dataset
+                df = pd.read_csv(os.path.join(data_dir, csv_file), header=None)
+                assert df.shape[1] == 1
+
+                # The horizon/frequency are based on the paper:
+                # "Libra: A Benchmark for Time Series Forecasting Methods" Bauer 2021
+                #
+                # - "the horizon is 20% of the time series length"
+                #
+                # - "the [rolling origin] starting point is set either to [a maximum of] 40% of the time series or at two
+                #    times the frequency of the time series plus 1"
+                #
+                # - "the range between the starting point and endpoint is divided into 100 [equal (rounded up)] parts"
+                #
+                frequency = frequencies[csv_file]
+                meta_data['file'].append(csv_file)
+                # meta_data['horizon'].append(int(df.shape[0] * 0.2))
+                meta_data['horizon'].append(int(min(df.shape[0]*0.2, 10*frequency)))
+                meta_data['frequency'].append(frequency)
+                meta_data['nan_count'].append(int(df.isna().sum()))
+                meta_data['num_rows'].append(df.shape[0])
+                meta_data['num_cols'].append(df.shape[1])
+                meta_data['origin_index'].append(int(max(df.shape[0]*0.4, (2*frequency)+1)))
+                meta_data['step_size'].append(math.ceil((0.8*df.shape[0])/100))
 
         metadata_df = pd.DataFrame(meta_data)
         metadata_df.to_csv(os.path.join(data_dir, '0_metadata.csv'), index=False)

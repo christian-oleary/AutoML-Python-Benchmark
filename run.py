@@ -21,6 +21,8 @@ if __name__ == '__main__': # Needed for any multiprocessing
                         default=os.path.join('data', 'anomaly_detection'),
                         help='directory containing anomaly detection datasets')
 
+    parser.add_argument('--cpu_only', action='store_true', help='Only use CPU. No modelling on GPU.')
+
     parser.add_argument('--global_forecasting_data_dir', metavar='-GF', type=str, nargs='?',
                         default=os.path.join('data', 'global_forecasting'),
                         # default='./tests/data/global/', # test data
@@ -57,11 +59,10 @@ if __name__ == '__main__': # Needed for any multiprocessing
     parser.add_argument('--time_limit', metavar='-T', type=int, nargs='?', default=3600,
                         help='Time limit in seconds for each library. May not be strictly adhered to.')
 
-    parser.add_argument('--cpu_only', action='store_true', help='Only use CPU. No modelling on GPU.')
-
     parser.add_argument('--univariate_forecasting_data_dir', metavar='-UF', type=str, nargs='?',
-                        default=os.path.join('data', 'univariate_forecasting'),
-                        # default='./tests/data/univariate/', # test data
+                        default=os.path.join('data', 'univariate_libra'),
+                        # default=os.path.join('data', 'univariate_electricity'),
+                        # default=os.path.join('tests', 'data', 'univariate_electricity'),
                         help='directory containing univariate forecasting datasets')
 
     args = parser.parse_args()

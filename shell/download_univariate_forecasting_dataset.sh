@@ -1,6 +1,6 @@
 #!/bin/bash
 
-output_dir=./data/univariate_forecasting
+output_dir=./data/univariate_libra
 mkdir -p $output_dir
 
 url=https://zenodo.org/api/files/bac72c17-2f56-44f5-afaa-694484187f40

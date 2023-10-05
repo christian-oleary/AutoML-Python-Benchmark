@@ -4,7 +4,7 @@ max-args=10
 max-attributes=10
 
 [MESSAGES CONTROL]
-disable=C0103
+disable=C0103,E0611,W0201,W1203
 
 [MASTER]
-ignore=src/data_loader.py
+ignore=src/R, src/TSForecasting

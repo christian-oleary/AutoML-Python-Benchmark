@@ -167,7 +167,7 @@ rm .coverage
 
 ## Contact
 
-Please feel free to get in touch at christian.oleary@mtu.ie
+Please feel free to get in touch at <christian.oleary@mtu.ie>
 
 ## Citation
 

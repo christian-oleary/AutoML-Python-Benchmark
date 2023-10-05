@@ -78,7 +78,11 @@ class Forecasting():
             if forecast_type == 'global':
                 df = pd.read_csv(dataset_path, index_col=0)
             elif forecast_type == 'univariate':
-                df = pd.read_csv(dataset_path, header=None)
+                if 'libra' in dataset_path:
+                    df = pd.read_csv(dataset_path, header=None)
+                else:
+                    df = pd.read_csv(dataset_path)
+                    df = df.set_index('applicable_date')
                 df.columns = [ 'target' ]
             else:
                 raise NotImplementedError()

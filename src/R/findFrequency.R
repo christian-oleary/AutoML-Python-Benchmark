@@ -655,7 +655,7 @@ findfrequency <- function(x) {
   return(as.integer(period))
 }
 
-data_dir = './data/univariate_forecasting/'
+data_dir = './data/univariate_libra/'
 data = dir(data_dir)
 
 for(filename in data) {

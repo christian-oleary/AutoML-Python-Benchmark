@@ -155,7 +155,7 @@ class Forecasting():
                         predictions = forecaster.forecast(train_df.copy(), test_df.copy(), forecast_type, horizon,
                                                           limit, frequency, tmp_dir, nproc=config.nproc, preset=preset)
 
-                        duration = time.perf_counter() - start_time
+                        duration = round(time.perf_counter() - start_time, 2)
                         logger.debug(f'{forecaster_name} (preset: {preset}) took {duration} seconds for {csv_file}')
 
                         # Generate scores and plots

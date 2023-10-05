@@ -1,9 +1,12 @@
+"""Main application entrypoint"""
+
 import argparse
 from datetime import datetime, timedelta
 import os
 import time
 
-from sklearn.experimental import enable_iterative_imputer # import needed for IterativeImputer
+# import needed for IterativeImputer
+from sklearn.experimental import enable_iterative_imputer # pylint: disable=W0611
 
 from src.dataset_formatting import DatasetFormatting
 from src.forecasting import Forecasting

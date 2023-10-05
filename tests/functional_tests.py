@@ -1,9 +1,11 @@
+"""Functional tests"""
+
 import os
 
 import pandas as pd
 import pytest
 from sklearn.datasets import fetch_openml
-from sklearn.experimental import enable_iterative_imputer
+from sklearn.experimental import enable_iterative_imputer # pylint: disable=W0611
 
 from src.dataset_formatting import DatasetFormatting
 from src.forecasting import Forecasting
@@ -11,7 +13,10 @@ from src.util import Utils
 
 
 def setup(overwrite=True):
-    class Config:
+    """Setup for functional tests"""
+
+    class Config: # pylint: disable=R0903
+        """Default testing configuration"""
         libraries = [ 'test' ]
         time_limit = 15
         univariate_forecasting_data_dir = os.path.join('tests', 'data', 'univariate')
@@ -33,7 +38,7 @@ def setup(overwrite=True):
         if overwrite or not os.path.exists(forecasting_test_path):
             try:
                 bike_sharing = fetch_openml('Bike_Sharing_Demand', version=2, as_frame=True, parser='auto')
-            except: # Newer versions
+            except TypeError as _: # Newer versions
                 bike_sharing = fetch_openml('Bike_Sharing_Demand', version=2, as_frame=True)
 
             df = bike_sharing.frame
@@ -77,7 +82,7 @@ def fixture():
     yield config
 
 
-def test_dataset_formatting_extract_forecasting_data(fixture):
+def test_dataset_formatting_extract_forecasting_data(fixture): # pylint: disable=W0613,W0621
     """Test zip file parsing and data extraction"""
 
     with pytest.raises(NotADirectoryError):
@@ -87,7 +92,7 @@ def test_dataset_formatting_extract_forecasting_data(fixture):
         DatasetFormatting.extract_forecasting_data('tests')
 
 
-def test_dataset_formatting_get_globabl_forecasting_datasets(fixture):
+def test_dataset_formatting_get_globabl_forecasting_datasets(fixture): # pylint: disable=W0621
     """Test CSV file discovery"""
 
     config = fixture
@@ -97,7 +102,7 @@ def test_dataset_formatting_get_globabl_forecasting_datasets(fixture):
         DatasetFormatting.extract_forecasting_data('tests')
 
 
-def test_forecasting_run_forecasting_libraries_test(fixture):
+def test_forecasting_run_forecasting_libraries_test(fixture): # pylint: disable=W0621
     """Test running a basic forecasting model on a small dataset"""
 
     config = fixture

@@ -1,14 +1,11 @@
 """
 Base Classes
 """
-import math
-
 import numpy as np
 import pandas as pd
 from sklearn.linear_model import LinearRegression
 from sklearn.impute import IterativeImputer
 
-from src.errors import AutomlLibraryError
 from src.util import Utils
 from src.logs import logger
 
@@ -40,14 +37,14 @@ class Forecaster:
         if forecast_type == 'univariate':
             # Create tabular data
 
-            target_col = 'target'
-            train_df.columns = [ target_col ]
-            test_df.columns = [ target_col ]
+            if target is None:
+                target = 'target'
+            train_df.columns = [ target ]
+            test_df.columns = [ target ]
 
             logger.debug('Formatting into tabular dataset...')
             lag = self.get_default_lag(horizon)
-            X_train, y_train, X_test, _ = self.create_tabular_dataset(train_df, test_df, horizon, target_col,
-                                                                      lag=lag)
+            X_train, y_train, X_test, _ = self.create_tabular_dataset(train_df, test_df, horizon, target, lag=lag)
 
             # Fit model
             logger.debug('Training Linear Regression model...')
@@ -253,19 +250,19 @@ class Forecaster:
         :return: Predictions (numpy array)
         """
         raise NotImplementedError()
-        df = pd.concat([X_train, X_test])
-        # Split test set
-        test_splits = Utils.split_test_set(X_test, step_size)
-        # Make predictions
-        preds = model.predict(X_train)
-        # preds.to_csv('preds.csv', index=False)
-        actual = df.iloc[len(X_train):len(X_train)+horizon, 0]
-        # actual.to_csv('actual.csv', index=False)
-        predictions = [{ 'actual': actual, 'predicted': preds }]
-        for s in test_splits:
-            X_train = pd.concat([X_train, s])
-            # Need to retrain model here
-            preds = model.predict(X_train)
-            actual = df.iloc[len(X_train):len(X_train)+horizon, 0]
-            predictions.append([{ 'actual': actual, 'predicted': preds }])
-        return predictions
+        # df = pd.concat([X_train, X_test])
+        # # Split test set
+        # test_splits = Utils.split_test_set(X_test, step_size)
+        # # Make predictions
+        # preds = model.predict(X_train)
+        # # preds.to_csv('preds.csv', index=False)
+        # actual = df.iloc[len(X_train):len(X_train)+horizon, 0]
+        # # actual.to_csv('actual.csv', index=False)
+        # predictions = [{ 'actual': actual, 'predicted': preds }]
+        # for s in test_splits:
+        #     X_train = pd.concat([X_train, s])
+        #     # Need to retrain model here
+        #     preds = model.predict(X_train)
+        #     actual = df.iloc[len(X_train):len(X_train)+horizon, 0]
+        #     predictions.append([{ 'actual': actual, 'predicted': preds }])
+        # return predictions

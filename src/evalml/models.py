@@ -61,6 +61,12 @@ class EvalMLForecaster(Forecaster):
             'time_index': 'time_index'
         }
 
+        eval_size = horizon * 3 # as n_splits=3
+        train_size = len(train_df) - eval_size
+        window_size = problem_config['gap'] + problem_config['max_delay'] + horizon
+        if train_size <= window_size:
+            raise DatasetTooSmallError('Time series is too short for EvalML. Must be > 5*horizon',  e)
+
         automl = AutoMLSearch(
             X_train,
             y_train,
@@ -73,18 +79,7 @@ class EvalMLForecaster(Forecaster):
             verbose=False,
         )
 
-        try:
-            automl.search()
-        except ValueError as e:
-            eval_size = horizon * 3 # as n_splits=3
-            train_size = len(train_df) - eval_size
-            window_size = problem_config['gap'] + problem_config['max_delay'] + horizon
-
-            if train_size <= window_size:
-                raise DatasetTooSmallError('Time series is too short for EvalML. Must be > 5*horizon',  e)
-            else:
-                raise e
-
+        automl.search()
         model = automl.best_pipeline
         predictions = self.rolling_origin_forecast(model, X_train, X_test, y_train, horizon, forecast_type)
         return predictions

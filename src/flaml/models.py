@@ -49,11 +49,12 @@ class FLAMLForecaster(Forecaster):
             test_df.columns = [ target_name ]
 
             if 'price_ROI_DA' in tmp_dir:
-                freq = 'H'
+                train_df.index = pd.to_datetime(train_df.index, format='%d/%m/%Y %H:%M')
+                test_df.index = pd.to_datetime(test_df.index, format='%d/%m/%Y %H:%M')
             else:
-                freq = 'D'
-            train_df.index = pd.to_datetime(train_df.index, unit=freq)
-            test_df.index = pd.to_datetime(test_df.index, unit=freq)
+                train_df.index = pd.to_datetime(train_df.index, unit='D')
+                test_df.index = pd.to_datetime(test_df.index, unit='D')
+
             y_train = train_df[target_name]
 
         else:
@@ -71,7 +72,7 @@ class FLAMLForecaster(Forecaster):
                    n_jobs=nproc,
                    period=horizon,
                    task='ts_forecast',
-                   time_budget=240, # seconds
+                   time_budget=limit, # seconds
                    verbose=0, # Higher = more messages
                    )
         logger.debug('Training finished.')

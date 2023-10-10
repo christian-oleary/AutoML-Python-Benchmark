@@ -57,7 +57,8 @@ class AutoGluonForecaster(Forecaster):
             target_name = 'target'
             train_df.columns = [ timestamp_column, target_name ]
             test_df.columns = [ timestamp_column, target_name ]
-            ignore_time_index = True
+            # AutoGluon failing to handle indices
+            ignore_time_index = True #'price_ROI_DA' not in tmp_dir
         else:
             ignore_time_index = False
             raise NotImplementedError()
@@ -75,7 +76,10 @@ class AutoGluonForecaster(Forecaster):
             # SUPPORTED_FREQUENCIES = {"D", "W", "M", "Q", "A", "Y", "H", "T", "min", "S"}
             freq = FREQUENCY_MAP[frequency].replace('1', '')
         elif forecast_type == 'univariate':
-            freq = 'S' # based on Libra R repository.
+            if ignore_time_index:
+                freq = 'S' # based on Libra R repository.
+            else:
+                freq = 'H' # I-SEM
 
         if train_data.freq == None:
             train_data = train_data.to_regular_index(freq=freq)

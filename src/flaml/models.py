@@ -48,8 +48,12 @@ class FLAMLForecaster(Forecaster):
             train_df.columns = [ target_name ]
             test_df.columns = [ target_name ]
 
-            train_df.index = pd.to_datetime(train_df.index, unit='D')
-            test_df.index = pd.to_datetime(test_df.index, unit='D')
+            if 'price_ROI_DA' in tmp_dir:
+                freq = 'H'
+            else:
+                freq = 'D'
+            train_df.index = pd.to_datetime(train_df.index, unit=freq)
+            test_df.index = pd.to_datetime(test_df.index, unit=freq)
             y_train = train_df[target_name]
 
         else:
@@ -62,17 +66,19 @@ class FLAMLForecaster(Forecaster):
         automl.fit(X_train=train_df.index.to_series(name='ds').values,
                    y_train=y_train,
                    estimator_list=preset,
-                #    estimator_list=[ 'prophet', 'arima', 'sarimax' ],
                    eval_method='auto',
                    log_file_name=os.path.join(tmp_dir, 'ts_forecast.log'),
                    n_jobs=nproc,
-                   period=horizon, # AssertionError: Model is optimized for horizon, length of X must be equal to `period`.
+                   period=horizon,
                    task='ts_forecast',
-                   time_budget=limit, # 15
+                   time_budget=240, # seconds
                    verbose=0, # Higher = more messages
                    )
+        logger.debug('Training finished.')
 
-        predictions = self.rolling_origin_forecast(automl, train_df.index.to_series().to_frame(),
+        print('test_df.index.to_series().to_frame()', test_df.index.to_series().to_frame())
+        # predictions = self.rolling_origin_forecast(automl, train_df.index.to_series().to_frame().values,
+        predictions = self.rolling_origin_forecast(automl, train_df.index.to_series(name='ds').values,
                                                    test_df.index.to_series().to_frame(), horizon)
         return predictions
 
@@ -101,14 +107,25 @@ class FLAMLForecaster(Forecaster):
         test_splits = Utils.split_test_set(X_test, horizon)
 
         # Make predictions
-        preds = model.predict(X_train.tail(horizon))
+        # preds = model.predict(X_train.tail(horizon))
+        preds = model.predict(X_train)
         predictions = [ preds ]
+        print('========================')
+        print('predictions', predictions, len(predictions), preds.shape)
 
+        # predictions = []
         for s in test_splits:
+            s = s.index.to_series(name='ds').values
             if len(s) < horizon:
-                s = X_test.tail(horizon)
+                s = X_test.tail(horizon).index.to_series(name='ds').values
+            print('s', s, s.shape, type(s))
             preds = model.predict(s)
+            print('preds', preds)
             predictions.append(preds)
+            # print()
+
+        print('predictions', len(predictions))
+        print('========================')
 
         # Flatten predictions and truncate if needed
         try:

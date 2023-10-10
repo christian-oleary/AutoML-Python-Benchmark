@@ -50,9 +50,18 @@ class EvalMLForecaster(Forecaster):
 
         X_train = X_train.astype(float)
         X_test = X_test.astype(float)
-        X_train['time_index'] = pd.to_datetime(X_train.index, unit='D')
-        X_test['time_index'] = pd.to_datetime(X_test.index, unit='D')
-        y_train = pd.Series(y_train)
+        if forecast_type == 'global':
+            raise NotImplementedError()
+
+        if 'price_ROI_DA' in tmp_dir:
+            X_train['time_index'] = pd.to_datetime(X_train.index, format='%d/%m/%Y %H:%M')
+            X_test['time_index'] = pd.to_datetime(X_test.index, format='%d/%m/%Y %H:%M')
+            y_train = pd.Series(y_train, index=X_train.index)
+        else:
+            freq = 'D'
+            X_train['time_index'] = pd.to_datetime(X_train.index, unit=freq)
+            X_test['time_index'] = pd.to_datetime(X_test.index, unit=freq)
+            y_train = pd.Series(y_train)
 
         problem_config = {
             'gap': 0,

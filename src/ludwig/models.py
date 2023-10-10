@@ -42,9 +42,10 @@ class LudwigForecaster(Forecaster):
             train_df.columns = [target_name]
             test_df.columns = [target_name]
 
+        # IGNORE. Produces scaled predictions...
         # Ludwig examples indicate scaling must be done separately: https://ludwig.ai/latest/examples/weather/
-        train_df[target_name] = ((train_df[target_name]-train_df[target_name].mean()) / train_df[target_name].std())
-        test_df[target_name] = ((test_df[target_name]-test_df[target_name].mean()) / test_df[target_name].std())
+        # train_df[target_name] = ((train_df[target_name]-train_df[target_name].mean()) / train_df[target_name].std())
+        # test_df[target_name] = ((test_df[target_name]-test_df[target_name].mean()) / test_df[target_name].std())
 
         if forecast_type == 'univariate':
             target_name = 'target'
@@ -57,8 +58,7 @@ class LudwigForecaster(Forecaster):
 
 
         config = {
-            'input_features': [{'name': f'{target_name}_feature', 'type': 'timeseries'}
-            ],
+            'input_features': [{'name': f'{target_name}_feature', 'type': 'timeseries'}],
             'output_features': [{ 'name': target_name, 'type': 'numerical' }],
             'trainer': { 'epochs': int(preset) }
         }

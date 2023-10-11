@@ -43,9 +43,12 @@ class AutoPyTorchForecaster(Forecaster):
             X_train, y_train, X_test, y_test = self.create_tabular_dataset(train_df, test_df, horizon, target_name,
                                                                            tabular_y=False, lag=lag)
 
-            freq = 'D'
-            X_train.index = pd.to_datetime(X_train.index, unit='D')
-            X_test.index = pd.to_datetime(X_test.index, unit='D')
+            if 'price_ROI_DA' in tmp_dir:
+                train_df.index = pd.to_datetime(train_df.index, format='%d/%m/%Y %H:%M')
+                test_df.index = pd.to_datetime(test_df.index, format='%d/%m/%Y %H:%M')
+            else:
+                train_df.index = pd.to_datetime(train_df.index, unit='D')
+                test_df.index = pd.to_datetime(test_df.index, unit='D')
             y_train = pd.Series(y_train, index=X_train.index)
             y_test = pd.Series(y_test, index=X_test.index)
         else:

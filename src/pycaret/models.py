@@ -38,7 +38,7 @@ class PyCaretForecaster(Forecaster):
             freq = FREQUENCY_MAP[frequency].replace('1', '')
             train_df.index = pd.to_datetime(train_df.index).to_period(freq)
             test_df.index = pd.to_datetime(test_df.index).to_period(freq)
-        elif 'price_ROI_DA' in tmp_dir:
+        elif 'ISEM_prices' in tmp_dir:
             freq = 'H'
             train_df.index = pd.to_datetime(train_df.index)#.to_period(freq)
             test_df.index = pd.to_datetime(test_df.index)#.to_period(freq)

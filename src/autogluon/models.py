@@ -58,7 +58,7 @@ class AutoGluonForecaster(Forecaster):
             train_df.columns = [ timestamp_column, target_name ]
             test_df.columns = [ timestamp_column, target_name ]
             # AutoGluon failing to handle indices
-            ignore_time_index = True #'price_ROI_DA' not in tmp_dir
+            ignore_time_index = True # 'ISEM_prices' not in tmp_dir
         else:
             ignore_time_index = False
             raise NotImplementedError()

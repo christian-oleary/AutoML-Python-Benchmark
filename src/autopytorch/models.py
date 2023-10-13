@@ -43,7 +43,7 @@ class AutoPyTorchForecaster(Forecaster):
             X_train, y_train, X_test, y_test = self.create_tabular_dataset(train_df, test_df, horizon, target_name,
                                                                            tabular_y=False, lag=lag)
 
-            if 'price_ROI_DA' in tmp_dir:
+            if 'ISEM_prices' in tmp_dir:
                 train_df.index = pd.to_datetime(train_df.index, format='%d/%m/%Y %H:%M')
                 test_df.index = pd.to_datetime(test_df.index, format='%d/%m/%Y %H:%M')
             else:

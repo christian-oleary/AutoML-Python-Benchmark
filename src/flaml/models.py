@@ -48,7 +48,7 @@ class FLAMLForecaster(Forecaster):
             train_df.columns = [ target_name ]
             test_df.columns = [ target_name ]
 
-            if 'price_ROI_DA' in tmp_dir:
+            if 'ISEM_prices' in tmp_dir:
                 train_df.index = pd.to_datetime(train_df.index, format='%d/%m/%Y %H:%M')
                 test_df.index = pd.to_datetime(test_df.index, format='%d/%m/%Y %H:%M')
                 train_df.index = pd.date_range(start=train_df.index.min(), freq='H', periods=len(train_df))

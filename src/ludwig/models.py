@@ -35,13 +35,6 @@ class LudwigForecaster(Forecaster):
         :return predictions: Numpy array of predictions
         """
 
-        # backfill, forwardfill
-
-        if forecast_type == 'univariate':
-            target_name = 'target'
-            train_df.columns = [target_name]
-            test_df.columns = [target_name]
-
         # IGNORE. Produces scaled predictions...
         # Ludwig examples indicate scaling must be done separately: https://ludwig.ai/latest/examples/weather/
         # train_df[target_name] = ((train_df[target_name]-train_df[target_name].mean()) / train_df[target_name].std())

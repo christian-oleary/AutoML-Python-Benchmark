@@ -3,11 +3,9 @@ import os
 import shutil
 
 import autokeras as ak
-import pandas as pd
-from sklearn.impute import IterativeImputer
-import tensorflow as tf
 
 from src.base import Forecaster
+from src.errors import AutomlLibraryError
 
 # Presets are every combination of the following:
 optimizers = ['greedy', 'bayesian', 'hyperband', 'random']
@@ -101,6 +99,8 @@ class AutoKerasForecaster(Forecaster):
         )
 
         predictions = self.rolling_origin_forecast(clf, X_train, X_test, horizon)
+        if len(predictions) == 0:
+            raise AutomlLibraryError('AutoKeras failed to produce predictions', ValueError())
         return predictions
 
 

@@ -125,9 +125,13 @@ class EvalMLForecaster(Forecaster):
                 padding = horizon - len(s)
                 s = pd.concat([s, pd.DataFrame([s.values[0].tolist()] * padding, columns=s.columns)])
                 start_index = s.index.values[0]
-                s.index = np.arange(start_index, start_index + len(s))
-                if forecast_type == 'univariate':
-                    s['time_index'] = pd.date_range(start=s['time_index'].values[0], periods=len(s))
+                try:
+                    s.index = np.arange(start_index, start_index + len(s))
+                    if forecast_type == 'univariate':
+                        s['time_index'] = pd.date_range(start=s['time_index'].values[0], periods=len(s))
+                except: # Datetime indices
+                    if forecast_type == 'univariate':
+                        s['time_index'] = pd.date_range(start=s['time_index'].values[0], periods=len(s))
 
                 preds = model.predict(s, objective=None, X_train=train_X, y_train=y_train).values
                 preds = preds[:len(s)] # Drop placeholder predictions

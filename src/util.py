@@ -48,7 +48,7 @@ class Utils:
 
 
     @staticmethod
-    def regression_scores(actual, predicted,
+    def regression_scores(actual, predicted, y_train,
                           scores_dir=None,
                           forecaster_name=None,
                           multioutput='uniform_average',
@@ -57,6 +57,7 @@ class Utils:
 
         :param np.array actual: Original time series values
         :param np.array predicted: Predicted time series values
+        :param np.array y_train: Training values (required for MASE)
         :param str scores_dir: Path to file to record scores (str or None), defaults to None
         :param str forecaster_name: Name of model (str)
         :param str multioutput: 'raw_values' (raw errors), 'uniform_average' (averaged errors), defaults to 'uniform_average'
@@ -79,7 +80,7 @@ class Utils:
             'MAE': mean_absolute_error(actual, predicted, multioutput=multioutput),
             'MAE2': median_absolute_error(actual, predicted),
             'MAPE': mean_absolute_percentage_error(actual, predicted, multioutput=multioutput),
-            # 'MASE': mase(actual, predicted),
+            'MASE': mase(actual, predicted, y_train=y_train),
             'ME': np.mean(actual - predicted),
             'MSE': mean_squared_error(actual, predicted, multioutput=multioutput),
             'Pearson Correlation': pearson[0],
@@ -92,6 +93,7 @@ class Utils:
         }
 
         results['GM-MAE-SR'] = gmean([results['MAE'], results['Spearman Correlation']])
+        results['GM-MASE-SR'] = gmean([results['MASE'], results['Spearman Correlation']])
 
         if 'duration' in kwargs.keys():
             results['duration'] = kwargs['duration']

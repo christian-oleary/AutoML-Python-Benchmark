@@ -10,7 +10,7 @@ import time
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from scipy.stats import pearsonr, spearmanr
+from scipy.stats import gmean, pearsonr, spearmanr
 from sklearn.metrics import (mean_absolute_error, mean_absolute_percentage_error, median_absolute_error,
                              mean_squared_error, r2_score)
 from sktime.performance_metrics.forecasting import MeanAbsoluteScaledError
@@ -90,6 +90,8 @@ class Utils:
             'Spearman Correlation': spearman[0],
             'Spearman P-value': spearman[1],
         }
+
+        results['GM-MAE-SR'] = gmean([results['MAE'], results['Spearman Correlation']])
 
         if 'duration' in kwargs.keys():
             results['duration'] = kwargs['duration']

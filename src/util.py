@@ -467,9 +467,9 @@ class Utils:
             stats_dir = os.path.join(results_dir, f'{forecast_type}_statistics')
             os.makedirs(stats_dir, exist_ok=True)
 
-            logger.debug(f'Compiling test scores in {all_scores_path}')
-            all_scores_path = os.path.join(stats_dir, '1_all_scores.csv')
-            all_scores.to_csv(all_scores_path, index=False)
+            overall_scores_path = os.path.join(stats_dir, '1_all_scores.csv')
+            logger.debug(f'Compiling test scores in {overall_scores_path}')
+            all_scores.to_csv(overall_scores_path, index=False)
 
             if plots:
                 logger.debug('Generating plots')

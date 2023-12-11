@@ -378,10 +378,11 @@ class Utils:
 
             # Boxplots
             for col, filename, title in [
-                ('R2', '4_R2_box.png', 'R2'),
                 ('MAE', '5_MAE_box.png', 'MAE'),
-                ('MAPE', '6_MAPE_box.png', 'MAPE'),
-                ('duration', '7_duration_box.png', 'Duration (sec)'),
+                ('MSE', '5_MSE_box.png', 'MSE'),
+                ('RMSE', '6_RMSE_box.png', 'RMSE'),
+                ('Spearman Correlation', '6_Spearman_Correlation_box.png', 'Spearman Correlation'),
+                ('duration', '8_duration_box.png', 'Duration (sec)'),
                 ]:
                 test_scores.boxplot(col, by='library')
                 save_path = os.path.join(stats_dir, filename)

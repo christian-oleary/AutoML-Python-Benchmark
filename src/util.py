@@ -10,7 +10,7 @@ import time
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from scipy.stats import pearsonr, spearmanr
+from scipy.stats import gmean, pearsonr, spearmanr
 from sklearn.metrics import (mean_absolute_error, mean_absolute_percentage_error, median_absolute_error,
                              mean_squared_error, r2_score)
 from sktime.performance_metrics.forecasting import MeanAbsoluteScaledError
@@ -48,7 +48,7 @@ class Utils:
 
 
     @staticmethod
-    def regression_scores(actual, predicted,
+    def regression_scores(actual, predicted, y_train,
                           scores_dir=None,
                           forecaster_name=None,
                           multioutput='uniform_average',
@@ -57,6 +57,7 @@ class Utils:
 
         :param np.array actual: Original time series values
         :param np.array predicted: Predicted time series values
+        :param np.array y_train: Training values (required for MASE)
         :param str scores_dir: Path to file to record scores (str or None), defaults to None
         :param str forecaster_name: Name of model (str)
         :param str multioutput: 'raw_values' (raw errors), 'uniform_average' (averaged errors), defaults to 'uniform_average'
@@ -79,7 +80,7 @@ class Utils:
             'MAE': mean_absolute_error(actual, predicted, multioutput=multioutput),
             'MAE2': median_absolute_error(actual, predicted),
             'MAPE': mean_absolute_percentage_error(actual, predicted, multioutput=multioutput),
-            # 'MASE': mase(actual, predicted),
+            'MASE': mase(actual, predicted, y_train=y_train),
             'ME': np.mean(actual - predicted),
             'MSE': mean_squared_error(actual, predicted, multioutput=multioutput),
             'Pearson Correlation': pearson[0],
@@ -90,6 +91,9 @@ class Utils:
             'Spearman Correlation': spearman[0],
             'Spearman P-value': spearman[1],
         }
+
+        results['GM-MAE-SR'] = gmean([results['MAE'], results['Spearman Correlation']])
+        results['GM-MASE-SR'] = gmean([results['MASE'], results['Spearman Correlation']])
 
         if 'duration' in kwargs.keys():
             results['duration'] = kwargs['duration']
@@ -374,10 +378,11 @@ class Utils:
 
             # Boxplots
             for col, filename, title in [
-                ('R2', '4_R2_box.png', 'R2'),
                 ('MAE', '5_MAE_box.png', 'MAE'),
-                ('MAPE', '6_MAPE_box.png', 'MAPE'),
-                ('duration', '7_duration_box.png', 'Duration (sec)'),
+                ('MSE', '5_MSE_box.png', 'MSE'),
+                ('RMSE', '6_RMSE_box.png', 'RMSE'),
+                ('Spearman Correlation', '6_Spearman_Correlation_box.png', 'Spearman Correlation'),
+                ('duration', '8_duration_box.png', 'Duration (sec)'),
                 ]:
                 test_scores.boxplot(col, by='library')
                 save_path = os.path.join(stats_dir, filename)
@@ -463,9 +468,9 @@ class Utils:
             stats_dir = os.path.join(results_dir, f'{forecast_type}_statistics')
             os.makedirs(stats_dir, exist_ok=True)
 
-            logger.debug(f'Compiling test scores in {all_scores_path}')
-            all_scores_path = os.path.join(stats_dir, '1_all_scores.csv')
-            all_scores.to_csv(all_scores_path, index=False)
+            overall_scores_path = os.path.join(stats_dir, '1_all_scores.csv')
+            logger.debug(f'Compiling test scores in {overall_scores_path}')
+            all_scores.to_csv(overall_scores_path, index=False)
 
             if plots:
                 logger.debug('Generating plots')

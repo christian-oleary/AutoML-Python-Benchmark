@@ -13,12 +13,12 @@ from src.logs import logger
 class Forecaster:
     """Base Forecaster"""
 
-    presets = [ 'none' ]
+    presets = [ 'Naive', 'LinearRegression' ]
 
 
     def forecast(self, train_df, test_df, forecast_type, horizon, limit, frequency, tmp_dir,
                  nproc=1,
-                 preset='',
+                 preset='LinearRegression',
                  target=None):
         """Perform time series forecasting using a basic model
 
@@ -36,7 +36,6 @@ class Forecaster:
 
         if forecast_type == 'univariate':
             # Create tabular data
-
             if target is None:
                 target = 'target'
             train_df.columns = [ target ]
@@ -48,9 +47,14 @@ class Forecaster:
 
             # Fit model
             logger.debug('Training Linear Regression model...')
-            X_train = X_train.tail(10000)
-            y_train = y_train[-10000:]
-            predictions = self.train_lr_model(X_train, y_train, X_test, horizon, forecast_type, nproc)
+            if preset == 'LinearRegression':
+                X_train = X_train.tail(10000)
+                y_train = y_train[-10000:]
+                predictions = self.train_lr_model(X_train, y_train, X_test, horizon, forecast_type, nproc)
+            elif preset == 'Naive':
+                predictions = X_test[f'{target}-24'].values
+            else:
+                raise ValueError(f'Unrecognised preset for baseline model: {preset}')
         else:
             raise NotImplementedError('Linear Regression model not implemented for multivariate/global forecasting yet')
         return predictions

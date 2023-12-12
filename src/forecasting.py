@@ -3,6 +3,7 @@ Code for initiating forecasting experiments
 """
 
 import os
+import shutil
 from pathlib import Path
 import time
 
@@ -115,6 +116,7 @@ class Forecasting():
                 frequency = int(data['frequency'].iloc[0])
                 horizon = int(data['horizon'].iloc[0])
                 actual = test_df.copy().values.flatten()
+                y_train = train_df.copy().values.flatten() # Required for MASE
                 # Libra's custom rolling origin forecast:
                 # kwargs = {
                 #     'origin_index': int(data['origin_index'].iloc[0]),
@@ -133,7 +135,6 @@ class Forecasting():
                         results_subdir = os.path.join(config.results_dir, f'{forecast_type}_forecasting', dataset_name,
                                                     forecaster_name, f'preset-{preset}_proc-{config.nproc}_limit-{limit}')
                         # If results are invalid and need to be removed:
-                        # import shutil
                         # if 'forecaster_name' in results_subdir and os.path.exists(results_subdir):
                         #     shutil.rmtree(results_subdir)
                     else:
@@ -153,8 +154,11 @@ class Forecasting():
                     # Run forecaster and record total runtime
                     logger.info(f'Applying {forecaster_name} (preset: {preset}) to {dataset_path}')
                     start_time = time.perf_counter()
+                    # Recreate temporary files directory to ensure libraries start from scratch
                     tmp_dir = os.path.join('tmp', dataset_name, forecaster_name)
-                    os.makedirs(tmp_dir, exist_ok=True)
+                    if os.path.exists(tmp_dir):
+                        shutil.rmtree(tmp_dir)
+                    os.makedirs(tmp_dir)
                     try:
                         predictions = forecaster.forecast(train_df.copy(), test_df.copy(), forecast_type, horizon,
                                                           limit, frequency, tmp_dir, nproc=config.nproc, preset=preset)
@@ -164,7 +168,7 @@ class Forecasting():
 
                         # Generate scores and plots
                         if config.results_dir != None:
-                            self.evaluate_predictions(actual, predictions, results_subdir, forecaster_name, duration)
+                            self.evaluate_predictions(actual, predictions, y_train, results_subdir, forecaster_name, duration)
 
                     except DatasetTooSmallError as e1:
                         logger.error('Failed to fit. Dataset too small for library.')
@@ -208,11 +212,12 @@ class Forecasting():
             fh.write(str(error))
 
 
-    def evaluate_predictions(self, actual, predictions, results_subdir, forecaster_name, duration):
+    def evaluate_predictions(self, actual, predictions, y_train, results_subdir, forecaster_name, duration):
         """Generate model scores and plots from predictions
 
         :param np.array actual: Original data
         :param np.array predictions: Predicted data
+        :param np.array y_train: Training values (required for MASE)
         :param str results_subdir: Path to results subdirectory
         :param str forecaster_name: Name of library
         :param float duration: Duration of fitting/inference times
@@ -233,7 +238,7 @@ class Forecasting():
         predictions = predictions.flatten()
 
         # Save regression scores and plots
-        scores = Utils.regression_scores(actual, predictions, results_subdir, forecaster_name,
+        scores = Utils.regression_scores(actual, predictions, y_train, results_subdir, forecaster_name,
                                         duration=duration)
 
         preds_path = os.path.join(results_subdir, 'predictions.csv')

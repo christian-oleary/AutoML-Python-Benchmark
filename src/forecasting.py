@@ -194,13 +194,16 @@ class Forecasting():
         :param str forecaster_name: Name of forecasting model
         :return bool: True if results exist, False otherwise
         """
-        results_csv_exists = os.path.exists(os.path.join(results_subdir, f'{forecaster_name}.csv'))
-        plots_exist = os.path.exists(os.path.join(results_subdir, 'plots'))
+        if results_subdir is not None:
+            results_csv_exists = os.path.exists(os.path.join(results_subdir, f'{forecaster_name}.csv'))
+            plots_exist = os.path.exists(os.path.join(results_subdir, 'plots'))
 
-        if results_csv_exists and plots_exist:
-            results_exist = True
-        elif os.path.exists(os.path.join(results_subdir, 'failed.txt')):
-            results_exist = True
+            if results_csv_exists and plots_exist:
+                results_exist = True
+            elif os.path.exists(os.path.join(results_subdir, 'failed.txt')):
+                results_exist = True
+            else:
+                results_exist = False
         else:
             results_exist = False
         return results_exist

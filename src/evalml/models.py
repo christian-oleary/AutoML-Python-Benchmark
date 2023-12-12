@@ -3,8 +3,9 @@ import pandas as pd
 from evalml.automl import AutoMLSearch
 
 from src.base import Forecaster
-from src.util import Utils
 from src.errors import DatasetTooSmallError
+from src.logs import logger
+from src.util import Utils
 
 
 class EvalMLForecaster(Forecaster):
@@ -136,7 +137,12 @@ class EvalMLForecaster(Forecaster):
                 preds = model.predict(s, objective=None, X_train=train_X, y_train=y_train).values
                 preds = preds[:len(s)] # Drop placeholder predictions
             else:
-                preds = model.predict(s, objective=None, X_train=train_X, y_train=y_train).values
+                try:
+                    preds = model.predict(s, objective=None, X_train=train_X, y_train=y_train).values
+                except Exception as e:
+                    logger.error(e)
+                    logger.error('EvalML failed during prediction')
+                    break
             predictions.append(preds)
             train_X = pd.concat([train_X, s])
 

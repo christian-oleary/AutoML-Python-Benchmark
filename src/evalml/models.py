@@ -83,7 +83,7 @@ class EvalMLForecaster(Forecaster):
             automl_algorithm=preset,
             problem_type='time series regression',
             problem_configuration=problem_config,
-            max_time=240,
+            max_time=limit,
             n_jobs=nproc,
             verbose=False,
         )
@@ -136,9 +136,6 @@ class EvalMLForecaster(Forecaster):
                 preds = model.predict(s, objective=None, X_train=train_X, y_train=y_train).values
                 preds = preds[:len(s)] # Drop placeholder predictions
             else:
-                print('s', s, s.shape)
-                print('train_X', train_X, train_X.shape)
-                print('y_train', y_train, y_train.shape)
                 preds = model.predict(s, objective=None, X_train=train_X, y_train=y_train).values
             predictions.append(preds)
             train_X = pd.concat([train_X, s])

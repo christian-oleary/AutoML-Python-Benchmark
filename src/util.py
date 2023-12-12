@@ -5,6 +5,7 @@ Utility functions
 import csv
 import math
 import os
+import platform
 import time
 
 import matplotlib.pyplot as plt
@@ -102,6 +103,13 @@ class Utils:
             if forecaster_name == None:
                 raise TypeError('Forecaster name required to save scores')
             os.makedirs(scores_dir, exist_ok=True)
+
+            results = {
+                **results,
+                'environment': f'python_{platform.python_version()}-os_{platform.system()}',
+                'device': f'node_{platform.node()}-pro_{platform.processor()}',
+            }
+
             Utils.write_to_csv(os.path.join(scores_dir, f'{forecaster_name}.csv'), results)
 
         return results

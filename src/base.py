@@ -5,6 +5,9 @@ import numpy as np
 import pandas as pd
 from sklearn.linear_model import LinearRegression
 from sklearn.impute import IterativeImputer
+from sklearn.model_selection import RandomizedSearchCV
+from sklearn.multioutput import MultiOutputRegressor
+from xgboost import XGBRegressor
 
 from src.util import Utils
 from src.logs import logger
@@ -13,7 +16,7 @@ from src.logs import logger
 class Forecaster:
     """Base Forecaster"""
 
-    presets = [ 'Naive', 'LinearRegression' ]
+    presets = [ 'Naive', 'LinearRegression', 'XGBRegressor' ]
 
 
     def forecast(self, train_df, test_df, forecast_type, horizon, limit, frequency, tmp_dir,
@@ -46,23 +49,42 @@ class Forecaster:
             X_train, y_train, X_test, _ = self.create_tabular_dataset(train_df, test_df, horizon, target, lag=lag)
 
             # Fit model
-            logger.debug('Training Linear Regression model...')
-            if preset == 'LinearRegression':
-                X_train = X_train.tail(10000)
-                y_train = y_train[-10000:]
-                predictions = self.train_lr_model(X_train, y_train, X_test, horizon, forecast_type, nproc)
-            elif preset == 'Naive':
+            logger.debug(f'Training {preset} model...')
+            if preset == 'Naive':
                 predictions = X_test[f'{target}-24'].values
             else:
-                raise ValueError(f'Unrecognised preset for baseline model: {preset}')
+                X_train = X_train.tail(10000)
+                y_train = y_train[-10000:]
+                if preset == 'LinearRegression':
+                    predictions = self.train_model(X_train, y_train, X_test, horizon, forecast_type, nproc,
+                                                   model='LinearRegression')
+                elif preset == 'XGBRegressor':
+                    predictions = self.train_model(X_train, y_train, X_test, horizon, forecast_type, nproc,
+                                                   model='XGBRegressor')
+                else:
+                    raise ValueError(f'Unrecognised preset for baseline model: {preset}')
         else:
             raise NotImplementedError('Linear Regression model not implemented for multivariate/global forecasting yet')
         return predictions
 
 
-    def train_lr_model(self, X_train, y_train, X_test, horizon, forecast_type, nproc):
-        model = LinearRegression(n_jobs=nproc)
-        model.fit(X_train, y_train)
+    def train_model(self, X_train, y_train, X_test, horizon, forecast_type, nproc, model):
+        if model == 'LinearRegression':
+            model = LinearRegression(n_jobs=nproc)
+            model.fit(X_train, y_train)
+        else:
+            # Based on Lynch et al. 2021
+            wrapper = MultiOutputRegressor(XGBRegressor(n_jobs=nproc))
+            hyperparameters = {
+                'estimator__learning_rate': [ 0.2, 0.1, 0.05, 0.025, 0.0125 ],
+                'estimator__n_estimators': range(50, 500, 50),
+                'estimator__max_depth': range(3, 14, 2),
+                'estimator__subsample': np.arange(0.1, 1.1, 0.1),
+                'estimator__colsample_bytree': np.arange(0.1, 1.1, 0.1)
+            }
+            model = RandomizedSearchCV(estimator=wrapper, param_distributions=hyperparameters,
+                                        scoring='neg_mean_absolute_error', n_jobs=nproc, cv=10)
+            model.fit(X_train, y_train)
 
         class Model:
             def __init__(self, model):

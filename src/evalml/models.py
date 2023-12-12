@@ -74,7 +74,7 @@ class EvalMLForecaster(Forecaster):
         train_size = len(train_df) - eval_size
         window_size = problem_config['gap'] + problem_config['max_delay'] + horizon
         if train_size <= window_size:
-            raise DatasetTooSmallError('Time series is too short for EvalML. Must be > 5*horizon',  e)
+            raise DatasetTooSmallError('Time series is too short for EvalML. Must be > 5*horizon')
 
         automl = AutoMLSearch(
             X_train,
@@ -83,7 +83,7 @@ class EvalMLForecaster(Forecaster):
             automl_algorithm=preset,
             problem_type='time series regression',
             problem_configuration=problem_config,
-            max_time=limit,
+            max_time=240,
             n_jobs=nproc,
             verbose=False,
         )
@@ -136,6 +136,9 @@ class EvalMLForecaster(Forecaster):
                 preds = model.predict(s, objective=None, X_train=train_X, y_train=y_train).values
                 preds = preds[:len(s)] # Drop placeholder predictions
             else:
+                print('s', s, s.shape)
+                print('train_X', train_X, train_X.shape)
+                print('y_train', y_train, y_train.shape)
                 preds = model.predict(s, objective=None, X_train=train_X, y_train=y_train).values
             predictions.append(preds)
             train_X = pd.concat([train_X, s])

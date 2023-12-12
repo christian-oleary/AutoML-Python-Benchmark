@@ -92,8 +92,12 @@ class Forecasting():
             # This seems to be used by Godahewa et al. for global forecasting:
             # https://github.com/rakshitha123/TSForecasting/blob/master/experiments/rolling_origin.R#L10
             # Also used by Bauer 2021 for univariate forecasting
-            train_df = df.head(int(len(df)* 0.8))
-            test_df = df.tail(int(len(df)* 0.2))
+            if 'ISEM_prices' in dataset_name:
+                train_df = df.loc[:'19/10/2020 23:00',:] # 293 days or ~80% of 2020
+                test_df = df.loc['20/10/2020 00:00':,:] # 73 days or ~20% of 2020
+            else:
+                train_df = df.head(int(len(df)* 0.8))
+                test_df = df.tail(int(len(df)* 0.2))
 
             # Get dataset metadata
             if forecast_type == 'global':

@@ -3,3 +3,4 @@ protobuf==3.19
 pandas==1.4.1
 sktime==0.18.0
 matplotlib
+xgboost

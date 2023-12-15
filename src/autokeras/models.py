@@ -11,7 +11,7 @@ from src.errors import AutomlLibraryError
 optimizers = ['greedy', 'bayesian', 'hyperband', 'random']
 epoch_limits = ['10', '50', '100', '150']
 time_limits = ['60', '300', '600'] # 1 min, 5 min, 10 min
-presets = list(itertools.product(optimizers, epoch_limits, time_limits))
+presets = list(itertools.product(time_limits, epoch_limits, optimizers))
 presets = [ '_'.join(p) for p in presets ]
 
 class AutoKerasForecaster(Forecaster):

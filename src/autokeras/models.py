@@ -57,7 +57,7 @@ class AutoKerasForecaster(Forecaster):
         else:
             raise NotImplementedError()
 
-        optimizer = preset.split('_')[0]
+        optimizer = preset.split('_')[-1]
         epochs = int(preset.split('_')[1])
         tmp_dir = os.path.join(tmp_dir, f'{optimizer}_{epochs}epochs_{limit}')
 
@@ -111,4 +111,4 @@ class AutoKerasForecaster(Forecaster):
         :param str preset: Model configuration to use
         :return: Trials limit (int)
         """
-        return int(time_limit / int(preset.split('_')[2]))
+        return int(time_limit / int(preset.split('_')[0]))

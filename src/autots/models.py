@@ -12,17 +12,17 @@ from src.logs import logger
 from src.TSForecasting.data_loader import FREQUENCY_MAP
 from src.util import Utils
 
-logger = logging.getLogger('cmdstanpy')
-logger.addHandler(logging.NullHandler())
-logger.propagate = False
-logger.setLevel(logging.CRITICAL)
+cmdstanpy_logger = logging.getLogger('cmdstanpy')
+cmdstanpy_logger.addHandler(logging.NullHandler())
+cmdstanpy_logger.propagate = False
+cmdstanpy_logger.setLevel(logging.CRITICAL)
 
 # Presets are every combination of the following:
 configs = [ 'superfast', 'fast', 'fast_parallel', 'default', 'all' ]
-# time_limits = ['600', '900', '1200'] # 10 min, 15 min, 20 min
-# presets = list(itertools.product(configs, time_limits))
-# presets = [ '__'.join(p) for p in presets ]
-presets = configs
+time_limits = ['60', '120', '240', '480', '960', '1920'] # Minutes: 1, 2, 4, 8, 16, 32
+presets = list(itertools.product(configs, time_limits))
+presets = [ '__'.join(p) for p in presets ]
+# presets = configs
 
 class AutoTSForecaster(Forecaster):
 
@@ -50,6 +50,7 @@ class AutoTSForecaster(Forecaster):
         :return predictions: Numpy array of predictions
         """
 
+        logger.debug('Preparing data...')
         if forecast_type == 'global':
             raise NotImplementedError()
             freq = FREQUENCY_MAP[frequency].replace('1', '').replace('min', 'T')
@@ -94,16 +95,23 @@ class AutoTSForecaster(Forecaster):
             assert np.isfinite(train_regressors).all()
             assert np.isfinite(test_regressors).all()
 
-        limit = int(limit)
         min_allowed_train_percent = 0.1
         if (horizon * min_allowed_train_percent) > int((train_df.shape[0]/4) - horizon):
             raise DatasetTooSmallError('Time series is too short for AutoTS', ValueError())
+
+        limit = int(limit)
+        # Max generations and generation timeout (if converted back to seconds) should approxiamtely equal the limit
+        # It can be slightly off due to rounding and the 0.95 modifier that accounts for miscellaneous processing
+        max_generations = int(round((limit / int(preset.split('__')[1])) * 0.95, 0))
+        generation_timeout = int(round((limit / max_generations) / 60, 0)) # In minutes
+        logger.debug(f'Max. generations: {max_generations}, Generation timeout: {generation_timeout}')
 
         model = AutoTS(
             ensemble=['auto'],
             frequency='infer',
             forecast_length=horizon,
-            max_generations=limit,
+            max_generations=max_generations,
+            generation_timeout=generation_timeout,
             model_list=preset.split('__')[0],
             models_to_validate=0.2,
             n_jobs=nproc,
@@ -114,7 +122,7 @@ class AutoTSForecaster(Forecaster):
             verbose=-1,
         )
 
-        logger.debug('Training model...')
+        logger.debug('Training AutoTS...')
 
         if forecast_type == 'global':
             raise NotImplementedError()
@@ -122,7 +130,9 @@ class AutoTSForecaster(Forecaster):
             # Can randomly fail: https://github.com/winedarksea/AutoTS/issues/140
             for _ in range(3):
                 try:
+                    logger.debug('Fitting...')
                     model = model.fit(train_df, future_regressor=train_regressors)
+                    logger.debug('Predicting...')
                     predictions = model.predict(future_regressor=test_regressors, forecast_length=len(test_regressors)).forecast.values
                     assert np.isfinite(predictions).all()
                     break
@@ -164,12 +174,19 @@ class AutoTSForecaster(Forecaster):
         :param str preset: Model configuration to use
         :return: Trials limit (int)
         """
-        divisors = {
-            'superfast': 60, 'fast': 60,
-            'fast_parallel': 1200, 'default': 1200, 'all': 1200
-        }
-        return math.ceil(int(time_limit / divisors[preset]))
-        # return (time_limit / int(preset.split('__')[1]))
+        # Estimates of how long a generation will take in seconds
+        # divisors = {
+        #     'superfast': 60, 'fast': 60,
+        #     'fast_parallel': 1200, 'default': 1200, 'all': 1200
+        # }
+        # return math.ceil(int(time_limit / divisors[preset]))
+
+        # print('preset', preset)
+        # print('preset.split("__")', preset.split('__'))
+        # return round((time_limit / int(preset.split('__')[1])) * 0.95, 2)
+
+        # Calculated in forecasting function
+        return time_limit
 
 
     def rolling_origin_forecast(self, model, test_X, test_regressors, horizon):

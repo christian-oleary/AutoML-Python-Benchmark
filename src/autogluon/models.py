@@ -1,10 +1,13 @@
 from autogluon.timeseries import TimeSeriesDataFrame, TimeSeriesPredictor
+import numpy as np
+import pandas as pd
 from networkx.exception import NetworkXError
 
 from src.base import Forecaster
 from src.errors import AutomlLibraryError
-from src.TSForecasting.data_loader import FREQUENCY_MAP
 from src.logs import logger
+from src.TSForecasting.data_loader import FREQUENCY_MAP
+from src.util import Utils
 
 
 class AutoGluonForecaster(Forecaster):
@@ -43,6 +46,7 @@ class AutoGluonForecaster(Forecaster):
         :return np.array: Predictions
         """
 
+        logger.debug('Formatting indices...')
         # Format index
         timestamp_column = 'timestamp'
         try:
@@ -57,16 +61,22 @@ class AutoGluonForecaster(Forecaster):
             target_name = 'target'
             train_df.columns = [ timestamp_column, target_name ]
             test_df.columns = [ timestamp_column, target_name ]
-            # AutoGluon failing to handle indices
-            ignore_time_index = True # 'ISEM_prices' not in tmp_dir
+            if 'ISEM_prices' in tmp_dir:
+                ignore_time_index = False
+            else:
+                ignore_time_index = True
         else:
             ignore_time_index = False
             raise NotImplementedError()
+
+        if ignore_time_index:
+            logger.warning('The value of "ignore_time_index" is True. This will result in slower predictions')
 
         # AutoGluon requires an ID column
         train_df['ID'] = 1
         test_df['ID'] = 1
 
+        logger.debug('Converting to TimeSeriesDataFrame...')
         # TimeSeriesDataFrame inherits from pandas.DataFrame
         train_data = TimeSeriesDataFrame.from_data_frame(train_df, id_column='ID', timestamp_column=timestamp_column)
         test_data = TimeSeriesDataFrame.from_data_frame(test_df, id_column='ID', timestamp_column=timestamp_column)
@@ -81,6 +91,7 @@ class AutoGluonForecaster(Forecaster):
             else:
                 freq = 'H' # I-SEM
 
+        logger.debug('Index processing and imputation...')
         if train_data.freq == None:
             train_data = train_data.to_regular_index(freq=freq)
 
@@ -88,15 +99,18 @@ class AutoGluonForecaster(Forecaster):
             test_data = test_data.to_regular_index(freq=freq)
 
         # Attempt to fill missing values
-        train_data = train_data.fill_missing_values()
-        test_data = test_data.fill_missing_values()
+        if train_data.isnull().values.any():
+            train_data = train_data.fill_missing_values()
+
+        if test_data.isnull().values.any():
+            test_data = test_data.fill_missing_values()
 
         # If imputation (partially) failed, fill missing data with zeroes
-        if train_data.isna().any().any():
+        if train_data.isnull().values.any():
             train_data = train_data.fillna(0)
             logger.warning('Autogluon failed to impute some training data data. Filling with zeros')
 
-        if test_data.isna().any().any():
+        if test_data.isnull().values.any():
             test_data = test_data.fillna(0)
             logger.warning('Autogluon failed to impute some test data data. Filling with zeros')
 
@@ -106,15 +120,19 @@ class AutoGluonForecaster(Forecaster):
                                         target=target_name,
                                         ignore_time_index=ignore_time_index,
                                         verbosity=0,
+                                        cache_predictions=True,
                                         eval_metric='sMAPE')
 
         try:
+            logger.debug('Training AutoGluon...')
             # Train models
             predictor.fit(train_data, presets=preset, random_seed=limit, time_limit=limit)
             # Get predictions
+            logger.debug('Making predictions...')
             predictions = self.rolling_origin_forecast(predictor, train_data, test_data, horizon, column='mean')
         except NetworkXError as error:
             raise AutomlLibraryError('AutoGluon failed to fit/predict due to NetworkX', error)
+
         return predictions
 
 
@@ -127,3 +145,41 @@ class AutoGluonForecaster(Forecaster):
         """
 
         return int(time_limit * self.initial_training_fraction)
+
+
+    def rolling_origin_forecast(self, model, X_train, X_test, horizon, column=None):
+        """Iteratively forecast over increasing dataset
+
+        :param model: Forecasting model, must have predict()
+        :param X_train: Training feature data (pandas DataFrame)
+        :param X_test: Test feature data (pandas DataFrame)
+        :param horizon: Forecast horizon (int)
+        :param column: Specifies forecast column if dataframe outputted, defaults to None
+        :return: Predictions (numpy array)
+        """
+        # Split test set
+        test_splits = Utils.split_test_set(X_test, horizon)
+
+        # Make predictions
+        preds = model.predict(X_train)
+        if column != None:
+            preds = preds[column].values
+        predictions = [ preds ]
+
+        for i, s in enumerate(test_splits):
+            X_train = pd.concat([X_train, s])
+            X_train = X_train.get_reindexed_view(freq=X_test.freq)
+
+            preds = model.predict(X_train)
+            if column != None:
+                preds = preds[column].values
+
+            predictions.append(preds)
+
+        # Flatten predictions and truncate if needed
+        try:
+            predictions = np.concatenate([ p.flatten() for p in predictions ])
+        except:
+            predictions = np.concatenate([ p.values.flatten() for p in predictions ])
+        predictions = predictions[:len(X_test)]
+        return predictions

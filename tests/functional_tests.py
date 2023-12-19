@@ -47,8 +47,9 @@ def setup(overwrite=True):
             timestamps = pd.date_range(start='2012-1-1 00:00:00', periods=len(df), freq='30T')
 
             if forecast_type == 'univariate':
-                df = df[['temp']]
-                df.to_csv(forecasting_test_path, index=False, header=False)
+                df['applicable_date'] = timestamps
+                df = df[['applicable_date', 'temp']]
+                df.to_csv(forecasting_test_path, index=False)
             else:
                 df.index = timestamps
                 df.to_csv(forecasting_test_path)

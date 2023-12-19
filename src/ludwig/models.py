@@ -45,10 +45,11 @@ class LudwigForecaster(Forecaster):
             train_df.columns = [target_name]
             test_df.columns = [target_name]
 
-        # Format DataFrame
+        # Format DataFrames
         add_sequence_feature_column(train_df, target_name, self.get_default_lag(horizon))
+        test_df = pd.concat([train_df.tail(horizon), test_df], axis=0) # add training data for lags calculation
         add_sequence_feature_column(test_df, target_name, self.get_default_lag(horizon))
-
+        test_df = test_df.tail(len(test_df) - horizon) # drop training data after lags calculation
 
         config = {
             'input_features': [{'name': f'{target_name}_feature', 'type': 'timeseries'}],
@@ -68,10 +69,21 @@ class LudwigForecaster(Forecaster):
                     skip_save_processed_input=True,
                     )
 
-        _, predictions, __ = model.evaluate(test_df, collect_predictions=True, collect_overall_stats=True,
-                                            output_directory=os.path.join(tmp_dir, 'evaluate'))
+        # predictions, _ = model.predict(test_df)
+        # _, predictions, __ = model.evaluate(test_df, collect_predictions=True, collect_overall_stats=True,
+        #                                     output_directory=os.path.join(tmp_dir, 'evaluate'))
+        # predictions = predictions[f'{target_name}_predictions'].values
 
-        predictions = predictions[f'{target_name}_predictions'].values
+        class Model:
+            def __init__(self, ludwig_model):
+                self.ludwig_model = ludwig_model
+
+            def predict(self, df):
+                predictions, _ = self.ludwig_model.predict(df)
+                return predictions
+
+        predictions = self.rolling_origin_forecast(Model(model), train_df, test_df, horizon,
+                                                   column=f'{target_name}_predictions')
         return predictions
 
 

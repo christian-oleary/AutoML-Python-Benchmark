@@ -80,8 +80,8 @@ class Utils:
         results = {
             'MAE': mean_absolute_error(actual, predicted, multioutput=multioutput),
             'MAE2': median_absolute_error(actual, predicted),
-            'MAEover': Utils.mae_over(actual, predicted),
-            'MAEunder': Utils.mae_under(actual, predicted),
+            # 'MAEover': Utils.mae_over(actual, predicted),
+            # 'MAEunder': Utils.mae_under(actual, predicted),
             'MAPE': mean_absolute_percentage_error(actual, predicted, multioutput=multioutput),
             'MASE': mase(actual, predicted, y_train=y_train),
             'ME': np.mean(actual - predicted),
@@ -146,19 +146,13 @@ class Utils:
     @staticmethod
     def mae_over(actual, predicted):
         """Overestimated predictions (from Grimes et al. 2014)"""
-        if predicted > actual:
-            return abs(predicted - actual)
-        else:
-            return 0
+        return np.clip(0, (predicted - actual).max())
 
 
     @staticmethod
     def mae_under(actual, predicted):
         """Underestimated predictions (from Grimes et al. 2014)"""
-        if predicted < actual:
-            return abs(predicted - actual)
-        else:
-            return 0
+        return np.clip((predicted - actual).min(), 0)
 
 
     @staticmethod

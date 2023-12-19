@@ -24,7 +24,7 @@ class DatasetFormatting:
     @staticmethod
     def format_univariate_forecasting_data(data_dir):
 
-        headers_and_timestamps = 'libra' not in data_dir
+        headers_and_timestamps = 'libra' not in data_dir # Libra dataset is missing indices and headers
 
         logger.info('Reading univariate forecasting data...')
 

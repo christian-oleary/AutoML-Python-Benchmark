@@ -123,10 +123,16 @@ class AutoGluonForecaster(Forecaster):
                                         cache_predictions=True,
                                         eval_metric='sMAPE')
 
+        # For debugging only, i.e. all except Naive model
+        excluded_model_types = ['RecursiveTabular', 'SeasonalNaive', 'Theta', 'AutoETS', 'DeepAR',
+                                'TemporalFusionTransformer', 'PatchTST', 'DirectTabular', 'AutoARIMA']
+
         try:
             logger.debug('Training AutoGluon...')
             # Train models
-            predictor.fit(train_data, presets=preset, random_seed=limit, time_limit=limit)
+            predictor.fit(train_data, presets=preset, random_seed=limit, time_limit=limit,
+                        #   excluded_model_types=excluded_model_types, # For debugging only
+                          )
             # Get predictions
             logger.debug('Making predictions...')
             predictions = self.rolling_origin_forecast(predictor, train_data, test_data, horizon, column='mean')

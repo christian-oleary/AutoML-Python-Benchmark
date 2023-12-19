@@ -8,6 +8,7 @@ from sklearn.impute import IterativeImputer
 from sklearn.model_selection import RandomizedSearchCV
 from sklearn.multioutput import MultiOutputRegressor
 from xgboost import XGBRegressor
+from lightgbm import LGBMRegressor
 
 from src.util import Utils
 from src.logs import logger
@@ -16,7 +17,31 @@ from src.logs import logger
 class Forecaster:
     """Base Forecaster"""
 
-    presets = [ 'Naive', 'LinearRegression', 'XGBRegressor' ]
+    presets = [ 'Naive', 'LinearRegression', 'XGBRegressor', 'LGBMRegressor' ]
+
+    regression_models = {
+        LGBMRegressor.__name__: (LGBMRegressor, {
+            'verbosity': [ -1 ],
+            # Based on Lynch et al. 2021:
+            'learning_rate': [0.2, 0.1, 0.05, 0.025, 0.0125],
+            'n_estimators': range(50, 501, 50),
+            'max_depth': range(3, 14, 2),
+            'subsample': np.arange(0.1, 1.1, 0.1),
+            'colsample_bytree': np.arange(0.1, 1.1, 0.1),
+            'num_leaves': [round(0.6*2**x) for x in range(3,14,2)],
+            'min_child_samples': range(10, 71, 10)
+        }),
+        LinearRegression.__name__: (LinearRegression, {}),
+        XGBRegressor.__name__: (XGBRegressor, {
+            'verbosity': [ 0 ],
+            # Based on Lynch et al. 2021:
+            'learning_rate': [ 0.2, 0.1, 0.05, 0.025, 0.0125 ],
+            'n_estimators': range(50, 500, 50),
+            'max_depth': range(3, 14, 2),
+            'subsample': np.arange(0.1, 1.1, 0.1),
+            'colsample_bytree': np.arange(0.1, 1.1, 0.1)
+        }),
+    }
 
 
     def forecast(self, train_df, test_df, forecast_type, horizon, limit, frequency, tmp_dir,
@@ -55,36 +80,21 @@ class Forecaster:
             else:
                 X_train = X_train.tail(10000)
                 y_train = y_train[-10000:]
-                if preset == 'LinearRegression':
-                    predictions = self.train_model(X_train, y_train, X_test, horizon, forecast_type, nproc,
-                                                   model='LinearRegression')
-                elif preset == 'XGBRegressor':
-                    predictions = self.train_model(X_train, y_train, X_test, horizon, forecast_type, nproc,
-                                                   model='XGBRegressor')
-                else:
-                    raise ValueError(f'Unrecognised preset for baseline model: {preset}')
+                predictions = self.train_model(X_train, y_train, X_test, horizon, forecast_type, nproc,
+                                               model_name=preset)
         else:
             raise NotImplementedError('Linear Regression model not implemented for multivariate/global forecasting yet')
         return predictions
 
 
-    def train_model(self, X_train, y_train, X_test, horizon, forecast_type, nproc, model):
-        if model == 'LinearRegression':
-            model = LinearRegression(n_jobs=nproc)
-            model.fit(X_train, y_train)
-        else:
-            # Based on Lynch et al. 2021
-            wrapper = MultiOutputRegressor(XGBRegressor(n_jobs=nproc))
-            hyperparameters = {
-                'estimator__learning_rate': [ 0.2, 0.1, 0.05, 0.025, 0.0125 ],
-                'estimator__n_estimators': range(50, 500, 50),
-                'estimator__max_depth': range(3, 14, 2),
-                'estimator__subsample': np.arange(0.1, 1.1, 0.1),
-                'estimator__colsample_bytree': np.arange(0.1, 1.1, 0.1)
-            }
-            model = RandomizedSearchCV(estimator=wrapper, param_distributions=hyperparameters,
-                                        scoring='neg_mean_absolute_error', n_jobs=nproc, cv=10)
-            model.fit(X_train, y_train)
+    def train_model(self, X_train, y_train, X_test, horizon, forecast_type, nproc, model_name):
+        constructor, hyperparameters = self.regression_models[model_name]
+        hyperparameters = { f'estimator__{k}': v for k, v in hyperparameters.items() }
+
+        wrapper = MultiOutputRegressor(constructor())
+        model = RandomizedSearchCV(estimator=wrapper, param_distributions=hyperparameters,
+                                    scoring='neg_mean_absolute_error', n_jobs=nproc, cv=10)
+        model.fit(X_train, y_train)
 
         class Model:
             def __init__(self, model):

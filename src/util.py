@@ -23,28 +23,28 @@ class Utils:
     """Utility functions"""
 
     ignored_presets = [
-        'preset-superfast__60_proc-1_limit-60.0', 'preset-superfast__1200_proc-1_limit-3.0',
-        'preset-superfast__900_proc-1_limit-4.0', 'preset-superfast__600_proc-1_limit-6.0',
-        'preset-superfast__600_proc-10_limit-6.0', 'preset-superfast__900_proc-10_limit-4.0',
-        'preset-superfast__300_proc-1_limit-12.0', 'preset-superfast__300_proc-10_limit-12.0',
-        'preset-fast__900_proc-1_limit-4.0', 'preset-fast__1200_proc-1_limit-3.0', 'preset-fast__600_proc-1_limit-6.0',
-        'preset-fast__900_proc-10_limit-4.0', 'preset-fast__300_proc-1_limit-12.0',
-        'preset-fast__600_proc-10_limit-6.0', 'preset-fast__60_proc-1_limit-60.0',
-        'preset-fast__300_proc-10_limit-12.0', 'preset-fast_parallel__1200_proc-1_limit-3.0',
-        'preset-default__900_proc-10_limit-4.0', 'preset-default__900_proc-1_limit-4.0',
-        'preset-fast_parallel__600_proc-10_limit-6.0', 'preset-fast_parallel__900_proc-10_limit-4.0',
-        'preset-default__1200_proc-1_limit-3.0', 'preset-default__600_proc-10_limit-6.0',
-        'preset-fast_parallel__900_proc-1_limit-4.0', 'preset-fast_parallel__300_proc-10_limit-12.0',
-        'preset-fast_parallel__600_proc-1_limit-6.0', 'preset-default__600_proc-1_limit-6.0',
-        'preset-default__300_proc-10_limit-12.0', 'preset-fast_parallel__300_proc-1_limit-12.0',
-        'preset-default__300_proc-1_limit-12.0', 'preset-fast_parallel__60_proc-1_limit-60.0',
-        'preset-default__60_proc-1_limit-60.0', 'preset-all__600_proc-1_limit-6.0',
-        'preset-all__900_proc-1_limit-4.0','preset-all__1200_proc-1_limit-3.0',
-        'preset-all__300_proc-1_limit-12.0','preset-all__300_proc-10_limit-12.0',
-        'preset-all_300_proc-1_limit-12.0', 'preset-all_600_proc-1_limit-6.0', 'preset-all_60_proc-1_limit-60.0',
-        'preset-all__600_proc-10_limit-6.0', 'preset-all__900_proc-10_limit-4.0',
-        'preset-default_300_proc-1_limit-12.0', 'preset-default_600_proc-1_limit-6.0',
-        'preset-default_60_proc-1_limit-60.0', 'preset-all__60_proc-1_limit-60.0',
+        # 'preset-superfast__60_proc-1_limit-60.0', 'preset-superfast__1200_proc-1_limit-3.0',
+        # 'preset-superfast__900_proc-1_limit-4.0', 'preset-superfast__600_proc-1_limit-6.0',
+        # 'preset-superfast__600_proc-10_limit-6.0', 'preset-superfast__900_proc-10_limit-4.0',
+        # 'preset-superfast__300_proc-1_limit-12.0', 'preset-superfast__300_proc-10_limit-12.0',
+        # 'preset-fast__900_proc-1_limit-4.0', 'preset-fast__1200_proc-1_limit-3.0', 'preset-fast__600_proc-1_limit-6.0',
+        # 'preset-fast__900_proc-10_limit-4.0', 'preset-fast__300_proc-1_limit-12.0',
+        # 'preset-fast__600_proc-10_limit-6.0', 'preset-fast__60_proc-1_limit-60.0',
+        # 'preset-fast__300_proc-10_limit-12.0', 'preset-fast_parallel__1200_proc-1_limit-3.0',
+        # 'preset-default__900_proc-10_limit-4.0', 'preset-default__900_proc-1_limit-4.0',
+        # 'preset-fast_parallel__600_proc-10_limit-6.0', 'preset-fast_parallel__900_proc-10_limit-4.0',
+        # 'preset-default__1200_proc-1_limit-3.0', 'preset-default__600_proc-10_limit-6.0',
+        # 'preset-fast_parallel__900_proc-1_limit-4.0', 'preset-fast_parallel__300_proc-10_limit-12.0',
+        # 'preset-fast_parallel__600_proc-1_limit-6.0', 'preset-default__600_proc-1_limit-6.0',
+        # 'preset-default__300_proc-10_limit-12.0', 'preset-fast_parallel__300_proc-1_limit-12.0',
+        # 'preset-default__300_proc-1_limit-12.0', 'preset-fast_parallel__60_proc-1_limit-60.0',
+        # 'preset-default__60_proc-1_limit-60.0', 'preset-all__600_proc-1_limit-6.0',
+        # 'preset-all__900_proc-1_limit-4.0','preset-all__1200_proc-1_limit-3.0',
+        # 'preset-all__300_proc-1_limit-12.0','preset-all__300_proc-10_limit-12.0',
+        # 'preset-all_300_proc-1_limit-12.0', 'preset-all_600_proc-1_limit-6.0', 'preset-all_60_proc-1_limit-60.0',
+        # 'preset-all__600_proc-10_limit-6.0', 'preset-all__900_proc-10_limit-4.0',
+        # 'preset-default_300_proc-1_limit-12.0', 'preset-default_600_proc-1_limit-6.0',
+        # 'preset-default_60_proc-1_limit-60.0', 'preset-all__60_proc-1_limit-60.0',
         ]
 
 
@@ -80,6 +80,8 @@ class Utils:
         results = {
             'MAE': mean_absolute_error(actual, predicted, multioutput=multioutput),
             'MAE2': median_absolute_error(actual, predicted),
+            'MAEover': Utils.mae_over(actual, predicted),
+            'MAEunder': Utils.mae_under(actual, predicted),
             'MAPE': mean_absolute_percentage_error(actual, predicted, multioutput=multioutput),
             'MASE': mase(actual, predicted, y_train=y_train),
             'ME': np.mean(actual - predicted),
@@ -142,7 +144,26 @@ class Utils:
 
 
     @staticmethod
+    def mae_over(actual, predicted):
+        """Overestimated predictions (from Grimes et al. 2014)"""
+        if predicted > actual:
+            return abs(predicted - actual)
+        else:
+            return 0
+
+
+    @staticmethod
+    def mae_under(actual, predicted):
+        """Underestimated predictions (from Grimes et al. 2014)"""
+        if predicted < actual:
+            return abs(predicted - actual)
+        else:
+            return 0
+
+
+    @staticmethod
     def smape(actual, predicted):
+        """sMAPE"""
         return 100/len(actual) * np.sum(2 * np.abs(predicted - actual) / (np.abs(actual) + np.abs(predicted)))
 
 

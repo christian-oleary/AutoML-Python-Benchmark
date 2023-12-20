@@ -443,7 +443,7 @@ class Utils:
                 for col, filename, title, yscale in [
                     ('R2_mean', f'4_R2_mean_by_{group_col}.png', 'Mean R2', 'linear'),
                     ('MAE_mean', f'5_MAE_mean_by_{group_col}.png', 'Mean MAE', 'linear'),
-                    ('MAPE_mean', f'6_MAPE_mean_by_{group_col}.png', 'Mean MAPE', 'linear'),
+                    ('MSE_mean', f'6_MSE_mean_by_{group_col}.png', 'Mean MSE', 'linear'),
                     ('duration_mean', f'7_duration_mean_by_{group_col}.png', 'Mean Duration', 'linear'),
                     ]:
                     mean_scores.plot.bar(y=col, figsize=(fig_width, fig_height))

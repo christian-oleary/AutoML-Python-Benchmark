@@ -280,7 +280,7 @@ class Forecasting():
             logger.error(f'Results directory not found: {config.results_dir} ({type(config.results_dir)})')
 
         else:
-            Utils.summarize_overall_results(config.results_dir, forecast_type)
+            Utils.summarize_overall_results(config.results_dir, forecast_type, plots=plots)
 
 
     def _init_forecaster(self, forecaster_name):

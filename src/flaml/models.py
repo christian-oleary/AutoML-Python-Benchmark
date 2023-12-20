@@ -74,8 +74,7 @@ class FLAMLForecaster(Forecaster):
             n_jobs=nproc,
             period=horizon,
             task='ts_forecast',
-            # time_budget=limit, # seconds
-            time_budget=30, # seconds
+            time_budget=limit, # seconds
             verbose=0, # Higher = more messages
         )
         logger.debug('Training finished.')

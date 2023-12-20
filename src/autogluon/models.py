@@ -167,18 +167,18 @@ class AutoGluonForecaster(Forecaster):
         test_splits = Utils.split_test_set(X_test, horizon)
 
         # Make predictions
-        preds = model.predict(X_train)
+        preds = model.predict(X_train[-horizon:])
         if column != None:
-            preds = preds[column].values
+            preds = preds[column].values[-horizon:]
         predictions = [ preds ]
 
         for i, s in enumerate(test_splits):
             X_train = pd.concat([X_train, s])
             X_train = X_train.get_reindexed_view(freq=X_test.freq)
 
-            preds = model.predict(X_train)
+            preds = model.predict(X_train[-horizon:])
             if column != None:
-                preds = preds[column].values
+                preds = preds[column].values[-horizon:]
 
             predictions.append(preds)
 

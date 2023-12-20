@@ -92,8 +92,8 @@ class Forecaster:
         hyperparameters = { f'estimator__{k}': v for k, v in hyperparameters.items() }
 
         wrapper = MultiOutputRegressor(constructor())
-        model = RandomizedSearchCV(estimator=wrapper, param_distributions=hyperparameters,
-                                    scoring='neg_mean_absolute_error', n_jobs=nproc, cv=10)
+        model = RandomizedSearchCV(estimator=wrapper, param_distributions=hyperparameters, n_jobs=nproc, cv=10,
+                                   scoring='neg_mean_absolute_error', verbose=1)
         model.fit(X_train, y_train)
 
         class Model:

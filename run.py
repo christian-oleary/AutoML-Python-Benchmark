@@ -34,7 +34,7 @@ if __name__ == '__main__': # Needed for any multiprocessing
     library_options = [
                         'all', # Will run all libraries
                         'installed', # Will run all libraries installed correctly
-                        'test', # Will run a test/placholder model
+                        'test', # Will run baseline models
                         'None', # No experiments (just other functions)
 
                         'autogluon',

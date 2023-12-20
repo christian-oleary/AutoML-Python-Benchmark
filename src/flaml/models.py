@@ -74,7 +74,8 @@ class FLAMLForecaster(Forecaster):
             n_jobs=nproc,
             period=horizon,
             task='ts_forecast',
-            time_budget=limit, # seconds
+            # time_budget=limit, # seconds
+            time_budget=30, # seconds
             verbose=0, # Higher = more messages
         )
         logger.debug('Training finished.')
@@ -108,7 +109,7 @@ class FLAMLForecaster(Forecaster):
         test_splits = Utils.split_test_set(X_test, horizon)
 
         # Make predictions
-        preds = model.predict(X_train)
+        preds = model.predict(X_train)[-horizon:]
         predictions = [ preds ]
 
         # predictions = []
@@ -116,7 +117,7 @@ class FLAMLForecaster(Forecaster):
             s = s.index.to_series(name='ds').values
             if len(s) < horizon:
                 s = X_test.tail(horizon).index.to_series(name='ds').values
-            preds = model.predict(s)
+            preds = model.predict(s)[-horizon:]
             predictions.append(preds)
 
         # Flatten predictions and truncate if needed

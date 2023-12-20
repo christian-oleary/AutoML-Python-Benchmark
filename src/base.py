@@ -80,32 +80,36 @@ class Forecaster:
             else:
                 X_train = X_train.tail(10000)
                 y_train = y_train[-10000:]
-                predictions = self.train_model(X_train, y_train, X_test, horizon, forecast_type, nproc,
+                predictions = self.train_model(X_train, y_train, X_test, horizon, forecast_type, nproc, tmp_dir,
                                                model_name=preset)
         else:
             raise NotImplementedError('Linear Regression model not implemented for multivariate/global forecasting yet')
         return predictions
 
 
-    def train_model(self, X_train, y_train, X_test, horizon, forecast_type, nproc, model_name):
+    def train_model(self, X_train, y_train, X_test, horizon, forecast_type, nproc, tmp_dir, model_name):
         constructor, hyperparameters = self.regression_models[model_name]
         hyperparameters = { f'estimator__{k}': v for k, v in hyperparameters.items() }
 
-        wrapper = MultiOutputRegressor(constructor())
-        model = RandomizedSearchCV(estimator=wrapper, param_distributions=hyperparameters, n_jobs=nproc, cv=10,
+        model = MultiOutputRegressor(constructor())
+        model = RandomizedSearchCV(estimator=model, param_distributions=hyperparameters, n_jobs=nproc, cv=10,
                                    scoring='neg_mean_absolute_error', verbose=1)
         model.fit(X_train, y_train)
 
-        class Model:
-            def __init__(self, model):
-                self.model = model
-
-            def predict(self, X):
-                    return self.model.predict(X)[-1]
-
         if forecast_type == 'univariate':
-            model = Model(model)
-            predictions = self.rolling_origin_forecast(model, X_train, X_test, horizon)
+            # model = Model(model)
+
+            # Drop irrelevant rows
+            if 'I-SEM' in tmp_dir or 'ISEM' in tmp_dir:
+                X_test['base_datetime'] = X_test.index
+                X_test['base_datetime'] = pd.to_datetime(X_test['base_datetime'], errors='coerce')
+                X_test = X_test[X_test['base_datetime'].dt.hour == 0]
+                X_test = X_test.drop('base_datetime', axis=1)
+
+            predictions = model.predict(X_test)
+            predictions = predictions.flatten()
+        else:
+            raise NotImplementedError()
         return predictions
 
 
@@ -247,22 +251,48 @@ class Forecaster:
         :param column: Specifies forecast column if dataframe outputted, defaults to None
         :return: Predictions (numpy array)
         """
+        raise NotImplementedError('Subclasses should implement rolling_origin_forecast()')
+
+
+    def _rolling_origin_forecast(self, model, X_train, X_test, horizon, column=None):
+        """Iteratively forecast over increasing dataset
+
+        :param model: Forecasting model, must have predict()
+        :param X_train: Training feature data (pandas DataFrame)
+        :param X_test: Test feature data (pandas DataFrame)
+        :param horizon: Forecast horizon (int)
+        :param column: Specifies forecast column if dataframe outputted, defaults to None
+        :return: Predictions (numpy array)
+        """
 
         # Split test set
         test_splits = Utils.split_test_set(X_test, horizon)
 
         # Make predictions
         preds = model.predict(X_train)
+        print('---------------------------------------------------')
+        print('0 preds.shape', preds.shape)
         if column != None:
-            preds = preds[column].values[-horizon:]
+            preds = preds[column].values
+
+        if len(preds.flatten()) > 0:
+            preds = preds[-horizon:]
+
+        print('0 preds.shape', preds.shape)
         predictions = [ preds ]
 
         for s in test_splits:
             X_train = pd.concat([X_train, s])
 
             preds = model.predict(X_train)
+            print('---------------------------------------------------')
+            print('preds.shape', preds.shape)
             if column != None:
-                preds = preds[column].values[-horizon:]
+                preds = preds[column].values
+
+            if len(preds.flatten()) > 0:
+                preds = preds[-horizon:]
+            print('preds.shape', preds.shape)
 
             predictions.append(preds)
 
@@ -271,7 +301,10 @@ class Forecaster:
             predictions = np.concatenate([ p.flatten() for p in predictions ])
         except:
             predictions = np.concatenate([ p.values.flatten() for p in predictions ])
+        print('---------------------------------------------------')
+        print('predictions.shape', predictions.shape)
         predictions = predictions[:len(X_test)]
+        print('predictions.shape', predictions.shape)
         return predictions
 
 

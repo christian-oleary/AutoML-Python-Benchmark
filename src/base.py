@@ -254,7 +254,7 @@ class Forecaster:
         # Make predictions
         preds = model.predict(X_train)
         if column != None:
-            preds = preds[column].values
+            preds = preds[column].values[-horizon:]
         predictions = [ preds ]
 
         for s in test_splits:
@@ -262,7 +262,7 @@ class Forecaster:
 
             preds = model.predict(X_train)
             if column != None:
-                preds = preds[column].values
+                preds = preds[column].values[-horizon:]
 
             predictions.append(preds)
 

@@ -3,9 +3,12 @@ import os
 import shutil
 
 import autokeras as ak
+import numpy as np
+import pandas as pd
 
 from src.base import Forecaster
 from src.errors import AutomlLibraryError
+from src.util import Utils
 
 # Presets are every combination of the following:
 optimizers = ['greedy', 'bayesian', 'hyperband', 'random']
@@ -62,9 +65,10 @@ class AutoKerasForecaster(Forecaster):
         tmp_dir = os.path.join(tmp_dir, f'{optimizer}_{epochs}epochs_{limit}')
 
         # Initialise forecaster
+        lookback = self.get_default_lag(horizon)
         params = {
             # 'directory': tmp_dir, # Internal errors with AutoKeras
-            'lookback': self.get_default_lag(horizon),
+            'lookback': lookback,
             'max_trials': int(limit),
             'objective': 'val_loss',
             'overwrite': False,
@@ -82,7 +86,7 @@ class AutoKerasForecaster(Forecaster):
         batch_size = None
         size = 512 # Prospective batch size
         while batch_size == None:
-            if (horizon / size).is_integer(): # i.e. is a factor
+            if (lookback / size).is_integer(): # i.e. is a factor
                 batch_size = size
             else:
                 size -= 1
@@ -98,6 +102,12 @@ class AutoKerasForecaster(Forecaster):
             verbose=0
         )
 
+        # Drop irrelevant rows
+        test_df['autokeras_datetime'] = test_df.index
+        test_df['autokeras_datetime'] = pd.to_datetime(test_df['autokeras_datetime'], errors='coerce')
+        test_df = test_df[test_df['autokeras_datetime'].dt.hour == 0]
+        test_df = test_df.drop('autokeras_datetime', axis=1)
+
         predictions = self.rolling_origin_forecast(clf, X_train, X_test, horizon)
         if len(predictions) == 0:
             raise AutomlLibraryError('AutoKeras failed to produce predictions', ValueError())
@@ -112,3 +122,43 @@ class AutoKerasForecaster(Forecaster):
         :return: Trials limit (int)
         """
         return int(time_limit / int(preset.split('_')[0]))
+
+
+    def rolling_origin_forecast(self, model, X_train, X_test, horizon):
+        """Iteratively forecast over increasing dataset
+
+        :param model: Forecasting model, must have predict()
+        :param X_train: Training feature data (pandas DataFrame)
+        :param X_test: Test feature data (pandas DataFrame)
+        :param horizon: Forecast horizon (int)
+        :return: Predictions (numpy array)
+        """
+
+        # Split test set
+        test_splits = Utils.split_test_set(X_test, horizon)
+
+        # Make predictions
+        data = X_train
+        predictions = []
+
+        for s in test_splits:
+            data = pd.concat([data, s])
+
+            preds = model.predict(data)
+
+            if len(preds.flatten()) == 0: # AutoKeras can produce empty predictions on first inference (?)
+                data = pd.concat([data, s])
+                preds = model.predict(data)
+
+            if len(preds) > horizon: # Likely unnecessary for AutoKeras
+                preds = preds[-horizon:]
+
+            predictions.append(preds)
+
+        # Flatten predictions and truncate if needed
+        try:
+            predictions = np.concatenate([ p.flatten() for p in predictions ])
+        except:
+            predictions = np.concatenate([ p.values.flatten() for p in predictions ])
+        predictions = predictions[:len(X_test)]
+        return predictions

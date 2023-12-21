@@ -82,14 +82,6 @@ class AutoTSForecaster(Forecaster):
                                                                  tabular_y=False)
             train_regressors = X_train[f'{target_name}-{horizon}']
             test_regressors = X_test[f'{target_name}-{horizon}']
-            # print('X_train', X_train, X_train.shape)
-            # print('X_test', X_test, X_test.shape)
-            # print('y_test', __, __.shape)
-            # print('train_regressors', train_regressors, train_regressors.shape)
-            # print('test_regressors', test_regressors, test_regressors.shape)
-            # X_train.to_csv('X_train.csv')
-            # X_test.to_csv('X_test.csv')
-            # np.savetxt('y_test.csv', __, fmt='%s', delimiter=',')
             assert np.isfinite(X_train).all().all()
             assert np.isfinite(X_test).all().all()
             assert np.isfinite(train_regressors).all()
@@ -144,24 +136,18 @@ class AutoTSForecaster(Forecaster):
                     assert np.isfinite(predictions).all()
                     break
 
-        predictions = np.concatenate([ p.flatten() for p in predictions ][::horizon])
-        predictions = predictions[:len(test_regressors)]
-        # print('preds', predictions.shape)
-
-        # # ValueError: Not enough predictions 80 for test set 83
+        predictions = np.concatenate([ p.flatten()[:horizon] for p in predictions ][::horizon])
+        if forecast_type == 'univariate':
+            if 'ISEM_prices' not in tmp_dir:
+                predictions = predictions[:len(test_regressors)]
 
         # # predictions = self.rolling_origin_forecast(model, test_df, test_regressors, horizon)
-
         # # predictions = model.predict(future_regressor=test_regressors, forecast_length=horizon).forecast.values
         # # AutoTS will predict at every step, but we are using a step gap of length=horizon
         # predictions = np.array(predictions).T.tolist()
-        # print('predictions B:', len(predictions))
         # predictions = predictions[::horizon] # i.e. only keep predictions with an interval=horizon
-        # print('predictions C:', len(predictions))
         # predictions = list(itertools.chain(*predictions)) # Flatten to a 1D list
-        # print('predictions D:', len(predictions))
         # predictions = np.array(predictions[:len(X_test)]) # Drop any extra unused predictions
-        # print('predictions E:', predictions.shape)
         # assert np.isfinite(np.array(predictions)).all()
 
         return predictions

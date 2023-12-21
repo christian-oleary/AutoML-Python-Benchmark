@@ -45,9 +45,14 @@ class EvalMLForecaster(Forecaster):
             train_df.columns = [target_name]
             test_df.columns = [target_name]
 
-        lag = 1
         X_train, y_train, X_test, _ = self.create_tabular_dataset(train_df, test_df, horizon, target_name,
-                                                                  tabular_y=False, lag=lag)
+                                                                  tabular_y=False)
+
+        if forecast_type == 'univariate' and 'ISEM_prices' in tmp_dir:
+            X_test['evalml_datetime'] = X_test.index
+            X_test['evalml_datetime'] = pd.to_datetime(X_test['evalml_datetime'], errors='coerce')
+            X_test = X_test[X_test['evalml_datetime'].dt.hour == 0]
+            X_test = X_test.drop('evalml_datetime', axis=1)
 
         X_train = X_train.astype(float)
         X_test = X_test.astype(float)
@@ -84,14 +89,15 @@ class EvalMLForecaster(Forecaster):
             automl_algorithm=preset,
             problem_type='time series regression',
             problem_configuration=problem_config,
-            max_time=limit,
+            max_time=1,
+            # max_time=limit,
             n_jobs=nproc,
             verbose=False,
         )
 
         automl.search()
         model = automl.best_pipeline
-        predictions = self.rolling_origin_forecast(model, X_train, X_test, y_train, horizon, forecast_type)
+        predictions = self.rolling_origin_forecast(model, X_train, X_test, y_train, horizon, forecast_type, tmp_dir)
         return predictions
 
 
@@ -106,7 +112,7 @@ class EvalMLForecaster(Forecaster):
         return int(time_limit * self.initial_training_fraction)
 
 
-    def rolling_origin_forecast(self, model, train_X, test_X, y_train, horizon, forecast_type):
+    def rolling_origin_forecast(self, model, train_X, test_X, y_train, horizon, forecast_type, tmp_dir):
         """Iteratively forecast over increasing dataset
 
         :param model: Forecasting model, must have predict()
@@ -119,9 +125,15 @@ class EvalMLForecaster(Forecaster):
         """
         # Split test set
         test_splits = Utils.split_test_set(test_X, horizon)
+        print('len(test_splits)', len(test_splits))
 
         predictions = []
+        # for s in test_X.iterrows():
         for s in test_splits:
+            # if forecast_type == 'univariate' and 'ISEM_prices' in tmp_dir:
+            #     s = s.head(1)
+            #     s.index = pd.to_datetime(s['time_index'], format='%d/%m/%Y %H:%M')
+
             if horizon > len(s): # Pad with zeros to prevent errors with ARIMA
                 padding = horizon - len(s)
                 s = pd.concat([s, pd.DataFrame([s.values[0].tolist()] * padding, columns=s.columns)])
@@ -134,6 +146,9 @@ class EvalMLForecaster(Forecaster):
                     if forecast_type == 'univariate':
                         s['time_index'] = pd.date_range(start=s['time_index'].values[0], periods=len(s))
 
+                # print(train_X.head(1))
+                # print(train_X.tail(1))
+                # print(s)
                 preds = model.predict(s, objective=None, X_train=train_X, y_train=y_train).values
                 preds = preds[:len(s)] # Drop placeholder predictions
             else:
@@ -143,10 +158,15 @@ class EvalMLForecaster(Forecaster):
                     logger.error(e)
                     logger.error('EvalML failed during prediction')
                     break
+            print('preds.shape', preds.shape)
             predictions.append(preds)
             train_X = pd.concat([train_X, s])
 
         # Flatten predictions and truncate if needed
+        print('len(predictions)', len(predictions))
+        print('predictions[0]', predictions[0].shape)
         predictions = np.concatenate([ p.flatten() for p in predictions ])
+        print('predictions', predictions.shape)
         predictions = predictions[:len(test_X)]
+        print('predictions', predictions.shape)
         return predictions

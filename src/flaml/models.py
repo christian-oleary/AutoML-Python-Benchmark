@@ -50,8 +50,8 @@ class FLAMLForecaster(Forecaster):
 
             if 'ISEM_prices' in tmp_dir:
                 train_df.index = pd.to_datetime(train_df.index, format='%d/%m/%Y %H:%M')
-                test_df.index = pd.to_datetime(test_df.index, format='%d/%m/%Y %H:%M')
                 train_df.index = pd.date_range(start=train_df.index.min(), freq='H', periods=len(train_df))
+                test_df.index = pd.to_datetime(test_df.index, format='%d/%m/%Y %H:%M')
             else:
                 train_df.index = pd.to_datetime(train_df.index, unit='D')
                 test_df.index = pd.to_datetime(test_df.index, unit='D')
@@ -79,8 +79,11 @@ class FLAMLForecaster(Forecaster):
         )
         logger.debug('Training finished.')
 
-        predictions = self.rolling_origin_forecast(automl, train_df.index.to_series(name='ds').values,
-                                                   test_df.index.to_series().to_frame(), horizon)
+        predictions = automl.predict(test_df.index.to_series(name='ds').values, period=horizon)
+        predictions = predictions[:len(test_df)].values
+
+        # predictions = self.rolling_origin_forecast(automl, train_df.index.to_series(name='ds').values,
+        #                                            test_df.index.to_series().to_frame(), horizon)
         return predictions
 
 

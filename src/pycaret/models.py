@@ -5,6 +5,7 @@ from pycaret.time_series import TSForecastingExperiment
 from src.base import Forecaster
 from src.logs import logger
 from src.TSForecasting.data_loader import FREQUENCY_MAP
+from src.util import Utils
 
 
 class PyCaretForecaster(Forecaster):
@@ -41,9 +42,17 @@ class PyCaretForecaster(Forecaster):
         elif 'ISEM_prices' in tmp_dir:
             freq = 'H'
             train_df.index = pd.to_datetime(train_df.index)#.to_period(freq)
-            test_df.index = pd.to_datetime(test_df.index)#.to_period(freq)
             train_df.index = pd.date_range(start=train_df.index.min(), freq='H', periods=len(train_df)).to_period(freq)
+
+            test_df.index = pd.to_datetime(test_df.index)#.to_period(freq)
             test_df.index = pd.date_range(start=test_df.index.min(), freq='H', periods=len(test_df)).to_period(freq)
+
+            # Drop irrelevant rows
+            if forecast_type == 'univariate' and 'ISEM_prices' in tmp_dir:
+                test_df['pycaret_datetime'] = test_df.index
+                # test_df['pycaret_datetime'] = pd.to_datetime(test_df['pycaret_datetime'], errors='coerce')
+                test_df = test_df[test_df['pycaret_datetime'].dt.hour == 0]
+                test_df = test_df.drop('pycaret_datetime', axis=1)
 
         exp = TSForecastingExperiment()
         exp.setup(train_df,
@@ -64,7 +73,8 @@ class PyCaretForecaster(Forecaster):
             predictions = exp.predict_model(model, X=test_df.drop(target_name, axis=1), fh=horizon)
             predictions = predictions['y_pred'].values
         else:
-            predictions = self.rolling_origin_forecast(exp, model, train_df, test_df, horizon, column='y_pred')
+            predictions = self.rolling_origin_forecast(exp, model, train_df, test_df, horizon, freq, column='y_pred')
+            # print('predictions.shape', predictions.shape)
         return predictions
 
 
@@ -80,7 +90,7 @@ class PyCaretForecaster(Forecaster):
 
 
 
-    def rolling_origin_forecast(self, exp, model, X_train, X_test, horizon, column=None):
+    def rolling_origin_forecast(self, exp, model, X_train, X_test, horizon, freq, column=None):
         """Iteratively forecast over increasing dataset
 
         :param model: Forecasting model, must have predict()
@@ -91,30 +101,46 @@ class PyCaretForecaster(Forecaster):
         :return: Predictions (numpy array)
         """
 
-        # Split test set
-        from src.util import Utils
-        test_splits = Utils.split_test_set(X_test, horizon)
-
         # Make predictions
         preds = exp.predict_model(model, X=X_train, fh=horizon)
         if column != None:
-            preds = preds[column].values
+            preds = preds[column].values[-horizon:]
+        # print('0 preds.shape', preds.shape)
         predictions = [ preds ]
 
-        for s in test_splits:
-            X_train = pd.concat([X_train, s])
+        data = X_train
+        for s in X_test.iterrows():
+            # print('------------------------------------')
+            # print('data', data, type(data), data.shape)
+            # print('s[1]', s[1], type(s[1]))
+            # data = pd.concat([data, pd.DataFrame(s[1], columns=data.columns)])
+            # print('data.shape', data.shape)
+            # print('s[1].values.shape', s[1].values.shape)
+            data.index = data.index.to_timestamp()
+            new_index = pd.date_range(start=data.index.min(), freq='H', periods=len(data)+1).to_period(freq)
+            data.loc[len(data.index)] = s[1].values
+            # print('data.shape', data.shape)
+            # data = pd.concat([data, s])
+            data.index = new_index
+            # data.index = pd.to_datetime(data.index)#.to_period(freq)
+            # data.index = data.index.to_timestamp()
+            # data.index = pd.date_range(start=data.index.min(), freq='H', periods=len(data)).to_period(freq)
 
-            preds = exp.predict_model(model, X=X_train, fh=horizon)
+            # print('data', data, type(data), data.shape)
+            preds = exp.predict_model(model, X=data, fh=horizon)
+            # print('1 preds.shape', preds.shape)
             if column != None:
-                preds = preds[column].values
+                preds = preds[column].values[-horizon:]
+            # print('1 preds.shape', preds.shape)
 
             predictions.append(preds)
 
         # Flatten predictions and truncate if needed
+        # print('len(predictions)', len(predictions))
         try:
             predictions = np.concatenate([ p.flatten() for p in predictions ])
         except:
             predictions = np.concatenate([ p.values.flatten() for p in predictions ])
-        predictions = predictions[:len(X_test)]
+        # print('predictions.shape', predictions.shape)
         return predictions
 

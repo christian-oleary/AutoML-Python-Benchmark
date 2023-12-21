@@ -103,10 +103,11 @@ class AutoKerasForecaster(Forecaster):
         )
 
         # Drop irrelevant rows
-        test_df['autokeras_datetime'] = test_df.index
-        test_df['autokeras_datetime'] = pd.to_datetime(test_df['autokeras_datetime'], errors='coerce')
-        test_df = test_df[test_df['autokeras_datetime'].dt.hour == 0]
-        test_df = test_df.drop('autokeras_datetime', axis=1)
+        if forecast_type == 'univariate' and 'ISEM_prices' in tmp_dir:
+            test_df['autokeras_datetime'] = test_df.index
+            test_df['autokeras_datetime'] = pd.to_datetime(test_df['autokeras_datetime'], errors='coerce')
+            test_df = test_df[test_df['autokeras_datetime'].dt.hour == 0]
+            test_df = test_df.drop('autokeras_datetime', axis=1)
 
         predictions = self.rolling_origin_forecast(clf, X_train, X_test, horizon)
         if len(predictions) == 0:

@@ -72,15 +72,11 @@ class LudwigForecaster(Forecaster):
         }
 
         # Drop irrelevant rows
-        train_df['ludwig_datetime'] = train_df.index
-        train_df['ludwig_datetime'] = pd.to_datetime(train_df['ludwig_datetime'], errors='coerce')
-        train_df = train_df[train_df['ludwig_datetime'].dt.hour == 0]
-        train_df = train_df.drop('ludwig_datetime', axis=1)
-
-        test_df['ludwig_datetime'] = test_df.index
-        test_df['ludwig_datetime'] = pd.to_datetime(test_df['ludwig_datetime'], errors='coerce')
-        test_df = test_df[test_df['ludwig_datetime'].dt.hour == 0]
-        test_df = test_df.drop('ludwig_datetime', axis=1)
+        if forecast_type == 'univariate' and 'ISEM_prices' in tmp_dir:
+            test_df['ludwig_datetime'] = test_df.index
+            test_df['ludwig_datetime'] = pd.to_datetime(test_df['ludwig_datetime'], errors='coerce')
+            test_df = test_df[test_df['ludwig_datetime'].dt.hour == 0]
+            test_df = test_df.drop('ludwig_datetime', axis=1)
 
         # Constructs Ludwig model from config dictionary
         model = LudwigModel(config, logging_level=logging.WARNING)

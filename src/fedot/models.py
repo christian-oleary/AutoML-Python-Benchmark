@@ -54,11 +54,13 @@ class FEDOTForecaster(Forecaster):
         X_train, y_train, X_test, _ = self.create_tabular_dataset(train_df, test_df, horizon, target_name,
                                                                   tabular_y=False, lag=None)
 
-        # if forecast_type == 'univariate' and 'ISEM_prices' in tmp_dir:
-        #     X_test['fedot_datetime'] = X_test.index
-        #     X_test['fedot_datetime'] = pd.to_datetime(X_test['fedot_datetime'], errors='coerce')
-        #     X_test = X_test[X_test['fedot_datetime'].dt.hour == 0]
-        #     X_test = X_test.drop('fedot_datetime', axis=1)
+        # print('X_test.shape', X_test.shape)
+        if forecast_type == 'univariate' and 'ISEM_prices' in tmp_dir:
+            X_test['fedot_datetime'] = X_test.index
+            X_test['fedot_datetime'] = pd.to_datetime(X_test['fedot_datetime'], errors='coerce')
+            X_test = X_test[X_test['fedot_datetime'].dt.hour == 0]
+            X_test = X_test.drop('fedot_datetime', axis=1)
+        # print('X_test.shape', X_test.shape)
         task = Task(TaskTypesEnum.ts_forecasting, TsForecastingParams(forecast_length=horizon))
 
         # Fill in missing gaps in data. Adapted from:
@@ -85,8 +87,8 @@ class FEDOTForecaster(Forecaster):
         model = Fedot(problem='ts_forecasting',
                     task_params=task.task_params,
                     # use_input_preprocessing=True, # fedot>=0.7.0
-                    # timeout=limit, # minutes
-                    timeout=1, # minutes
+                    timeout=limit, # minutes
+                    # timeout=1, # minutes
                     preset=preset,
                     seed=limit,
                     n_jobs=nproc,
@@ -97,7 +99,6 @@ class FEDOTForecaster(Forecaster):
 
         predictions = self.rolling_origin_forecast(model, X_train, X_test, horizon)
         print('predictions', predictions.shape)
-        exit()
         return predictions
 
 
@@ -123,8 +124,6 @@ class FEDOTForecaster(Forecaster):
         :return: Predictions (numpy array)
         """
 
-        # Split test set
-        test_splits = Utils.split_test_set(X_test, horizon)
 
         # Make predictions
         data = X_train
@@ -137,23 +136,31 @@ class FEDOTForecaster(Forecaster):
 
         predictions = [ preds ]
 
+        # # Split test set
+        # test_splits = Utils.split_test_set(X_test, horizon)
+        # for s in test_splits:
+
         # for s in X_test.iterrows():
-            # data = pd.concat([data, s])
-        for s in test_splits:
+            # data.loc[len(data.index)] = s[1].values
+
+        for i in range(len(X_test)):
+            s = X_test.iloc[[i]]
             data = pd.concat([data, s])
-            data.loc[len(data.index)] = s[1].values
 
             preds = model.predict(data)
+            # print('1 preds.shape', preds.shape)
             if column != None:
                 preds = preds[column].values
 
             if len(preds.flatten()) > 0:
                 preds = preds[-horizon:]
 
+            # print('1 preds.shape', preds.shape)
+            assert len(preds) == horizon
             predictions.append(preds)
 
-        # print(len(predictions))
-        # print(predictions[0].shape)
+        # print('len(predictions)', len(predictions))
+        # print('predictions[0].shape', predictions[0].shape)
         # Flatten predictions and truncate if needed
         try:
             predictions = np.concatenate([ p.flatten() for p in predictions ])

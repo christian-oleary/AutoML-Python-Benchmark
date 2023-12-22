@@ -49,13 +49,11 @@ class AutoGluonForecaster(Forecaster):
         logger.debug('Formatting indices...')
 
         # Drop irrelevant rows
-        # print('test_df.shape', test_df.shape)
-        # if forecast_type == 'univariate' and 'ISEM_prices' in tmp_dir:
-        #     test_df['autogluon_datetime'] = test_df.index
-        #     test_df['autogluon_datetime'] = pd.to_datetime(test_df['autogluon_datetime'], errors='coerce')
-        #     test_df = test_df[test_df['autogluon_datetime'].dt.hour == 0]
-        #     test_df = test_df.drop('autogluon_datetime', axis=1)
-        # print('test_df.shape', test_df.shape)
+        if forecast_type == 'univariate' and 'ISEM_prices' in tmp_dir:
+            test_df['autogluon_datetime'] = test_df.index
+            test_df['autogluon_datetime'] = pd.to_datetime(test_df['autogluon_datetime'], errors='coerce')
+            test_df = test_df[test_df['autogluon_datetime'].dt.hour == 0]
+            test_df = test_df.drop('autogluon_datetime', axis=1)
 
         # Format index
         timestamp_column = 'timestamp'
@@ -90,8 +88,8 @@ class AutoGluonForecaster(Forecaster):
         # TimeSeriesDataFrame inherits from pandas.DataFrame
         train_data = TimeSeriesDataFrame.from_data_frame(train_df, id_column='ID', timestamp_column=timestamp_column)
         test_data = TimeSeriesDataFrame.from_data_frame(test_df, id_column='ID', timestamp_column=timestamp_column)
-        print('test_df.shape', test_df.shape)
-        print('test_data.shape', test_data.shape)
+        # print('test_df.shape', test_df.shape)
+        # print('test_data.shape', test_data.shape)
 
         if forecast_type == 'global':
             # If frequency detection failed, fill manually
@@ -107,9 +105,8 @@ class AutoGluonForecaster(Forecaster):
         if train_data.freq == None:
             train_data = train_data.to_regular_index(freq=freq)
 
-        # if test_data.freq == None:
-        #     test_data = test_data.to_regular_index(freq=freq)
-        print('test_data.shape', test_data.shape)
+        if test_data.freq == None:
+            test_data = test_data.to_regular_index(freq=freq)
 
         # Attempt to fill missing values
         if train_data.isnull().values.any():
@@ -117,7 +114,6 @@ class AutoGluonForecaster(Forecaster):
 
         if test_data.isnull().values.any():
             test_data = test_data.fill_missing_values()
-        print('test_data.shape', test_data.shape)
 
         # If imputation (partially) failed, fill missing data with zeroes
         if train_data.isnull().values.any():
@@ -127,7 +123,6 @@ class AutoGluonForecaster(Forecaster):
         if test_data.isnull().values.any():
             test_data = test_data.fillna(0)
             logger.warning('Autogluon failed to impute some test data data. Filling with zeros')
-        print('test_data.shape', test_data.shape)
 
         # Create Predictor
         predictor = TimeSeriesPredictor(prediction_length=horizon,
@@ -146,12 +141,11 @@ class AutoGluonForecaster(Forecaster):
             logger.debug('Training AutoGluon...')
             # Train models
             predictor.fit(train_data, presets=preset, random_seed=limit, #time_limit=limit,
-                        time_limit=100,
+                          time_limit=100,
                           excluded_model_types=excluded_model_types, # For debugging only
                           )
             # Get predictions
             logger.debug('Making predictions...')
-            print('test_data.shape', test_data.shape)
             predictions = self.rolling_origin_forecast(predictor, train_data, test_data, horizon, tmp_dir,
                                                        column='mean')
         except NetworkXError as error:
@@ -159,17 +153,16 @@ class AutoGluonForecaster(Forecaster):
 
         # Drop irrelevant rows
         if forecast_type == 'univariate':
-            print('0 horizon', horizon)
-            print('1 test_data.shape', test_data.shape)
-            print('2', len(predictions))
-            print('3', predictions[0].shape)
-            print('4', np.concatenate([ p.flatten() for p in predictions ]).shape)
-            print('5', np.concatenate([ p.flatten() for p in predictions ][::horizon]).shape)
-            predictions = np.concatenate([ p.flatten() for p in predictions ][::horizon])
+            # print('1 test_data.shape', test_data.shape)
+            # print('2 len(predictions)', len(predictions))
+            # print('3 predictions[0].shape', predictions[0].shape)
+            # print('4 flatten', np.concatenate([ p.flatten() for p in predictions ]).shape)
+            # # print('5 flatten & [::horizon]', np.concatenate([ p.flatten() for p in predictions ][::horizon]).shape)
             predictions = np.concatenate([ p.flatten() for p in predictions ])
-            print('6 predictions.shape', predictions.shape)
-            predictions = predictions[:len(test_df)]
-            print('7 predictions.shape', predictions.shape)
+            # # predictions = np.concatenate([ p.flatten() for p in predictions ][::horizon])
+            # print('6 predictions.shape', predictions.shape)
+            # # predictions = predictions[:len(test_df)]
+            # # print('7 predictions.shape', predictions.shape)
         else:
             raise NotImplementedError()
 
@@ -197,19 +190,27 @@ class AutoGluonForecaster(Forecaster):
         :param column: Specifies forecast column if dataframe outputted, defaults to None
         :return: Predictions (numpy array)
         """
-        # Split test set
-        test_splits = Utils.split_test_set(X_test, horizon)
 
         # Make predictions
         data = X_train[-horizon:]
         preds = model.predict(data)
         if column != None:
             preds = preds[column].values[-horizon:]
+        assert len(preds) == horizon
         predictions = [ preds ]
 
-        for s in test_splits:
-        # for s in X_test.iterrows():
+        # Split test set
+        # test_splits = Utils.split_test_set(X_test, horizon)
+        # for s in test_splits:
+        #     s = s.head(1)
+            # data = pd.concat([data, s])
+
+        for i in range(len(X_test)):
+            s = X_test.iloc[[i]]
             data = pd.concat([data, s])
+
+            # Slow here?
+            # data.freq = data.asfreq(X_test.freq)
             data = data.get_reindexed_view(freq=X_test.freq)
             # data.loc[len(data.index)] = s[1].values
 
@@ -217,14 +218,7 @@ class AutoGluonForecaster(Forecaster):
             if column != None:
                 preds = preds[column].values[-horizon:]
 
-            print('preds.shape', preds.shape)
+            assert len(preds) == horizon
             predictions.append(preds)
-        print('len(test_splits)', len(test_splits))
 
-        # Flatten predictions and truncate if needed
-        # try:
-        #     predictions = np.concatenate([ p.flatten() for p in predictions ])
-        # except:
-        #     predictions = np.concatenate([ p.values.flatten() for p in predictions ])
-        # predictions = predictions[:len(X_test)]
         return predictions

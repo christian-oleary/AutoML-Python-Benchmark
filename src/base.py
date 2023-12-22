@@ -92,8 +92,8 @@ class Forecaster:
         hyperparameters = { f'estimator__{k}': v for k, v in hyperparameters.items() }
 
         model = MultiOutputRegressor(constructor())
-        model = RandomizedSearchCV(estimator=model, param_distributions=hyperparameters, n_jobs=nproc, cv=10,
-                                   scoring='neg_mean_absolute_error', verbose=1)
+        model = RandomizedSearchCV(estimator=model, param_distributions=hyperparameters, n_jobs=nproc, verbose=1,
+                                   scoring='neg_mean_absolute_error')
         model.fit(X_train, y_train)
 
         if forecast_type == 'univariate':

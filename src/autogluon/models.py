@@ -48,12 +48,12 @@ class AutoGluonForecaster(Forecaster):
 
         logger.debug('Formatting indices...')
 
-        # Drop irrelevant rows
-        if forecast_type == 'univariate' and 'ISEM_prices' in tmp_dir:
-            test_df['autogluon_datetime'] = test_df.index
-            test_df['autogluon_datetime'] = pd.to_datetime(test_df['autogluon_datetime'], errors='coerce')
-            test_df = test_df[test_df['autogluon_datetime'].dt.hour == 0]
-            test_df = test_df.drop('autogluon_datetime', axis=1)
+        # Done after from_data_frame() calls instead (below)
+        # if forecast_type == 'univariate' and 'ISEM_prices' in tmp_dir:
+        #     test_df['autogluon_datetime'] = test_df.index
+        #     test_df['autogluon_datetime'] = pd.to_datetime(test_df['autogluon_datetime'], errors='coerce')
+        #     test_df = test_df[test_df['autogluon_datetime'].dt.hour == 0]
+        #     test_df = test_df.drop('autogluon_datetime', axis=1)
 
         # Format index
         timestamp_column = 'timestamp'
@@ -90,6 +90,15 @@ class AutoGluonForecaster(Forecaster):
         test_data = TimeSeriesDataFrame.from_data_frame(test_df, id_column='ID', timestamp_column=timestamp_column)
         # print('test_df.shape', test_df.shape)
         # print('test_data.shape', test_data.shape)
+        # test_df.to_csv('test_df.csv')
+        # test_data.to_csv('test_data.csv')
+        # train_data.to_csv('train_data.csv')
+
+        # Drop irrelevant rows. This happens after the from_data_frame() calls as AutoGluon tries to (badly) impute
+        # the missing values otherwise.
+        if forecast_type == 'univariate' and 'ISEM_prices' in tmp_dir:
+            test_df[timestamp_column] = pd.to_datetime(test_df[timestamp_column], errors='coerce')
+            test_df = test_df[test_df[timestamp_column].dt.hour == 0]
 
         if forecast_type == 'global':
             # If frequency detection failed, fill manually
@@ -140,9 +149,8 @@ class AutoGluonForecaster(Forecaster):
         try:
             logger.debug('Training AutoGluon...')
             # Train models
-            predictor.fit(train_data, presets=preset, random_seed=limit, #time_limit=limit,
-                          time_limit=100,
-                          excluded_model_types=excluded_model_types, # For debugging only
+            predictor.fit(train_data, presets=preset, random_seed=limit, time_limit=limit,
+                        #   time_limit=100, excluded_model_types=excluded_model_types, # For debugging only
                           )
             # Get predictions
             logger.debug('Making predictions...')
@@ -151,18 +159,33 @@ class AutoGluonForecaster(Forecaster):
         except NetworkXError as error:
             raise AutomlLibraryError('AutoGluon failed to fit/predict due to NetworkX', error)
 
+        if forecast_type == 'univariate' and 'ISEM_prices' in tmp_dir:
+            # Re-use test_data indices for date filtering
+            predictions = np.array(predictions)
+            for i in range(len(predictions[0])):
+                test_data[f't+{i}'] = predictions[:, i]
+            test_data = test_data.drop(target_name, axis=1)
+
+            # Drop irrelevant predictions
+            predictions = []
+            for index in test_df[timestamp_column].values:
+                start = pd.Timestamp(index)
+                end = start + pd.to_timedelta(1, unit='h')
+                row = test_data.slice_by_time(start, pd.Timestamp(end))
+                predictions.append(row.values)
+
         # Drop irrelevant rows
         if forecast_type == 'univariate':
+            # print('0 test_df.shape', test_df.shape)
             # print('1 test_data.shape', test_data.shape)
             # print('2 len(predictions)', len(predictions))
             # print('3 predictions[0].shape', predictions[0].shape)
             # print('4 flatten', np.concatenate([ p.flatten() for p in predictions ]).shape)
-            # # print('5 flatten & [::horizon]', np.concatenate([ p.flatten() for p in predictions ][::horizon]).shape)
             predictions = np.concatenate([ p.flatten() for p in predictions ])
-            # # predictions = np.concatenate([ p.flatten() for p in predictions ][::horizon])
+            # predictions = np.concatenate([ p.flatten() for p in predictions ][::horizon])
             # print('6 predictions.shape', predictions.shape)
-            # # predictions = predictions[:len(test_df)]
-            # # print('7 predictions.shape', predictions.shape)
+            # predictions = predictions[:len(test_df)]
+            # print('7 predictions.shape', predictions.shape)
         else:
             raise NotImplementedError()
 
@@ -184,8 +207,8 @@ class AutoGluonForecaster(Forecaster):
         """Iteratively forecast over increasing dataset
 
         :param model: Forecasting model, must have predict()
-        :param X_train: Training feature data (pandas DataFrame)
-        :param X_test: Test feature data (pandas DataFrame)
+        :param X_train: Training feature data (Autogluon DataFrame)
+        :param X_test: Test feature data (Autogluon DataFrame)
         :param horizon: Forecast horizon (int)
         :param column: Specifies forecast column if dataframe outputted, defaults to None
         :return: Predictions (numpy array)
@@ -205,20 +228,24 @@ class AutoGluonForecaster(Forecaster):
         #     s = s.head(1)
             # data = pd.concat([data, s])
 
-        for i in range(len(X_test)):
-            s = X_test.iloc[[i]]
-            data = pd.concat([data, s])
+        df = pd.concat([X_train, X_test])
+        df = df.get_reindexed_view(freq=X_test.freq)
+        predictions = []
 
-            # Slow here?
-            # data.freq = data.asfreq(X_test.freq)
-            data = data.get_reindexed_view(freq=X_test.freq)
-            # data.loc[len(data.index)] = s[1].values
+        for i in range(len(X_test)):
+            # s = X_test.iloc[[i]]
+            # data = pd.concat([data, s])
+            # data = data.get_reindexed_view(freq=X_test.freq)
+
+            data = df.tail(len(df) - i)
 
             preds = model.predict(data[-horizon:])
             if column != None:
                 preds = preds[column].values[-horizon:]
 
             assert len(preds) == horizon
-            predictions.append(preds)
+            # predictions.append(preds)
+            predictions.insert(0, preds)
 
+        predictions.reverse()
         return predictions

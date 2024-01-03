@@ -247,5 +247,4 @@ class AutoGluonForecaster(Forecaster):
             # predictions.append(preds)
             predictions.insert(0, preds)
 
-        predictions.reverse()
         return predictions

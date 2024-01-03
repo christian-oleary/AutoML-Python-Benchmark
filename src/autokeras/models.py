@@ -8,6 +8,7 @@ import pandas as pd
 
 from src.base import Forecaster
 from src.errors import AutomlLibraryError
+from src.logs import logger
 from src.util import Utils
 
 # Presets are every combination of the following:
@@ -92,6 +93,7 @@ class AutoKerasForecaster(Forecaster):
                 size -= 1
 
         # Train models
+        logger.info('Fitting AutoKeras...')
         clf.fit(
             x=X_train,
             y=y_train,
@@ -109,6 +111,7 @@ class AutoKerasForecaster(Forecaster):
             test_df = test_df[test_df['autokeras_datetime'].dt.hour == 0]
             test_df = test_df.drop('autokeras_datetime', axis=1)
 
+        logger.info('Rolling origin forecast...')
         predictions = self.rolling_origin_forecast(clf, X_train, X_test, horizon)
         if len(predictions) == 0:
             raise AutomlLibraryError('AutoKeras failed to produce predictions', ValueError())

@@ -80,8 +80,8 @@ class Utils:
         results = {
             'MAE': mean_absolute_error(actual, predicted, multioutput=multioutput),
             'MAE2': median_absolute_error(actual, predicted),
-            # 'MAEover': Utils.mae_over(actual, predicted),
-            # 'MAEunder': Utils.mae_under(actual, predicted),
+            'MAEover': Utils.mae_over(actual, predicted),
+            'MAEunder': Utils.mae_under(actual, predicted),
             'MAPE': mean_absolute_percentage_error(actual, predicted, multioutput=multioutput),
             'MASE': mase(actual, predicted, y_train=y_train),
             'ME': np.mean(actual - predicted),
@@ -95,8 +95,14 @@ class Utils:
             'Spearman P-value': spearman[1],
         }
 
-        results['GM-MAE-SR'] = gmean([results['MAE'], results['Spearman Correlation']])
-        results['GM-MASE-SR'] = gmean([results['MASE'], results['Spearman Correlation']])
+        if results['Spearman Correlation'] < 0:
+            correlation = 0 # Cannot calculate a geometric mean with negative numbers
+        else:
+            correlation = results['Spearman Correlation']
+
+        results['GM-MAE-SR'] = gmean([results['MAE'], correlation])
+        results['GME'] = gmean([results['MAE'], results['MAEover'], results['MAEunder'], correlation])
+        results['GM-MASE-SR'] = gmean([results['MASE'], correlation])
 
         if 'duration' in kwargs.keys():
             results['duration'] = kwargs['duration']
@@ -146,13 +152,17 @@ class Utils:
     @staticmethod
     def mae_over(actual, predicted):
         """Overestimated predictions (from Grimes et al. 2014)"""
-        return np.clip(0, (predicted - actual).max())
+        errors = predicted - actual
+        positive_errors = np.clip(errors, 0, errors.max())
+        return np.mean(positive_errors)
 
 
     @staticmethod
     def mae_under(actual, predicted):
         """Underestimated predictions (from Grimes et al. 2014)"""
-        return np.clip((predicted - actual).min(), 0)
+        errors = predicted - actual
+        negative_errors = np.clip(errors, errors.min(), 0)
+        return np.absolute(np.mean(negative_errors))
 
 
     @staticmethod

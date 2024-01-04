@@ -378,8 +378,27 @@ class Utils:
             failed = pd.DataFrame(failed)
             test_scores = pd.concat([test_scores, failed])
 
+        # Save all scores as CSV
         output_file = os.path.join(stats_dir, '1_all_scores.csv')
         test_scores.to_csv(output_file, index=False)
+        # Sort by GM-MAE-SR
+        summarized_scores = summarized_scores.sort_values('GM-MAE-SR')
+        # Filter columns
+        summarized_scores = test_scores[['library', 'preset', 'duration', 'GM-MAE-SR', 'MAE', 'MASE', 'MSE', 'RMSE',
+                                        'Spearman Correlation']]
+        # Rename columns
+        summarized_scores.columns = ['Library', 'Preset', 'Duration (sec.)', 'GM-MAE-SR↓', 'MAE', 'MASE', 'MSE', 'RMSE',
+                                     'SRC']
+        # Save all scores as TEX
+        summarized_scores.style.format(precision=2, thousands=',', decimal='.').to_latex(
+            output_file.replace('csv', 'tex'),
+            caption='Test Scores Ordered by GM-MAE-SR',
+            environment='table*',
+            hrules=True,
+            label='tab:summarized_scores',
+            multirow_align='t',
+            position='!htbp',
+            )
 
         # Scores per library across all presets and failed training counts
         if len(test_scores) > 0:
@@ -437,7 +456,7 @@ class Utils:
 
             mean_scores = pd.concat([df_failed, df_max, df_min, df_mean], axis=1)
 
-            output_file = os.path.join(stats_dir, f'2_mean_scores_by_{group_col}.csv')
+            output_file = os.path.join(stats_dir, f'3_mean_scores_by_{group_col}.csv')
             mean_scores.to_csv(output_file)
 
             if plots:
@@ -498,9 +517,26 @@ class Utils:
             stats_dir = os.path.join(results_dir, f'{forecast_type}_statistics')
             os.makedirs(stats_dir, exist_ok=True)
 
+            # Save overall scores as CSV and TEX
             overall_scores_path = os.path.join(stats_dir, '1_all_scores.csv')
-            logger.debug(f'Compiling test scores in {overall_scores_path}')
-            all_scores.to_csv(overall_scores_path, index=False)
+            logger.debug(f'Compiling overall test scores in {overall_scores_path}')
+
+            summarized_scores = all_scores[['library', 'preset', 'duration', 'GM-MAE-SR', 'MAE', 'MASE', 'MSE', 'RMSE',
+                                        'Spearman Correlation']] # Filter columns
+            summarized_scores = summarized_scores.sort_values('GM-MAE-SR') # Sort by GM-MAE-SR
+            summarized_scores.columns = ['Library', 'Preset', 'Duration (sec.)', 'GM-MAE-SR↓', 'MAE', 'MASE', 'MSE',
+                                            'RMSE', 'SRC'] # Rename columns
+            summarized_scores.to_csv(output_file, index=False)
+
+            summarized_scores.style.format(precision=2, thousands=',', decimal='.').to_latex(
+                overall_scores_path.replace('csv', 'tex'),
+                caption='Test Scores Ordered by GM-MAE-SR',
+                environment='table*',
+                hrules=True,
+                label='tab:summarized_scores',
+                multirow_align='t',
+                position='!htbp',
+                )
 
             if plots:
                 logger.debug('Generating plots')

@@ -391,8 +391,9 @@ class Utils:
             summarized_scores = summarized_scores[['library', 'preset', 'duration', 'GM-MAE-SR', 'MAE', 'MASE', 'MSE', 'RMSE',
                                             'Spearman Correlation']]
             # Rename columns
-            summarized_scores.columns = ['Library', 'Preset', 'Duration (sec.)', 'GM-MAE-SR↓', 'MAE', 'MASE', 'MSE', 'RMSE',
+            summarized_scores.columns = ['Library', 'Preset', 'Duration (sec.)', 'GM-MAE-SR', 'MAE', 'MASE', 'MSE', 'RMSE',
                                         'SRC']
+            summarized_scores['Library'] = summarized_scores['Library'].str.capitalize() # Format library names
             # Save all scores as TEX
             summarized_scores.style.format(precision=2, thousands=',', decimal='.').to_latex(
                 output_file.replace('csv', 'tex'),
@@ -551,8 +552,24 @@ class Utils:
             summarized_scores = summarized_scores.sort_values('GM-MAE-SR') # Sort by GM-MAE-SR
             summarized_scores.columns = ['Library', 'Preset', 'Duration (sec.)', 'GM-MAE-SR', 'MAE', 'MASE', 'MSE',
                                             'RMSE', 'SRC'] # Rename columns
+            summarized_scores['Library'] = summarized_scores['Library'].str.capitalize() # Format library names
 
-            summarized_scores.style.format(precision=2, thousands=',', decimal='.').to_latex(
+            summarized_scores['Preset'] = summarized_scores['Preset'] \
+                .str.replace('preset-', '') \
+                .str.replace('proc-1', '') \
+                .str.replace('proc-10', '') \
+                .str.replace('-limit-3600', '') \
+                .str.replace('-limit-3240', '') \
+                .str.replace('-limit-3564', '') \
+                .str.replace('-limit-12', '') \
+                .str.replace('-limit-60', '') \
+                .str.replace('-limit-6', '') \
+                .str.replace('_', ' ') \
+                .str.capitalize() \
+                .str.replace(' ', '-') \
+                .str.replace('--', '-')
+
+            summarized_scores.style.format(precision=2, thousands=',', decimal='.', escape='latex').to_latex(
                 overall_scores_path.replace('csv', 'tex'),
                 caption='Test Scores Ordered by GM-MAE-SR',
                 environment='table*',

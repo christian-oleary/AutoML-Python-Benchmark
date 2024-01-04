@@ -7,6 +7,7 @@ import numpy as np
 import pandas as pd
 
 from src.base import Forecaster
+from src.logs import logger
 from src.util import Utils
 
 
@@ -84,6 +85,7 @@ class FEDOTForecaster(Forecaster):
         X_test = fill_gaps(X_test)
 
         # Initialize for the time-series forecasting
+        logger.info('Training FEDOT...')
         model = Fedot(problem='ts_forecasting',
                     task_params=task.task_params,
                     # use_input_preprocessing=True, # fedot>=0.7.0
@@ -97,8 +99,9 @@ class FEDOTForecaster(Forecaster):
         model.fit(X_train, y_train)
         model.test_data = X_test
 
+        logger.info('Rolling origin forecast...')
         predictions = self.rolling_origin_forecast(model, X_train, X_test, horizon)
-        print('predictions', predictions.shape)
+        # print('predictions', predictions.shape)
         return predictions
 
 
@@ -113,23 +116,20 @@ class FEDOTForecaster(Forecaster):
         return int((time_limit/60) * self.initial_training_fraction)
 
 
-    def rolling_origin_forecast(self, model, X_train, X_test, horizon, column=None):
+    def rolling_origin_forecast(self, model, X_train, X_test, horizon):
         """Iteratively forecast over increasing dataset
 
         :param model: Forecasting model, must have predict()
         :param X_train: Training feature data (pandas DataFrame)
         :param X_test: Test feature data (pandas DataFrame)
         :param horizon: Forecast horizon (int)
-        :param column: Specifies forecast column if dataframe outputted, defaults to None
         :return: Predictions (numpy array)
         """
 
 
         # Make predictions
         data = X_train
-        preds = model.predict(data)
-        if column != None:
-            preds = preds[column].values
+        preds = model.predict(data, in_sample=False)
 
         if len(preds.flatten()) > 0:
             preds = preds[-horizon:]
@@ -143,21 +143,31 @@ class FEDOTForecaster(Forecaster):
         # for s in X_test.iterrows():
             # data.loc[len(data.index)] = s[1].values
 
+        # for i in range(len(X_test)):
+        #     s = X_test.iloc[[i]]
+        #     data = pd.concat([data, s])
+
+        #     preds = model.predict(data, in_sample=False)
+        #     # print('1 preds.shape', preds.shape)
+
+        #     if len(preds.flatten()) > 0:
+        #         preds = preds[-horizon:]
+
+        #     # print('1 preds.shape', preds.shape)
+        #     assert len(preds) == horizon
+        #     predictions.append(preds)
+
+        df = pd.concat([X_train, X_test])
         for i in range(len(X_test)):
-            s = X_test.iloc[[i]]
-            data = pd.concat([data, s])
+            data = df.tail(len(df) - i)
 
             preds = model.predict(data)
-            # print('1 preds.shape', preds.shape)
-            if column != None:
-                preds = preds[column].values
-
             if len(preds.flatten()) > 0:
                 preds = preds[-horizon:]
 
-            # print('1 preds.shape', preds.shape)
             assert len(preds) == horizon
-            predictions.append(preds)
+            # predictions.append(preds)
+            predictions.insert(0, preds)
 
         # print('len(predictions)', len(predictions))
         # print('predictions[0].shape', predictions[0].shape)

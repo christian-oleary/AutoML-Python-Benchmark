@@ -53,10 +53,13 @@ class FLAMLForecaster(Forecaster):
                 train_df.index = pd.date_range(start=train_df.index.min(), freq='H', periods=len(train_df))
                 test_df.index = pd.to_datetime(test_df.index, format='%d/%m/%Y %H:%M')
 
-                test_df['flaml_datetime'] = test_df.index
-                test_df['flaml_datetime'] = pd.to_datetime(test_df['flaml_datetime'], errors='coerce')
-                test_df = test_df[test_df['flaml_datetime'].dt.hour == 0]
-                test_df = test_df.drop('flaml_datetime', axis=1)
+                # Not required as FLAML is using timestamps as features
+                # test_df['flaml_datetime'] = test_df.index
+                # test_df['flaml_datetime'] = pd.to_datetime(test_df['flaml_datetime'], errors='coerce')
+                # test_df = test_df[test_df['flaml_datetime'].dt.hour == 0]
+                # test_df = test_df.drop('flaml_datetime', axis=1)
+                # test_df = test_df[test_df.index.dt.hour == 0]
+
             else:
                 train_df.index = pd.to_datetime(train_df.index, unit='D')
                 test_df.index = pd.to_datetime(test_df.index, unit='D')
@@ -84,11 +87,11 @@ class FLAMLForecaster(Forecaster):
         )
         logger.debug('Training finished.')
 
-        predictions = automl.predict(test_df.index.to_series(name='ds').values, period=horizon)
-        predictions = predictions[:len(test_df)].values
+        predictions = automl.predict(test_df.index.to_series(name='ds').values, period=horizon).values
 
         # predictions = self.rolling_origin_forecast(automl, train_df.index.to_series(name='ds').values,
         #                                            test_df.index.to_series().to_frame(), horizon)
+        # predictions = predictions[:len(test_df)].values
         return predictions
 
 

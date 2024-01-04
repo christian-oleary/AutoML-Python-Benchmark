@@ -14,8 +14,8 @@ class FLAMLForecaster(Forecaster):
 
     name = 'FLAML'
 
-    # Use 95% of maximum available time for model training in initial experiment
-    initial_training_fraction = 0.95
+    # Use 99% of maximum available time for model training in initial experiment
+    initial_training_fraction = 0.99
 
     presets = ['auto']
 
@@ -52,6 +52,11 @@ class FLAMLForecaster(Forecaster):
                 train_df.index = pd.to_datetime(train_df.index, format='%d/%m/%Y %H:%M')
                 train_df.index = pd.date_range(start=train_df.index.min(), freq='H', periods=len(train_df))
                 test_df.index = pd.to_datetime(test_df.index, format='%d/%m/%Y %H:%M')
+
+                test_df['flaml_datetime'] = test_df.index
+                test_df['flaml_datetime'] = pd.to_datetime(test_df['flaml_datetime'], errors='coerce')
+                test_df = test_df[test_df['flaml_datetime'].dt.hour == 0]
+                test_df = test_df.drop('flaml_datetime', axis=1)
             else:
                 train_df.index = pd.to_datetime(train_df.index, unit='D')
                 test_df.index = pd.to_datetime(test_df.index, unit='D')

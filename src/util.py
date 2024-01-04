@@ -95,14 +95,11 @@ class Utils:
             'Spearman P-value': spearman[1],
         }
 
-        if results['Spearman Correlation'] < 0:
-            correlation = 0 # Cannot calculate a geometric mean with negative numbers
-        else:
-            correlation = results['Spearman Correlation']
-
-        results['GM-MAE-SR'] = gmean([results['MAE'], correlation])
-        results['GME'] = gmean([results['MAE'], results['MAEover'], results['MAEunder'], correlation])
-        results['GM-MASE-SR'] = gmean([results['MASE'], correlation])
+        # Grimes calls for "maximizing the geometric mean of (−MAE) and average daily Spearman correlation"
+        # This must be an error, as you cannot calculate geometric mean with negative numbers. This uses
+        # geometric mean of MAE and (1-SRC) with the intention of minimizing the metric.
+        results['GM-MAE-SR'] = gmean([results['MAE'], 1 - results['Spearman Correlation']])
+        results['GM-MASE-SR'] = gmean([results['MASE'], 1 - results['Spearman Correlation']])
 
         if 'duration' in kwargs.keys():
             results['duration'] = kwargs['duration']

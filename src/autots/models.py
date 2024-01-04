@@ -33,7 +33,7 @@ class AutoTSForecaster(Forecaster):
 
     def forecast(self, train_df, test_df, forecast_type, horizon, limit, frequency, tmp_dir,
                  nproc=1,
-                 preset='superfast',
+                 preset='superfast__60',
                  target_name=None):
         """Perform time series forecasting
 

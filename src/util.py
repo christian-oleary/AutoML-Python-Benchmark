@@ -11,6 +11,7 @@ import time
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+import seaborn as sns
 from scipy.stats import gmean, pearsonr, spearmanr
 from sklearn.metrics import (mean_absolute_error, mean_absolute_percentage_error, median_absolute_error,
                              mean_squared_error, r2_score)
@@ -381,28 +382,51 @@ class Utils:
         # Save all scores as CSV
         output_file = os.path.join(stats_dir, '1_all_scores.csv')
         test_scores.to_csv(output_file, index=False)
-        # Sort by GM-MAE-SR
-        summarized_scores = summarized_scores.sort_values('GM-MAE-SR')
-        # Filter columns
-        summarized_scores = test_scores[['library', 'preset', 'duration', 'GM-MAE-SR', 'MAE', 'MASE', 'MSE', 'RMSE',
-                                        'Spearman Correlation']]
-        # Rename columns
-        summarized_scores.columns = ['Library', 'Preset', 'Duration (sec.)', 'GM-MAE-SR↓', 'MAE', 'MASE', 'MSE', 'RMSE',
-                                     'SRC']
-        # Save all scores as TEX
-        summarized_scores.style.format(precision=2, thousands=',', decimal='.').to_latex(
-            output_file.replace('csv', 'tex'),
-            caption='Test Scores Ordered by GM-MAE-SR',
-            environment='table*',
-            hrules=True,
-            label='tab:summarized_scores',
-            multirow_align='t',
-            position='!htbp',
-            )
 
         # Scores per library across all presets and failed training counts
         if len(test_scores) > 0:
-            Utils.plot_test_scores(test_scores, stats_dir, plots)
+            # Sort by GM-MAE-SR
+            summarized_scores = test_scores.sort_values('GM-MAE-SR')
+            # Filter columns
+            summarized_scores = summarized_scores[['library', 'preset', 'duration', 'GM-MAE-SR', 'MAE', 'MASE', 'MSE', 'RMSE',
+                                            'Spearman Correlation']]
+            # Rename columns
+            summarized_scores.columns = ['Library', 'Preset', 'Duration (sec.)', 'GM-MAE-SR↓', 'MAE', 'MASE', 'MSE', 'RMSE',
+                                        'SRC']
+            # Save all scores as TEX
+            summarized_scores.style.format(precision=2, thousands=',', decimal='.').to_latex(
+                output_file.replace('csv', 'tex'),
+                caption='Test Scores Ordered by GM-MAE-SR',
+                environment='table*',
+                hrules=True,
+                label='tab:summarized_scores',
+                multirow_align='t',
+                position='!htbp',
+                )
+
+            # Save Perason correlation heatmap of metrics as an indication of agreement.
+            columns = ['GM-MAE-SR', 'MAE', 'MASE', 'MSE', 'RMSE', 'SRC']
+            heatmap = summarized_scores[columns].corr(method='pearson')
+            heatmap.to_csv(os.path.join(stats_dir, 'heatmap.csv'))
+
+            if plots:
+                axes = sns.heatmap(heatmap,
+                                    annot=True,
+                                    cbar=False,
+                                    cmap='viridis',
+                                    fmt='.2f',
+                                    #    xticklabels=columns,
+                                    #    yticklabels=columns,
+                                    annot_kws={ 'size': 11 }
+                                    )
+                axes.set_xticklabels(axes.get_xticklabels(), fontsize=11, rotation=45, ha='right')
+                axes.set_yticklabels(axes.get_yticklabels(), fontsize=11, rotation=45, va='top')
+                # axes.set_xticklabels(columns, fontsize=11, rotation=45, ha='right')
+                # axes.set_yticklabels(columns, fontsize=11, rotation=45, va='top')
+                plt.tight_layout()
+                Utils.save_plot('Pearson Correlation Heatmap', save_path=os.path.join(stats_dir, 'heatmap.png'))
+
+                # Utils.plot_test_scores(test_scores, stats_dir, plots)
 
 
     @staticmethod
@@ -482,12 +506,12 @@ class Utils:
                       fig_width=6,
                       fig_height=3)
 
-        # Plot mean scores by library/preset
-        test_scores['library-preset'] = test_scores['library'] + ': ' + test_scores['preset']
-        plot_averages(group_col='library-preset',
-                      cols_to_drop=['file', 'failed', 'preset', 'library'],
-                      fig_width=35,
-                      fig_height=10)
+        # # Plot mean scores by library/preset
+        # test_scores['library-preset'] = test_scores['library'] + ': ' + test_scores['preset']
+        # plot_averages(group_col='library-preset',
+        #               cols_to_drop=['file', 'failed', 'preset', 'library'],
+        #               fig_width=35,
+        #               fig_height=10)
 
 
     @staticmethod
@@ -520,13 +544,13 @@ class Utils:
             # Save overall scores as CSV and TEX
             overall_scores_path = os.path.join(stats_dir, '1_all_scores.csv')
             logger.debug(f'Compiling overall test scores in {overall_scores_path}')
+            all_scores.to_csv(overall_scores_path, index=False)
 
             summarized_scores = all_scores[['library', 'preset', 'duration', 'GM-MAE-SR', 'MAE', 'MASE', 'MSE', 'RMSE',
                                         'Spearman Correlation']] # Filter columns
             summarized_scores = summarized_scores.sort_values('GM-MAE-SR') # Sort by GM-MAE-SR
-            summarized_scores.columns = ['Library', 'Preset', 'Duration (sec.)', 'GM-MAE-SR↓', 'MAE', 'MASE', 'MSE',
+            summarized_scores.columns = ['Library', 'Preset', 'Duration (sec.)', 'GM-MAE-SR', 'MAE', 'MASE', 'MSE',
                                             'RMSE', 'SRC'] # Rename columns
-            summarized_scores.to_csv(output_file, index=False)
 
             summarized_scores.style.format(precision=2, thousands=',', decimal='.').to_latex(
                 overall_scores_path.replace('csv', 'tex'),
@@ -538,6 +562,28 @@ class Utils:
                 position='!htbp',
                 )
 
+            # Save Perason correlation heatmap of metrics as an indication of agreement.
+            columns = ['GM-MAE-SR', 'MAE', 'MASE', 'MSE', 'RMSE', 'SRC']
+            heatmap = summarized_scores[columns].corr(method='pearson')
+            heatmap.to_csv(os.path.join(stats_dir, 'heatmap.csv'))
+
             if plots:
                 logger.debug('Generating plots')
+
+                axes = sns.heatmap(heatmap,
+                                   annot=True,
+                                   cbar=False,
+                                   cmap='viridis',
+                                   fmt='.2f',
+                                #    xticklabels=columns,
+                                #    yticklabels=columns,
+                                   annot_kws={ 'size': 11 }
+                                   )
+                axes.set_xticklabels(axes.get_xticklabels(), fontsize=11, rotation=45, ha='right')
+                axes.set_yticklabels(axes.get_yticklabels(), fontsize=11, rotation=45, va='top')
+                # axes.set_xticklabels(columns, fontsize=11, rotation=45, ha='right')
+                # axes.set_yticklabels(columns, fontsize=11, rotation=45, va='top')
+                plt.tight_layout()
+                Utils.save_plot('Pearson Correlation Heatmap', save_path=os.path.join(stats_dir, 'heatmap.png'))
+
                 Utils.plot_test_scores(all_scores, stats_dir, plots)

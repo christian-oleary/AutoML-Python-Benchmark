@@ -1,3 +1,5 @@
+import time
+
 import numpy as np
 import pandas as pd
 from pycaret.time_series import TSForecastingExperiment
@@ -34,6 +36,8 @@ class PyCaretForecaster(Forecaster):
         :param str target_name: Name of target variable for multivariate forecasting, defaults to None
         :return predictions: Numpy array of predictions
         """
+        
+        start_time = time.time()
 
         if forecast_type == 'global':
             freq = FREQUENCY_MAP[frequency].replace('1', '')
@@ -67,6 +71,11 @@ class PyCaretForecaster(Forecaster):
 
         logger.debug('Training models')
         model = exp.compare_models(budget_time=limit)
+
+        time_remaining = time.time() - start_time
+        if time_remaining < (limit * 60):
+            logger.debug('Tuning best model')
+            model = exp.compare_models(budget_time=time_remaining)
 
         if forecast_type == 'global':
             raise NotImplementedError()

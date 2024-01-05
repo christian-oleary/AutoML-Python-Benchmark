@@ -75,7 +75,7 @@ class PyCaretForecaster(Forecaster):
         time_remaining = time.time() - start_time
         if time_remaining < (limit * 60):
             logger.debug('Tuning best model')
-            model = exp.compare_models(budget_time=time_remaining)
+            model = exp.tune_model(model, budget_time=time_remaining)
 
         if forecast_type == 'global':
             raise NotImplementedError()

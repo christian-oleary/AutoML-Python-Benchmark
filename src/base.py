@@ -3,6 +3,7 @@ Base Classes
 """
 import numpy as np
 import pandas as pd
+from sklearn.dummy import DummyRegressor
 from sklearn.linear_model import LinearRegression
 from sklearn.impute import IterativeImputer
 from sklearn.model_selection import RandomizedSearchCV
@@ -17,9 +18,10 @@ from src.logs import logger
 class Forecaster:
     """Base Forecaster"""
 
-    presets = [ 'Naive', 'LinearRegression', 'XGBRegressor', 'LGBMRegressor' ]
+    presets = [ 'Naive', 'Constant', 'DummyRegressor', 'LinearRegression', 'XGBRegressor', 'LGBMRegressor' ]
 
     regression_models = {
+        DummyRegressor.__name__: (DummyRegressor, {}),
         LGBMRegressor.__name__: (LGBMRegressor, {
             'verbosity': [ -1 ],
             # Based on Lynch et al. 2021:
@@ -71,12 +73,14 @@ class Forecaster:
 
             logger.debug('Formatting into tabular dataset...')
             lag = self.get_default_lag(horizon)
-            X_train, y_train, X_test, _ = self.create_tabular_dataset(train_df, test_df, horizon, target, lag=lag)
+            X_train, y_train, X_test, y_test = self.create_tabular_dataset(train_df, test_df, horizon, target, lag=lag)
 
             # Fit model
             logger.debug(f'Training {preset} model...')
             if preset == 'Naive':
                 predictions = X_test[f'{target}-24'].values
+            elif preset == 'Constant':
+                predictions = np.full(len(y_test), np.mean(y_train))
             else:
                 X_train = X_train.tail(10000)
                 y_train = y_train[-10000:]

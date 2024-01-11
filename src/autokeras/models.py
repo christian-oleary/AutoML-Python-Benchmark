@@ -65,10 +65,6 @@ class AutoKerasForecaster(Forecaster):
         epochs = int(preset.split('_')[1])
         tmp_dir = os.path.join(tmp_dir, f'{optimizer}_{epochs}epochs_{limit}')
 
-        optimizer = 'hyperband'
-        epochs = 2
-        limit = 1
-
         # Initialise forecaster
         lookback = self.get_default_lag(horizon)
         params = {

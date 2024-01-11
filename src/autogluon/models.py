@@ -16,11 +16,10 @@ class AutoGluonForecaster(Forecaster):
 
     # Training configurations ordered from slowest/"best" to fastest/"worst"
     presets = [
-        'best_quality',
-        # The following often result in NetworkX errors
-        'high_quality',
-        'medium_quality',
         'fast_training'
+        'medium_quality',
+        'high_quality',
+        'best_quality',
         ]
 
     # Use 90% of maximum available time for model training in initial experiment
@@ -140,7 +139,9 @@ class AutoGluonForecaster(Forecaster):
                                         ignore_time_index=ignore_time_index,
                                         verbosity=0,
                                         cache_predictions=True,
-                                        eval_metric='sMAPE')
+                                        eval_metric='sMAPE',
+                                        # eval_metric='AutoMLBenchmarkScorer',
+                                        )
 
         # For debugging only, i.e. all except Naive model
         excluded_model_types = ['RecursiveTabular', 'SeasonalNaive', 'Theta', 'AutoETS', 'DeepAR',

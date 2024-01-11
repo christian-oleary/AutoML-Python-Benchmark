@@ -12,12 +12,9 @@ from src.logs import logger
 from src.util import Utils
 
 # Presets are every combination of the following:
-# optimizers = ['greedy', 'bayesian', 'hyperband', 'random']
-# epoch_limits = ['10', '50', '100', '150']
-# time_limits = ['60', '300', '600'] # 1 min, 5 min, 10 min
-optimizers = ['hyperband']
-epoch_limits = ['10']
-time_limits = ['60'] # 1 min, 5 min, 10 min
+optimizers = ['greedy', 'bayesian', 'hyperband', 'random']
+epoch_limits = ['10', '50', '100', '150']
+time_limits = ['60', '300', '600'] # 1 min, 5 min, 10 min
 presets = list(itertools.product(time_limits, epoch_limits, optimizers))
 presets = [ '_'.join(p) for p in presets ]
 

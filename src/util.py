@@ -99,8 +99,8 @@ class Utils:
         # Grimes calls for "maximizing the geometric mean of (−MAE) and average daily Spearman correlation"
         # This must be an error, as you cannot calculate geometric mean with negative numbers. This uses
         # geometric mean of MAE and (1-SRC) with the intention of minimizing the metric.
-        results['GM-MAE-SR'] = gmean([results['MAE'], 1 - results['Spearman Correlation']])
-        results['GM-MASE-SR'] = gmean([results['MASE'], 1 - results['Spearman Correlation']])
+        results['GM-MAE-SR'] = Utils.geometric_mean(results['MAE'], results['Spearman Correlation'])
+        results['GM-MASE-SR'] = Utils.geometric_mean(results['MASE'], results['Spearman Correlation'])
 
         if 'duration' in kwargs.keys():
             results['duration'] = kwargs['duration']
@@ -121,6 +121,34 @@ class Utils:
         return results
 
 
+    @staticmethod
+    def geometric_mean(error_score, rank_correlation_score):
+        """Calculates the geometric mean of some mean error score and a mean rank correlation score.
+
+        :param float error_score: Mean error score
+        :param float rank_score: Mean rank correlation score
+        :return float: Geometric mean of error and 1-rank scores
+        """
+        # Grimes calls for "maximizing the geometric mean of (−MAE) and average daily Spearman correlation"
+        # It is not possible to calculate geometric mean with negative numbers without some conversion.
+        # Therefore, this work uses geometric mean of MAE and (1-SRC) with the intention of minimizing the metric.
+        return gmean([error_score, 1 - rank_correlation_score])
+
+
+    @staticmethod
+    def geometric_mean_MAE_SR(actual, predicted):
+        """Calculates the geometric mean of MAE and a Spearman correlation score.
+
+        :param np.array actual: Real values
+        :param np.array predicted: Predicted values
+        :return float: Geometric mean of MAE and SRC
+        """
+        MAE = mean_absolute_error(actual, predicted, multioutput='uniform_average'),
+        SRC = Utils.correlation(actual, predicted, method='spearman')[0]
+        return Utils.geometric_mean([MAE, SRC])
+
+
+    @staticmethod
     def correlation(actual, predicted, method='pearson'):
         """Wrapper to extract correlations and p-values from scipy
 

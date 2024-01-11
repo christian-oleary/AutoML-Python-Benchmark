@@ -259,7 +259,9 @@ class Forecaster:
 
 
     def _rolling_origin_forecast(self, model, X_train, X_test, horizon, column=None):
-        """Iteratively forecast over increasing dataset
+        """DEPRECATED. Libraries should implement their own methods.
+
+        Iteratively forecast over increasing dataset
 
         :param model: Forecasting model, must have predict()
         :param X_train: Training feature data (pandas DataFrame)
@@ -268,35 +270,30 @@ class Forecaster:
         :param column: Specifies forecast column if dataframe outputted, defaults to None
         :return: Predictions (numpy array)
         """
+        raise NotImplementedError()
 
         # Split test set
         test_splits = Utils.split_test_set(X_test, horizon)
 
         # Make predictions
         preds = model.predict(X_train)
-        print('---------------------------------------------------')
-        print('0 preds.shape', preds.shape)
         if column != None:
             preds = preds[column].values
 
         if len(preds.flatten()) > 0:
             preds = preds[-horizon:]
 
-        print('0 preds.shape', preds.shape)
         predictions = [ preds ]
 
         for s in test_splits:
             X_train = pd.concat([X_train, s])
 
             preds = model.predict(X_train)
-            print('---------------------------------------------------')
-            print('preds.shape', preds.shape)
             if column != None:
                 preds = preds[column].values
 
             if len(preds.flatten()) > 0:
                 preds = preds[-horizon:]
-            print('preds.shape', preds.shape)
 
             predictions.append(preds)
 
@@ -305,10 +302,7 @@ class Forecaster:
             predictions = np.concatenate([ p.flatten() for p in predictions ])
         except:
             predictions = np.concatenate([ p.values.flatten() for p in predictions ])
-        print('---------------------------------------------------')
-        print('predictions.shape', predictions.shape)
         predictions = predictions[:len(X_test)]
-        print('predictions.shape', predictions.shape)
         return predictions
 
 

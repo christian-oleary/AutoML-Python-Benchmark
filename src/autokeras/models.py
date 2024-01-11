@@ -104,15 +104,8 @@ class AutoKerasForecaster(Forecaster):
             verbose=0
         )
 
-        # Drop irrelevant rows
-        if forecast_type == 'univariate' and 'ISEM_prices' in tmp_dir:
-            test_df['autokeras_datetime'] = test_df.index
-            test_df['autokeras_datetime'] = pd.to_datetime(test_df['autokeras_datetime'], errors='coerce')
-            test_df = test_df[test_df['autokeras_datetime'].dt.hour == 0]
-            test_df = test_df.drop('autokeras_datetime', axis=1)
-
         logger.info('Rolling origin forecast...')
-        predictions = self.rolling_origin_forecast(clf, X_train, X_test, horizon)
+        predictions = self.rolling_origin_forecast(clf, X_train, X_test, horizon, forecast_type, tmp_dir)
         if len(predictions) == 0:
             raise AutomlLibraryError('AutoKeras failed to produce predictions', ValueError())
         return predictions
@@ -128,7 +121,7 @@ class AutoKerasForecaster(Forecaster):
         return int(time_limit / int(preset.split('_')[0]))
 
 
-    def rolling_origin_forecast(self, model, X_train, X_test, horizon):
+    def rolling_origin_forecast(self, model, X_train, X_test, horizon, forecast_type, tmp_dir):
         """Iteratively forecast over increasing dataset
 
         :param model: Forecasting model, must have predict()
@@ -139,7 +132,14 @@ class AutoKerasForecaster(Forecaster):
         """
 
         # Split test set
-        test_splits = Utils.split_test_set(X_test, horizon)
+        if forecast_type == 'univariate' and 'ISEM_prices' in tmp_dir:
+            X_test['autokeras_datetime'] = X_test.index
+            X_test['autokeras_datetime'] = pd.to_datetime(X_test['autokeras_datetime'], errors='coerce')
+            X_test = X_test[X_test['autokeras_datetime'].dt.hour == 0]
+            X_test = X_test.drop('autokeras_datetime', axis=1)
+            test_splits = Utils.split_test_set(X_test, 1)
+        else:
+            test_splits = Utils.split_test_set(X_test, horizon)
 
         # Make predictions
         data = X_train

@@ -15,6 +15,7 @@ class PyCaretForecaster(Forecaster):
     name = 'PyCaret'
 
     initial_training_fraction = 0.95 # Use 95% of max. time for trainig in initial experiment
+    tuning_fraction = 0.85 # Use 95% of max. time for trainig in initial experiment
 
     presets = [ '' ]
 
@@ -69,21 +70,23 @@ class PyCaretForecaster(Forecaster):
                   use_gpu=True,
                   )
 
-        logger.debug('Training models')
+        logger.debug('Training models...')
         model = exp.compare_models(budget_time=limit)
 
-        time_remaining = time.time() - start_time
-        if time_remaining < (limit * 60):
-            logger.debug('Tuning best model')
-            model = exp.tune_model(model, budget_time=time_remaining)
+        # Produces worse results
+        # logger.debug('Tuning...')
+        # time_remaining = time.time() - start_time
+        # if time_remaining < (limit * self.tuning_fraction * 60):
+        #     logger.debug('Tuning best model')
+        #     model = exp.tune_model(model, budget_time=time_remaining)
 
+        logger.debug('Making predictions...')
         if forecast_type == 'global':
             raise NotImplementedError()
             predictions = exp.predict_model(model, X=test_df.drop(target_name, axis=1), fh=horizon)
             predictions = predictions['y_pred'].values
         else:
             predictions = self.rolling_origin_forecast(exp, model, train_df, test_df, horizon, freq, column='y_pred')
-            # print('predictions.shape', predictions.shape)
         return predictions
 
 
@@ -96,7 +99,6 @@ class PyCaretForecaster(Forecaster):
         """
 
         return int((time_limit/60) * self.initial_training_fraction)
-
 
 
     def rolling_origin_forecast(self, exp, model, X_train, X_test, horizon, freq, column=None):
@@ -119,16 +121,9 @@ class PyCaretForecaster(Forecaster):
 
         data = X_train
         for s in X_test.iterrows():
-            # print('------------------------------------')
-            # print('data', data, type(data), data.shape)
-            # print('s[1]', s[1], type(s[1]))
-            # data = pd.concat([data, pd.DataFrame(s[1], columns=data.columns)])
-            # print('data.shape', data.shape)
-            # print('s[1].values.shape', s[1].values.shape)
             data.index = data.index.to_timestamp()
             new_index = pd.date_range(start=data.index.min(), freq='H', periods=len(data)+1).to_period(freq)
             data.loc[len(data.index)] = s[1].values
-            # print('data.shape', data.shape)
             # data = pd.concat([data, s])
             data.index = new_index
             # data.index = pd.to_datetime(data.index)#.to_period(freq)
@@ -137,10 +132,8 @@ class PyCaretForecaster(Forecaster):
 
             # print('data', data, type(data), data.shape)
             preds = exp.predict_model(model, X=data, fh=horizon)
-            # print('1 preds.shape', preds.shape)
             if column != None:
                 preds = preds[column].values[-horizon:]
-            # print('1 preds.shape', preds.shape)
 
             predictions.append(preds)
 
@@ -150,6 +143,4 @@ class PyCaretForecaster(Forecaster):
             predictions = np.concatenate([ p.flatten() for p in predictions ])
         except:
             predictions = np.concatenate([ p.values.flatten() for p in predictions ])
-        # print('predictions.shape', predictions.shape)
         return predictions
-

@@ -16,7 +16,7 @@ class AutoGluonForecaster(Forecaster):
 
     # Training configurations ordered from slowest/"best" to fastest/"worst"
     presets = [
-        'fast_training'
+        'fast_training',
         'medium_quality',
         'high_quality',
         'best_quality',

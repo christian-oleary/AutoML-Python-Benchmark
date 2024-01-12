@@ -37,8 +37,8 @@ class PyCaretForecaster(Forecaster):
         :param str target_name: Name of target variable for multivariate forecasting, defaults to None
         :return predictions: Numpy array of predictions
         """
-        
-        start_time = time.time()
+
+        # start_time = time.time()
 
         if forecast_type == 'global':
             freq = FREQUENCY_MAP[frequency].replace('1', '')

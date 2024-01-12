@@ -24,8 +24,7 @@ class Forecasting():
     univariate_forecaster_names = [ 'autogluon', 'autokeras', 'autots', 'autopytorch',
                                     'evalml', 'fedot', 'flaml', 'ludwig', 'pycaret']
 
-    global_forecaster_names = [ 'autogluon', 'autokeras', 'autots', 'autopytorch',
-                                # 'etna', # Internal library errors
+    global_forecaster_names = [ 'autogluon', 'autokeras', 'autots', 'autopytorch', 'etna',
                                 'evalml', 'fedot', 'flaml', 'ludwig', 'pycaret']
 
     # Filter datasets based on "Monash Time Series Forecasting Archive" by Godahewa et al. (2021):

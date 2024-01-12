@@ -1,3 +1,10 @@
-etna==1.15.1
-etna[all]
+etna==2.4.0
+# etna[all]
+etna[auto]
+# etna[prophet] # Results in internal library errors
+etna[torch]
+etna[wandb]
+etna[statsforecast]
+etna[classiciation]
 tsfresh
+sktime

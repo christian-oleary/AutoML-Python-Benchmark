@@ -53,6 +53,7 @@ bin
 
 # SQLite
 *.db
+*.db-journal
 
 # Models
 *.h5

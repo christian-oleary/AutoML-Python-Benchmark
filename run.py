@@ -42,7 +42,7 @@ if __name__ == '__main__': # Needed for any multiprocessing
                         'autots',
                         'autopytorch', # Linux/WSL
                         'evalml',
-                        # 'etna', # Internal Library Errors
+                        'etna',
                         'fedot',
                         'flaml',
                         'ludwig',

@@ -1,3 +1,5 @@
+import itertools
+
 from etna.auto import Auto
 from etna.datasets.tsdataset import TSDataset
 from etna.metrics import SMAPE
@@ -8,6 +10,11 @@ from src.base import Forecaster
 from src.logs import logger
 from src.TSForecasting.data_loader import FREQUENCY_MAP
 
+# Presets are every combination of the following:
+tune_size = ['0', '1', '2', '3', '4', '5', '10', '20', '30', '40', '50', '100', '200', '300', '400', '500']
+n_trials = ['1', '2', '3', '4', '5', '10', '20', '30', '40', '50', '100', '200', '300', '400', '500']
+presets = list(itertools.product(tune_size, n_trials))
+presets = [ '_'.join(p) for p in presets ]
 
 class ETNAForecaster(Forecaster):
 
@@ -15,12 +22,11 @@ class ETNAForecaster(Forecaster):
 
     initial_training_fraction = 0.95 # Use 95% of max. time for trainig in initial experiment
 
-    # presets = list(range(0, 110, 10)) # i.e. 0, 10, ... 100
-    presets = [0, 1, 2, 3, 4, 5]
+    presets = presets
 
     def forecast(self, train_df, test_df, forecast_type, horizon, limit, frequency, tmp_dir,
                  nproc=1,
-                 preset=50,
+                 preset=presets[0],
                  target_name=None):
         """Perform time series forecasting
 
@@ -61,7 +67,6 @@ class ETNAForecaster(Forecaster):
         #     return df
         # train_df = format_dataframe(train_df)
         # test_df = format_dataframe(test_df)
-
         # tail_steps = len(train_df)
         # future_steps = len(test_df)
 
@@ -77,40 +82,51 @@ class ETNAForecaster(Forecaster):
         ts = TSDataset(df, freq=freq)
         # ts.to_pandas(True).to_csv('ts.csv')
 
-        logger.debug('Training with ETNA...')
-        auto = Auto(target_metric=SMAPE(), horizon=horizon, experiment_folder=tmp_dir)
-
-        # Get best pipeline
-        # n_trials=100 # No effect?
-        limit = 300
-        attempts = 3
-        best_pipeline = None
-        for _ in range(attempts):
-            try: # May take multiple attempts due to a variety of internal ETNA errors
-                best_pipeline = auto.fit(ts, timeout=limit, tune_size=preset, n_jobs=nproc, catch=())
-            except:
-                logger.debug('Training failed. Re-attempting...')
-        logger.debug(f'best_pipeline: {best_pipeline}')
-        assert best_pipeline is not None, f'Failed to train model with ETNA using preset: {preset}'
-
         # future_ts = ts.make_future(future_steps=test_df.shape[0], tail_steps=best_pipeline.context_size)
         # future_ts = ts.make_future(future_steps=future_steps, tail_steps=tail_steps)
         # future_ts = train_ts.make_future(future_steps=horizon, tail_steps=model.context_size)
-
-        # Shift data (lag) back by one period to prevent leakage
-        X_test = pd.concat([train_df.tail(horizon), test_df.head(len(test_df)-horizon)],
-                           ignore_index=True)
-
         # ETNA creates gaps which results in errors due to missing values
         # if forecast_type == 'univariate' and 'ISEM_prices' in tmp_dir: # Drop all but one hour
         #     X_test['etna_datetime'] = pd.to_datetime(X_test['timestamp'], errors='coerce')
         #     X_test = X_test[X_test['etna_datetime'].dt.hour == 0]
         #     X_test = X_test.drop('etna_datetime', axis=1)
 
-        logger.debug('Rolling origin forecasting...')
-        # ts = TSDataset(TSDataset.to_dataset(X_test), freq=freq) # Redundant. ETNA converts back to pd.DataFrame upon calling head()
-        # ValueError: Can not get the dict with base models, the model is not fitted!
-        predictions = self.rolling_origin_forecast(best_pipeline, X_test, horizon, freq)
+        # Shift data (lag) back by one period to prevent leakage
+        X_test = pd.concat([train_df.tail(horizon), test_df.head(len(test_df)-horizon)], ignore_index=True)
+
+        logger.debug('Training with ETNA...')
+        auto = Auto(target_metric=SMAPE(), horizon=horizon, experiment_folder=tmp_dir)
+
+        # Get best pipeline
+        preset_parts = preset.split('_')
+        tune_size = int(preset_parts[0])
+        n_trials = int(preset_parts[1])
+        limit = 15
+
+        best_pipeline = None
+        predictions = None
+        MAX_ATTEMPTS = 5
+        for _ in range(MAX_ATTEMPTS): # May take multiple attempts due to a variety of internal ETNA errors
+            logger.warning(f'ATTEMPT {_}')
+            try:
+                best_pipeline = auto.fit(ts, timeout=limit, tune_size=tune_size, n_trials=n_trials, n_jobs=nproc, catch=())
+                assert best_pipeline is not None, f'ETNA training failed using preset: {preset}'
+                logger.debug(f'Training finished, best_pipeline: {best_pipeline}')
+
+                logger.debug('Rolling origin forecasting...')
+                try:
+                    predictions = self.rolling_origin_forecast(best_pipeline, X_test, horizon, freq)
+                except:
+                    logger.error('Rolling origin forecasting failed. Re-attempting..')
+                    best_pipeline.fit(ts)
+                    predictions = self.rolling_origin_forecast(best_pipeline, X_test, horizon, freq)
+
+                assert predictions is not None
+                logger.critical('SUCCESS. BREAKING')
+                break
+            except:
+                logger.debug('ETNA failed. Re-attempting training...')
+        assert predictions is not None
         return predictions
 
 

@@ -8,6 +8,7 @@ from sklearn.linear_model import LinearRegression
 from sklearn.impute import IterativeImputer
 from sklearn.model_selection import RandomizedSearchCV
 from sklearn.multioutput import MultiOutputRegressor
+from sklearn.preprocessing import MinMaxScaler
 from xgboost import XGBRegressor
 from lightgbm import LGBMRegressor
 
@@ -87,19 +88,25 @@ class Forecaster:
                 predictions = self.train_model(X_train, y_train, X_test, horizon, forecast_type, nproc, tmp_dir,
                                                model_name=preset)
         else:
-            raise NotImplementedError('Linear Regression model not implemented for multivariate/global forecasting yet')
+            raise NotImplementedError('Base models not implemented for multivariate/global forecasting yet')
         return predictions
 
 
     def train_model(self, X_train, y_train, X_test, horizon, forecast_type, nproc, tmp_dir, model_name):
+        # Scale data
+        scaler = MinMaxScaler()
+        X_train = scaler.fit_transform(X_train)
+
+        # Train model
         constructor, hyperparameters = self.regression_models[model_name]
         hyperparameters = { f'estimator__{k}': v for k, v in hyperparameters.items() }
 
         model = MultiOutputRegressor(constructor())
         model = RandomizedSearchCV(estimator=model, param_distributions=hyperparameters, n_jobs=nproc, verbose=1,
-                                   scoring='neg_mean_absolute_error')
+                                   cv=10, scoring='neg_mean_absolute_error')
         model.fit(X_train, y_train)
 
+        # Generate predictions
         if forecast_type == 'univariate':
             # model = Model(model)
 
@@ -110,6 +117,7 @@ class Forecaster:
                 X_test = X_test[X_test['base_datetime'].dt.hour == 0]
                 X_test = X_test.drop('base_datetime', axis=1)
 
+            X_test = scaler.transform(X_test)
             predictions = model.predict(X_test)
             predictions = predictions.flatten()
         else:

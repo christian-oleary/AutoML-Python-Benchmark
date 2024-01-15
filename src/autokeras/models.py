@@ -12,7 +12,7 @@ from src.logs import logger
 from src.util import Utils
 
 # Presets are every combination of the following:
-optimizers = ['greedy', 'bayesian', 'hyperband', 'random']
+optimizers = ['hyperband', 'greedy', 'bayesian', 'random']
 epoch_limits = ['10', '50', '100', '150']
 time_limits = ['60', '300', '600'] # 1 min, 5 min, 10 min
 presets = list(itertools.product(time_limits, epoch_limits, optimizers))
@@ -48,6 +48,7 @@ class AutoKerasForecaster(Forecaster):
         self.forecast_type = forecast_type
 
         # Cannot use tmp_dir due to internal bugs with AutoKeras
+        original_tmp_dir = tmp_dir
         tmp_dir = 'time_series_forecaster'
         shutil.rmtree(tmp_dir, ignore_errors=True)
 
@@ -93,7 +94,7 @@ class AutoKerasForecaster(Forecaster):
                 size -= 1
 
         # Train models
-        logger.info('Fitting AutoKeras...')
+        logger.info(f'Fitting AutoKeras with preset {preset}...')
         clf.fit(
             x=X_train,
             y=y_train,
@@ -104,8 +105,8 @@ class AutoKerasForecaster(Forecaster):
             verbose=0
         )
 
-        logger.info('Rolling origin forecast...')
-        predictions = self.rolling_origin_forecast(clf, X_train, X_test, horizon, forecast_type, tmp_dir)
+        logger.info(f'Rolling origin forecast (preset: {preset})...')
+        predictions = self.rolling_origin_forecast(clf, X_train, X_test, horizon, forecast_type, original_tmp_dir)
         if len(predictions) == 0:
             raise AutomlLibraryError('AutoKeras failed to produce predictions', ValueError())
         return predictions
@@ -132,18 +133,19 @@ class AutoKerasForecaster(Forecaster):
         """
 
         # Split test set
-        if forecast_type == 'univariate' and 'ISEM_prices' in tmp_dir:
-            X_test['autokeras_datetime'] = X_test.index
-            X_test['autokeras_datetime'] = pd.to_datetime(X_test['autokeras_datetime'], errors='coerce')
-            X_test = X_test[X_test['autokeras_datetime'].dt.hour == 0]
-            X_test = X_test.drop('autokeras_datetime', axis=1)
-            test_splits = Utils.split_test_set(X_test, 1)
-        else:
-            test_splits = Utils.split_test_set(X_test, horizon)
+        # if forecast_type == 'univariate' and 'ISEM_prices' in tmp_dir:
+        #     X_test['autokeras_datetime'] = X_test.index
+        #     X_test['autokeras_datetime'] = pd.to_datetime(X_test['autokeras_datetime'], errors='coerce')
+        #     X_test = X_test[X_test['autokeras_datetime'].dt.hour == 0]
+        #     X_test = X_test.drop('autokeras_datetime', axis=1)
+        #     test_splits = Utils.split_test_set(X_test, 1)
+        # else:
+        test_splits = Utils.split_test_set(X_test, horizon)
 
         # Make predictions
         data = X_train
-        predictions = []
+        preds = model.predict(data)[-1]
+        predictions = [ preds ]
 
         for s in test_splits:
             data = pd.concat([data, s])

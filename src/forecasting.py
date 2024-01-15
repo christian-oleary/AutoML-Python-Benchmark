@@ -128,6 +128,9 @@ class Forecasting():
                 #     'step_size': int(data['step_size'].iloc[0])
                 #     }
 
+            test_df.to_csv('test_df.csv')
+            train_df.to_csv('train_df.csv')
+
             # Run each forecaster on the dataset
             for forecaster_name in config.libraries:
                 # Initialize forecaster and estimate a time/iterations limit

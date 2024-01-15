@@ -77,7 +77,6 @@ class AutoTSForecaster(Forecaster):
             train_df.columns = [ target_name ]
             test_df.columns = [ target_name ]
 
-            # We need to pass future_regressor to be able to do rolling origin forecasting
             X_train, _, X_test, __ = self.create_tabular_dataset(train_df, test_df, horizon, target_name,
                                                                  tabular_y=False)
             train_regressors = X_train[f'{target_name}-{horizon}']

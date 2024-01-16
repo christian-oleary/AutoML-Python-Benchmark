@@ -5,6 +5,7 @@ import shutil
 import autokeras as ak
 import numpy as np
 import pandas as pd
+from sklearn.model_selection import train_test_split
 
 from src.base import Forecaster
 from src.errors import AutomlLibraryError
@@ -80,29 +81,33 @@ class AutoKerasForecaster(Forecaster):
             'tuner': optimizer,
         }
         clf = ak.TimeseriesForecaster(**params)
+        logger.info(params)
 
         # "lookback" must be divisable by batch size due to library bug:
         # https://github.com/keras-team/autokeras/issues/1720
         # Start at 512 as batch size and decrease until a factor is found
         # Counting down prevents unnecessarily small batch sizes being selected
         batch_size = None
-        size = 512 # Prospective batch size
+        size = 1024 # Prospective batch size
         while batch_size == None:
             if (lookback / size).is_integer(): # i.e. is a factor
                 batch_size = size
             else:
                 size -= 1
 
+        # Create validation set
+        x_train, X_val, y_train, y_val = train_test_split(X_train, y_train, test_size=0.2, random_state=int(limit))
+
         # Train models
         logger.info(f'Fitting AutoKeras with preset {preset}...')
         clf.fit(
-            x=X_train,
+            x=x_train,
             y=y_train,
             # validation_split=0.2, # Internal errors
-            validation_data=(X_train, y_train),
+            validation_data=(X_val, y_val),
             batch_size=batch_size,
-            epochs=epochs,
-            verbose=0
+            # epochs=epochs,
+            verbose=1
         )
 
         logger.info(f'Rolling origin forecast (preset: {preset})...')
@@ -149,14 +154,14 @@ class AutoKerasForecaster(Forecaster):
 
         for s in test_splits:
             data = pd.concat([data, s])
-
             preds = model.predict(data)
 
-            if len(preds.flatten()) == 0: # AutoKeras can produce empty predictions on first inference (?)
-                data = pd.concat([data, s])
-                preds = model.predict(data)
+            # AutoKeras can produce empty predictions on first inference (?)
+            # Update: Only occurs trials = 1 and epochs = 1
+            # if len(preds.flatten()) == 0:
+            #     preds = model.predict(data)
 
-            if len(preds) > horizon: # Likely unnecessary for AutoKeras
+            if len(preds) > horizon:
                 preds = preds[-horizon:]
 
             predictions.append(preds)

@@ -1,7 +1,7 @@
 etna==2.4.0
 # etna[all]
 etna[auto]
-# etna[prophet] # Results in internal library errors
+etna[prophet]
 etna[torch]
 etna[wandb]
 etna[statsforecast]

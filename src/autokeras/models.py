@@ -6,6 +6,7 @@ import autokeras as ak
 import numpy as np
 import pandas as pd
 from sklearn.model_selection import train_test_split
+from tensorflow.keras.callbacks import EarlyStopping
 
 from src.base import Forecaster
 from src.errors import AutomlLibraryError
@@ -14,9 +15,9 @@ from src.util import Utils
 
 # Presets are every combination of the following:
 optimizers = ['hyperband', 'greedy', 'bayesian', 'random']
-epoch_limits = ['10', '50', '100', '150']
-time_per_trial_estimations = ['600', '300', '60'] # estimated times needed: 10 min, 5 min, 1 min
-presets = list(itertools.product(time_per_trial_estimations, epoch_limits, optimizers))
+num_epochs = ['10', '50', '100', '150', '1000']
+num_trials = [ '10', '100', '1000' ]
+presets = list(itertools.product(num_trials, num_epochs, optimizers))
 presets = [ '_'.join(p) for p in presets ]
 
 class AutoKerasForecaster(Forecaster):
@@ -63,16 +64,17 @@ class AutoKerasForecaster(Forecaster):
         else:
             raise NotImplementedError()
 
-        optimizer = preset.split('_')[-1]
+        trials = int(preset.split('_')[0])
         epochs = int(preset.split('_')[1])
-        tmp_dir = os.path.join(tmp_dir, f'{optimizer}_{epochs}epochs_{limit}')
+        optimizer = preset.split('_')[2]
+        tmp_dir = os.path.join(tmp_dir, f'{optimizer}_{epochs}epochs_{trials}trials_{limit}')
 
         # Initialise forecaster
         lookback = self.get_default_lag(horizon)
         params = {
             # 'directory': tmp_dir, # Internal errors with AutoKeras
             'lookback': lookback,
-            'max_trials': int(limit),
+            'max_trials': trials,
             'objective': 'val_loss',
             'overwrite': False,
             'predict_from': 1,
@@ -99,6 +101,9 @@ class AutoKerasForecaster(Forecaster):
         # Create validation set
         x_train, X_val, y_train, y_val = train_test_split(X_train, y_train, test_size=0.2, random_state=int(limit))
 
+        # Callbacks
+        callbacks = [ EarlyStopping(monitor='val_mean_squared_error', patience=3, min_delta=1, verbose=1, mode='auto') ]
+
         # Train models
         logger.info(f'Fitting AutoKeras with preset {preset}...')
         clf.fit(
@@ -107,6 +112,7 @@ class AutoKerasForecaster(Forecaster):
             # validation_split=0.2, # Internal errors
             validation_data=(X_val, y_val),
             batch_size=batch_size,
+            # callbacks=callbacks,
             epochs=epochs,
             verbose=1
         )
@@ -119,13 +125,14 @@ class AutoKerasForecaster(Forecaster):
 
 
     def estimate_initial_limit(self, time_limit, preset):
-        """Estimate initial limit to use for training models
+        """Included for API compatability
 
         :param time_limit: Maximum amount of time allowed for forecast() (int)
         :param str preset: Model configuration to use
         :return: Trials limit (int)
         """
-        return int(time_limit / int(preset.split('_')[0]))
+        # return int(time_limit / int(preset.split('_')[0]))
+        return time_limit
 
 
     def rolling_origin_forecast(self, model, X_train, X_test, horizon, forecast_type, tmp_dir):

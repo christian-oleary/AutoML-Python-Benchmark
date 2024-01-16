@@ -101,7 +101,12 @@ class Forecaster:
         constructor, hyperparameters = self.regression_models[model_name]
         hyperparameters = { f'estimator__{k}': v for k, v in hyperparameters.items() }
 
-        model = MultiOutputRegressor(constructor())
+        try:
+            model = constructor(n_jobs=nproc)
+        except: # If API does not have n_jobs
+            model = constructor()
+
+        model = MultiOutputRegressor(model)
         model = RandomizedSearchCV(estimator=model, param_distributions=hyperparameters, n_jobs=nproc, verbose=1,
                                    cv=10, scoring='neg_mean_absolute_error')
         model.fit(X_train, y_train)

@@ -48,12 +48,6 @@ class EvalMLForecaster(Forecaster):
         X_train, y_train, X_test, _ = self.create_tabular_dataset(train_df, test_df, horizon, target_name,
                                                                   tabular_y=False)
 
-        if forecast_type == 'univariate' and 'ISEM_prices' in tmp_dir:
-            X_test['evalml_datetime'] = X_test.index
-            X_test['evalml_datetime'] = pd.to_datetime(X_test['evalml_datetime'], errors='coerce')
-            X_test = X_test[X_test['evalml_datetime'].dt.hour == 0]
-            X_test = X_test.drop('evalml_datetime', axis=1)
-
         X_train = X_train.astype(float)
         X_test = X_test.astype(float)
         if forecast_type == 'global':
@@ -89,8 +83,7 @@ class EvalMLForecaster(Forecaster):
             automl_algorithm=preset,
             problem_type='time series regression',
             problem_configuration=problem_config,
-            max_time=1,
-            # max_time=limit,
+            max_time=limit,
             n_jobs=nproc,
             verbose=False,
         )
@@ -123,50 +116,75 @@ class EvalMLForecaster(Forecaster):
         :param str forecast_type: Type of forecasting, i.e. 'global', 'multivariate' or 'univariate'
         :return: Predictions (numpy array)
         """
-        # Split test set
-        test_splits = Utils.split_test_set(test_X, horizon)
-        print('len(test_splits)', len(test_splits))
+        raise NotImplementedError()
+        # # Split test set
+        # test_splits = Utils.split_test_set(test_X, horizon)
+        # print('len(test_splits)', len(test_splits))
 
-        predictions = []
-        # for s in test_X.iterrows():
-        for s in test_splits:
-            # if forecast_type == 'univariate' and 'ISEM_prices' in tmp_dir:
-            #     s = s.head(1)
-            #     s.index = pd.to_datetime(s['time_index'], format='%d/%m/%Y %H:%M')
+        # predictions = []
+        # # for s in test_X.iterrows():
+        # #     print('s')
+        # #     print(s, type(s))
+        # #     print(s[1], type(s[1]))
+        # #     exit()
+        # #     s = s[1].values.flatten()
 
-            if horizon > len(s): # Pad with zeros to prevent errors with ARIMA
-                padding = horizon - len(s)
-                s = pd.concat([s, pd.DataFrame([s.values[0].tolist()] * padding, columns=s.columns)])
-                start_index = s.index.values[0]
-                try:
-                    s.index = np.arange(start_index, start_index + len(s))
-                    if forecast_type == 'univariate':
-                        s['time_index'] = pd.date_range(start=s['time_index'].values[0], periods=len(s))
-                except: # Datetime indices
-                    if forecast_type == 'univariate':
-                        s['time_index'] = pd.date_range(start=s['time_index'].values[0], periods=len(s))
 
-                # print(train_X.head(1))
-                # print(train_X.tail(1))
-                # print(s)
-                preds = model.predict(s, objective=None, X_train=train_X, y_train=y_train).values
-                preds = preds[:len(s)] # Drop placeholder predictions
-            else:
-                try:
-                    preds = model.predict(s, objective=None, X_train=train_X, y_train=y_train).values
-                except Exception as e:
-                    logger.error(e)
-                    logger.error('EvalML failed during prediction')
-                    break
-            print('preds.shape', preds.shape)
-            predictions.append(preds)
-            train_X = pd.concat([train_X, s])
+        # # for i in range(len(test_X)):
+        # #     print(i)
+        # #     s = test_X.iloc[[i]]
+        # #     train_X = pd.concat([train_X, s])
 
-        # Flatten predictions and truncate if needed
-        print('len(predictions)', len(predictions))
-        print('predictions[0]', predictions[0].shape)
-        predictions = np.concatenate([ p.flatten() for p in predictions ])
-        print('predictions', predictions.shape)
-        predictions = predictions[:len(test_X)]
-        print('predictions', predictions.shape)
-        return predictions
+        # test = []
+        # for s in test_splits:
+        #     if forecast_type == 'univariate' and 'ISEM_prices' in tmp_dir:
+        #         s = s.head(1)
+        #         s.index = pd.to_datetime(s['time_index'], format='%d/%m/%Y %H:%M')
+        #         s = s.values.flatten()[-horizon:]
+        #         test.append(s)
+        # predictions = model.predict(test, objective=None, X_train=train_X, y_train=y_train).values
+        # print('predictions.shape', predictions.shape)
+        # exit()
+
+        # #     # if horizon > len(s): # Pad with zeros to prevent errors with ARIMA
+        # #     #     print('A')
+        # #     #     padding = horizon - len(s)
+        # #     #     s = pd.concat([s, pd.DataFrame([s.values[0].tolist()] * padding, columns=s.columns)])
+        # #     #     start_index = s.index.values[0]
+        # #     #     try:
+        # #     #         s.index = np.arange(start_index, start_index + len(s))
+        # #     #         if forecast_type == 'univariate':
+        # #     #             s['time_index'] = pd.date_range(start=s['time_index'].values[0], periods=len(s))
+        # #     #     except: # Datetime indices
+        # #     #         if forecast_type == 'univariate':
+        # #     #             s['time_index'] = pd.date_range(start=s['time_index'].values[0], periods=len(s))
+        # #     #     preds = model.predict(s, objective=None, X_train=train_X, y_train=y_train).values
+        # #     #     preds = preds[:len(s)] # Drop placeholder predictions
+        # #     # else:
+        # #     print('B')
+        # #     # try:
+        # #     # print('train_X.tail(1).index', train_X.tail(1).index, type(train_X.tail(1).index))
+        # #     # print('s.index', s.index, type(s.index))
+        # #     # print(train_X, type(train_X))
+        # #     # print(s, type(s))
+        # #     print('model', type(model))
+        # #     print('model.predict', type(model.predict))
+        # #     # exit()
+        # #     preds = model.predict(s, objective=None, X_train=train_X, y_train=y_train).values
+        # #     # except Exception as e:
+        # #     #     logger.error(e)
+        # #     #     logger.error('EvalML failed during prediction')
+        # #     #     break
+        # #     print('preds.shape', preds.shape)
+        # #     assert len(preds) == horizon
+        # #     predictions.append(preds)
+        # #     train_X = pd.concat([train_X, s])
+
+        # # # Flatten predictions and truncate if needed
+        # # print('len(predictions)', len(predictions))
+        # # print('predictions[0]', predictions[0].shape)
+        # # predictions = np.concatenate([ p.flatten() for p in predictions ])
+        # # print('predictions', predictions.shape)
+        # # predictions = predictions[:len(test_X)]
+        # # print('predictions', predictions.shape)
+        # # return predictions

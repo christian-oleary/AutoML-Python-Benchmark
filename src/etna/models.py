@@ -7,14 +7,16 @@ import numpy as np
 import pandas as pd
 
 from src.base import Forecaster
+from src.errors import AutomlLibraryError
 from src.logs import logger
 from src.TSForecasting.data_loader import FREQUENCY_MAP
 
 # Presets are every combination of the following:
-tune_size = ['0', '1', '2', '3', '4', '5', '10', '20', '30', '40', '50', '100', '200', '300', '400', '500']
+tune_size = ['1', '2', '3', '4', '5', '10', '20', '30', '40', '50', '100', '200', '300', '400', '500']
 n_trials = ['1', '2', '3', '4', '5', '10', '20', '30', '40', '50', '100', '200', '300', '400', '500']
 presets = list(itertools.product(tune_size, n_trials))
-presets = [ '_'.join(p) for p in presets ]
+presets = [ '_'.join(p) for p in presets] + ['0_0']
+
 
 class ETNAForecaster(Forecaster):
 
@@ -101,13 +103,12 @@ class ETNAForecaster(Forecaster):
         preset_parts = preset.split('_')
         tune_size = int(preset_parts[0])
         n_trials = int(preset_parts[1])
-        limit = 15
 
         best_pipeline = None
         predictions = None
         MAX_ATTEMPTS = 5
-        for _ in range(MAX_ATTEMPTS): # May take multiple attempts due to a variety of internal ETNA errors
-            logger.warning(f'ATTEMPT {_}')
+        for i in range(MAX_ATTEMPTS): # May take multiple attempts due to a variety of internal ETNA errors
+            logger.warning(f'ATTEMPT {i+1} of {MAX_ATTEMPTS}')
             try:
                 best_pipeline = auto.fit(ts, timeout=limit, tune_size=tune_size, n_trials=n_trials, n_jobs=nproc, catch=())
                 assert best_pipeline is not None, f'ETNA training failed using preset: {preset}'
@@ -116,7 +117,7 @@ class ETNAForecaster(Forecaster):
                 logger.debug('Rolling origin forecasting...')
                 try:
                     predictions = self.rolling_origin_forecast(best_pipeline, X_test, horizon, freq)
-                except:
+                except Exception as e1:
                     logger.error('Rolling origin forecasting failed. Re-attempting..')
                     best_pipeline.fit(ts)
                     predictions = self.rolling_origin_forecast(best_pipeline, X_test, horizon, freq)
@@ -124,9 +125,11 @@ class ETNAForecaster(Forecaster):
                 assert predictions is not None
                 logger.critical('SUCCESS. BREAKING')
                 break
-            except:
+            except  Exception as e2:
                 logger.debug('ETNA failed. Re-attempting training...')
-        assert predictions is not None
+
+        if predictions is None:
+            raise AutomlLibraryError(f'ETNA failed with preset {preset}.', Exception)
         return predictions
 
 

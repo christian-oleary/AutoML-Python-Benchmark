@@ -14,8 +14,8 @@ from src.util import Utils
 # Presets are every combination of the following:
 optimizers = ['hyperband', 'greedy', 'bayesian', 'random']
 epoch_limits = ['10', '50', '100', '150']
-time_limits = ['60', '300', '600'] # 1 min, 5 min, 10 min
-presets = list(itertools.product(time_limits, epoch_limits, optimizers))
+time_per_trial_estimations = ['600', '300', '60'] # estimated times needed: 10 min, 5 min, 1 min
+presets = list(itertools.product(time_per_trial_estimations, epoch_limits, optimizers))
 presets = [ '_'.join(p) for p in presets ]
 
 class AutoKerasForecaster(Forecaster):
@@ -83,15 +83,16 @@ class AutoKerasForecaster(Forecaster):
 
         # "lookback" must be divisable by batch size due to library bug:
         # https://github.com/keras-team/autokeras/issues/1720
-        # Start at 512 as batch size and decrease until a factor is found
+        # Start at 1024 as batch size and decrease until a factor is found
         # Counting down prevents unnecessarily small batch sizes being selected
         batch_size = None
-        size = 512 # Prospective batch size
+        size = 1024 # Prospective batch size
         while batch_size == None:
             if (lookback / size).is_integer(): # i.e. is a factor
                 batch_size = size
             else:
                 size -= 1
+        logger.debug(f'Calculated batch size as {batch_size}...')
 
         # Train models
         logger.info(f'Fitting AutoKeras with preset {preset}...')
@@ -149,14 +150,12 @@ class AutoKerasForecaster(Forecaster):
 
         for s in test_splits:
             data = pd.concat([data, s])
-
             preds = model.predict(data)
 
             if len(preds.flatten()) == 0: # AutoKeras can produce empty predictions on first inference (?)
-                data = pd.concat([data, s])
                 preds = model.predict(data)
 
-            if len(preds) > horizon: # Likely unnecessary for AutoKeras
+            if len(preds) > horizon:
                 preds = preds[-horizon:]
 
             predictions.append(preds)

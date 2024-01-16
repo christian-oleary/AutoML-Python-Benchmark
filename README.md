@@ -101,7 +101,7 @@ Install the libraries you want to run (they may conflict). One per environment i
 
 ```bash
 pip install -r ./src/autokeras/requirements.txt
-pip install -r ./src/etna/requirements.txt
+pip install -r ./src/etna/requirements.txt && pip install etna[prophet]
 pip install -r ./src/evalml/requirements.txt
 pip install -r ./src/fedot/requirements.txt
 pip install -r ./src/flaml/requirements.txt && pip uninstall prophet # Prophet gives errors with FLAML

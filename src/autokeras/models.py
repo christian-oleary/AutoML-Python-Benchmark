@@ -107,7 +107,7 @@ class AutoKerasForecaster(Forecaster):
             # validation_split=0.2, # Internal errors
             validation_data=(X_val, y_val),
             batch_size=batch_size,
-            # epochs=epochs,
+            epochs=epochs,
             verbose=1
         )
 
@@ -151,6 +151,7 @@ class AutoKerasForecaster(Forecaster):
         # Make predictions
         data = X_train
         preds = model.predict(data)[-1]
+        assert len(preds.flatten()) > 0
         predictions = [ preds ]
 
         for s in test_splits:

@@ -1,3 +1,4 @@
+import os
 import itertools
 
 from etna.auto import Auto
@@ -96,8 +97,8 @@ class ETNAForecaster(Forecaster):
         # Shift data (lag) back by one period to prevent leakage
         X_test = pd.concat([train_df.tail(horizon), test_df.head(len(test_df)-horizon)], ignore_index=True)
 
-        logger.debug('Training with ETNA...')
-        auto = Auto(target_metric=SMAPE(), horizon=horizon, experiment_folder=tmp_dir)
+        logger.debug(f'Training with ETNA ({preset})...')
+        auto = Auto(target_metric=SMAPE(), horizon=horizon, experiment_folder=os.path.join(tmp_dir, preset))
 
         # Get best pipeline
         preset_parts = preset.split('_')

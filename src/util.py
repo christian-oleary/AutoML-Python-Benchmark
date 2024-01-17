@@ -393,6 +393,7 @@ class Utils:
                 if os.path.exists(scores_path):
                     df = pd.read_csv(scores_path, index_col=False)
                     test_results.append({'library': library, 'preset': preset, 'file': dataset, 'failed': 0,
+                                         'num_iterations': len(df),
                                          **df.mean(numeric_only=True).to_dict() })
                 elif os.path.exists(failed_path):
                     failed.append({'library': library, 'preset': preset, 'file': dataset, 'failed': 1})

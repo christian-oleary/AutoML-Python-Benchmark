@@ -171,7 +171,8 @@ class Forecasting():
             # Summarize experiment results
             if self.config.results_dir != None:
                 Utils.summarize_dataset_results(
-                    os.path.join(self.config.results_dir, f'{self.forecast_type}_forecasting', self.dataset_name), plots=False)
+                    os.path.join(self.config.results_dir, f'{self.forecast_type}_forecasting', self.dataset_name),
+                    plots=False)
             return
 
         for iteration in range(iterations):
@@ -310,11 +311,14 @@ class Forecasting():
     def delete_tmp_dirs(self):
         """ Delete old temporary files directory to ensure libraries start from scratch"""
         tmp_dir = os.path.join('tmp', self.dataset_name, self.forecaster_name)
-        dirs_to_delete = [ tmp_dir, 'checkpoints', 'catboost_info', 'time_series_forecaster', 'etna-auto.db'
+        paths_to_delete = [ tmp_dir, 'checkpoints', 'catboost_info', 'time_series_forecaster', 'etna-auto.db'
                          ] + glob('.lr_find_*.ckpt')
-        for folder in dirs_to_delete:
-            if os.path.exists(folder):
-                shutil.rmtree(folder)
+        for path in paths_to_delete:
+            if os.path.exists(path):
+                if os.path.isfile:
+                    os.remove(path)
+                else:
+                    shutil.rmtree(path)
         os.makedirs(tmp_dir)
         return tmp_dir
 

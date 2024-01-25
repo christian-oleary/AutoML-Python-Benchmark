@@ -86,7 +86,7 @@ class AutoKerasForecaster(Forecaster):
             'tuner': optimizer,
         }
         clf = ak.TimeseriesForecaster(**params)
-        logger.info(params)
+        logger.debug(params)
 
         # "lookback" must be divisable by batch size due to library bug:
         # https://github.com/keras-team/autokeras/issues/1720
@@ -99,7 +99,7 @@ class AutoKerasForecaster(Forecaster):
                 batch_size = size
             else:
                 size -= 1
-        logger.debug(f'Calculated batch size as {batch_size}...')
+        logger.debug(f'Calculated batch size as {batch_size}')
 
         # Create validation set
         x_train, X_val, y_train, y_val = train_test_split(X_train, y_train, test_size=0.2, random_state=int(limit))

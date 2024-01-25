@@ -14,8 +14,7 @@ class LudwigForecaster(Forecaster):
 
     initial_training_fraction = 0.95 # Use 95% of max. time for trainig in initial experiment
 
-    # presets = [ 10, 100, 1000 ]
-    presets = [ 50, 100, 150, 200 ] # To match AutoKeras
+    presets = [ 10, 50, 100, 150, 200, 1000 ]
 
     def forecast(self, train_df, test_df, forecast_type, horizon, limit, frequency, tmp_dir,
                  nproc=1,
@@ -47,8 +46,8 @@ class LudwigForecaster(Forecaster):
             test_df.columns = [target_name]
 
             # Generate target variables
-            self.create_future_values(train_df, horizon, target_name)
-            self.create_future_values(test_df, horizon, target_name)
+            self.create_future_values(train_df, horizon, [target_name])
+            self.create_future_values(test_df, horizon, [target_name])
 
             # Generate features
             train_features = train_df[[target_name]]

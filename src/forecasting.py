@@ -3,6 +3,7 @@ Code for initiating forecasting experiments
 """
 
 import os
+from glob import glob
 import shutil
 from pathlib import Path
 import time
@@ -162,8 +163,9 @@ class Forecasting():
         else:
             results_subdir = None
 
+        iterations = self.determine_num_trials(results_subdir)
         # Option to skip training if completed previously
-        if not self.config.repeat_results and self.results_exist(results_subdir, self.forecaster_name):
+        if iterations == 0:
             logger.info(f'Results found for {results_subdir}. Skipping training')
 
             # Summarize experiment results
@@ -172,65 +174,67 @@ class Forecasting():
                     os.path.join(self.config.results_dir, f'{self.forecast_type}_forecasting', self.dataset_name), plots=False)
             return
 
-        # Run forecaster and record total runtime
-        logger.info(f'Applying {self.forecaster_name} (preset: {preset}) to {self.dataset_path}')
-        start_time = time.perf_counter()
-        # Recreate temporary files directory to ensure libraries start from scratch
-        tmp_dir = os.path.join('tmp', self.dataset_name, self.forecaster_name)
-        if os.path.exists(tmp_dir):
-            shutil.rmtree(tmp_dir)
-        os.makedirs(tmp_dir)
-        try:
-            predictions = self.forecaster.forecast(self.train_df.copy(), self.test_df.copy(), self.forecast_type,
-                                                   self.horizon, self.limit, self.frequency, tmp_dir,
-                                                   nproc=self.config.nproc, preset=preset)
+        for iteration in range(iterations):
+            logger.info(f'Iteration {iteration+1} of {iterations}')
 
-            duration = round(time.perf_counter() - start_time, 2)
-            logger.debug(f'{self.forecaster_name} (preset: {preset}) took {duration} seconds for {csv_file}')
+            # Run forecaster and record total runtime
+            tmp_dir = self.delete_tmp_dirs()
+            logger.info(f'Applying {self.forecaster_name} (preset: {preset}) to {self.dataset_path}')
+            start_time = time.perf_counter()
 
-            # Generate scores and plots
+            try:
+                predictions = self.forecaster.forecast(self.train_df.copy(), self.test_df.copy(), self.forecast_type,
+                                                    self.horizon, self.limit, self.frequency, tmp_dir,
+                                                    nproc=self.config.nproc, preset=preset)
+
+                duration = round(time.perf_counter() - start_time, 2)
+                logger.debug(f'{self.forecaster_name} (preset: {preset}) took {duration} seconds for {csv_file}')
+
+                # Generate scores and plots
+                if self.config.results_dir != None:
+                    self.evaluate_predictions(self.actual, predictions, self.y_train, results_subdir, self.forecaster_name,
+                                            duration)
+
+            except DatasetTooSmallError as e1:
+                logger.error('Failed to fit. Dataset too small for library.')
+                self.record_failure(results_subdir, e1)
+            except AutomlLibraryError as e2:
+                logger.error(f'{self.forecaster_name} (preset: {preset}) failed to fit.')
+                self.record_failure(results_subdir, e2)
+            except Exception as e3:
+                logger.critical(f'{self.forecaster_name} (preset: {preset}) failed!')
+                logger.critical(e3, exc_info=True)
+                raise e3
+
+            # Summarize experiment results
             if self.config.results_dir != None:
-                self.evaluate_predictions(self.actual, predictions, self.y_train, results_subdir, self.forecaster_name,
-                                          duration)
-
-        except DatasetTooSmallError as e1:
-            logger.error('Failed to fit. Dataset too small for library.')
-            self.record_failure(results_subdir, e1)
-        except AutomlLibraryError as e2:
-            logger.error(f'{self.forecaster_name} (preset: {preset}) failed to fit.')
-            self.record_failure(results_subdir, e2)
-        except Exception as e3:
-            logger.critical(f'{self.forecaster_name} (preset: {preset}) failed!')
-            logger.critical(e3, exc_info=True)
-            raise e3
-
-        # Summarize experiment results
-        if self.config.results_dir != None:
-            Utils.summarize_dataset_results(
-                os.path.join(self.config.results_dir, f'{self.forecast_type}_forecasting', self.dataset_name),
-                plots=True)
+                Utils.summarize_dataset_results(
+                    os.path.join(self.config.results_dir, f'{self.forecast_type}_forecasting', self.dataset_name),
+                    plots=True)
 
 
-    def results_exist(self, results_subdir, forecaster_name):
-        """Check if results have been generated for a given experiment
+    def determine_num_trials(self, results_subdir):
+        """Determine how many experiments to run
 
         :param str results_subdir: Path to results directory
-        :param str forecaster_name: Name of forecasting model
         :return bool: True if results exist, False otherwise
         """
-        if results_subdir is not None:
-            results_csv_exists = os.path.exists(os.path.join(results_subdir, f'{forecaster_name}.csv'))
-            plots_exist = os.path.exists(os.path.join(results_subdir, 'plots'))
+        if self.config.repeat_results:
+            num_iterations = 1
 
-            if results_csv_exists and plots_exist:
-                results_exist = True
+        elif results_subdir is not None:
+            results_path = os.path.join(results_subdir, f'{self.forecaster_name}.csv')
+            # How many results remaining
+            if os.path.exists(results_path):
+                results = pd.read_csv(results_path)
+                num_iterations = max(self.config.min_results - len(results), 0)
+            # Skip failing trials
             elif os.path.exists(os.path.join(results_subdir, 'failed.txt')):
-                results_exist = True
+                num_iterations = 0
             else:
-                results_exist = False
-        else:
-            results_exist = False
-        return results_exist
+                num_iterations = self.config.min_results
+
+        return num_iterations
 
 
     def record_failure(self, results_subdir, error):
@@ -301,6 +305,18 @@ class Forecasting():
 
         else:
             Utils.summarize_overall_results(config.results_dir, forecast_type, plots=plots)
+
+
+    def delete_tmp_dirs(self):
+        """ Delete old temporary files directory to ensure libraries start from scratch"""
+        tmp_dir = os.path.join('tmp', self.dataset_name, self.forecaster_name)
+        dirs_to_delete = [ tmp_dir, 'checkpoints', 'catboost_info', 'time_series_forecaster', 'etna-auto.db'
+                         ] + glob('.lr_find_*.ckpt')
+        for folder in dirs_to_delete:
+            if os.path.exists(folder):
+                shutil.rmtree(folder)
+        os.makedirs(tmp_dir)
+        return tmp_dir
 
 
     def _init_forecaster(self, forecaster_name):

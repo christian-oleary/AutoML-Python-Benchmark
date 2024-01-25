@@ -13,8 +13,11 @@ from src.logs import logger
 from src.TSForecasting.data_loader import FREQUENCY_MAP
 
 # Presets are every combination of the following:
-tune_size = ['1', '2', '3', '4', '5', '10', '20', '30', '40', '50', '100', '200', '300', '400', '500']
-n_trials = ['1', '2', '3', '4', '5', '10', '20', '30', '40', '50', '100', '200', '300', '400', '500']
+# tune_size = ['1', '2', '3', '4', '5', '10', '20', '30', '40', '50', '100', '200', '300', '400', '500']
+# n_trials = ['1', '2', '3', '4', '5', '10', '20', '30', '40', '50', '100', '200', '300', '400', '500']
+# All produce the same result...
+tune_size = ['5']
+n_trials = ['5']
 presets = list(itertools.product(tune_size, n_trials))
 presets = [ '_'.join(p) for p in presets] + ['0_0']
 

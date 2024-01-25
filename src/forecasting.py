@@ -215,11 +215,7 @@ class Forecasting():
 
 
     def determine_num_trials(self, results_subdir):
-        """Determine how many experiments to run
-
-        :param str results_subdir: Path to results directory
-        :return bool: True if results exist, False otherwise
-        """
+        """Determine how many experiments to run"""
         if self.config.repeat_results:
             num_iterations = 1
 
@@ -309,16 +305,16 @@ class Forecasting():
 
 
     def delete_tmp_dirs(self):
-        """ Delete old temporary files directory to ensure libraries start from scratch"""
+        """Delete old temporary files directory to ensure libraries start from scratch"""
         tmp_dir = os.path.join('tmp', self.dataset_name, self.forecaster_name)
         paths_to_delete = [ tmp_dir, 'checkpoints', 'catboost_info', 'time_series_forecaster', 'etna-auto.db'
                          ] + glob('.lr_find_*.ckpt')
-        for path in paths_to_delete:
-            if os.path.exists(path):
-                if os.path.isfile:
-                    os.remove(path)
+        for folder in paths_to_delete:
+            if os.path.exists(folder):
+                if os.path.isfile(folder):
+                    os.remove(folder)
                 else:
-                    shutil.rmtree(path)
+                    shutil.rmtree(folder)
         os.makedirs(tmp_dir)
         return tmp_dir
 

@@ -1,6 +1,8 @@
 """
 Base Classes
 """
+
+from lightgbm import LGBMRegressor
 import numpy as np
 import pandas as pd
 from sklearn.dummy import DummyRegressor
@@ -10,7 +12,6 @@ from sklearn.model_selection import RandomizedSearchCV
 from sklearn.multioutput import MultiOutputRegressor
 from sklearn.preprocessing import MinMaxScaler
 from xgboost import XGBRegressor
-from lightgbm import LGBMRegressor
 
 from src.util import Utils
 from src.logs import logger
@@ -18,8 +19,6 @@ from src.logs import logger
 
 class Forecaster:
     """Base Forecaster"""
-
-    presets = [ 'Naive', 'Constant', 'DummyRegressor', 'LinearRegression', 'XGBRegressor', 'LGBMRegressor' ]
 
     regression_models = {
         DummyRegressor.__name__: (DummyRegressor, {}),
@@ -44,8 +43,10 @@ class Forecaster:
             'subsample': np.arange(0.1, 1.1, 0.1),
             'colsample_bytree': np.arange(0.1, 1.1, 0.1)
         }),
+
     }
 
+    presets = [ 'Naive', 'Constant' ] + list(regression_models.keys())
 
     def forecast(self, train_df, test_df, forecast_type, horizon, limit, frequency, tmp_dir,
                  nproc=1,

@@ -65,9 +65,10 @@ class LudwigForecaster(Forecaster):
 
         config = {
             'input_features': [{'name': f'{target_name}_feature', 'type': 'timeseries'}],
-            'output_features': [{ 'name': target_name, 'type': 'numerical' }] + [
-                { 'name': f'{target_name}+{i}', 'type': 'numerical' }
-                for i in range(1, 24)
+            'output_features': [
+                { 'name': target_name, 'type': 'numerical' }
+                ] + [
+                { 'name': f'{target_name}+{i}', 'type': 'numerical' } for i in range(1, 24)
             ],
             'trainer': { 'epochs': int(preset) }
         }

@@ -54,8 +54,8 @@ if __name__ == '__main__': # Needed for any multiprocessing
     parser.add_argument('--nproc', metavar='-N', type=int, nargs='?', default=1,
                         help='Number of processes to allow')
 
-    parser.add_argument('--min_results', metavar='-MR', type=int, nargs='?', default=1,
-                        help='Minimum number of results to generate per setup')
+    parser.add_argument('--max_results', metavar='-MR', type=int, nargs='?', default=1,
+                        help='Maximum number of results to generate per library/preset setup')
 
     parser.add_argument('--repeat_results', action='store_true', help='Train even if results exist for experiment')
 

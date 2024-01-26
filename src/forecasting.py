@@ -163,9 +163,9 @@ class Forecasting():
         else:
             results_subdir = None
 
-        iterations = self.determine_num_trials(results_subdir)
+        max_trials = self.determine_num_trials(results_subdir)
         # Option to skip training if completed previously
-        if iterations == 0:
+        if max_trials == 0:
             logger.info(f'Results found for {results_subdir}. Skipping training')
 
             # Summarize experiment results
@@ -175,9 +175,10 @@ class Forecasting():
                     plots=False)
             return
 
-        for iteration in range(iterations):
-            logger.info(f'Iteration {iteration+1} of {iterations}')
+        # for iteration in range(min_trials):
+        #     logger.info(f'Iteration {iteration+1} of {min_trials}')
 
+        if max_trials > 0:
             # Run forecaster and record total runtime
             tmp_dir = self.delete_tmp_dirs()
             logger.info(f'Applying {self.forecaster_name} (preset: {preset}) to {self.dataset_path}')
@@ -224,12 +225,12 @@ class Forecasting():
             # How many results remaining
             if os.path.exists(results_path):
                 results = pd.read_csv(results_path)
-                num_iterations = max(self.config.min_results - len(results), 0)
+                num_iterations = max(self.config.max_results - len(results), 0)
             # Skip failing trials
             elif os.path.exists(os.path.join(results_subdir, 'failed.txt')):
                 num_iterations = 0
             else:
-                num_iterations = self.config.min_results
+                num_iterations = self.config.max_results
 
         return num_iterations
 

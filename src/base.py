@@ -52,7 +52,7 @@ class Forecaster:
                  nproc=1,
                  preset='LinearRegression',
                  target=None):
-        """Perform time series forecasting using a basic model
+        """Perform time series forecasting
 
         :param pd.DataFrametrain_df: Dataframe of training data
         :param pd.DataFrame test_df: Dataframe of test data
@@ -141,13 +141,13 @@ class Forecaster:
         return horizon # horizon may be used (Monash 2021). Libra does not specify.
 
 
-    def create_tabular_dataset(self, train_df, test_df, horizon, target_col, tabular_y=True, lag=None):
+    def create_tabular_dataset(self, train_df, test_df, horizon, target_cols, tabular_y=True, lag=None):
         """Prepare training and test sets for tabular regression
 
         :param pd.DataFrame train_df: Training data
         :param pd.DataFrame test_df: Test data
         :param int horizon: Forecast horizon
-        :param str target_col: Name of target column
+        :param str or list target_cols: Name of target column(s)
         :param bool tabular_y: Target (y) returned with 'horizon' columns if true, as one column otherwise, defaults to False
         :param int lag: Lag/window size, defaults to None
         :return tuple: Tuple containing training features, training labels, test features
@@ -158,8 +158,8 @@ class Forecaster:
         if lag == None:
             lag = self.get_default_lag(horizon)
 
-        train_df, X_train, y_train = self.create_tabular_data(train_df, lag, horizon, target_col, tabular_y)
-        test_df, X_test, y_test = self.create_tabular_data(test_df, lag, horizon, target_col, tabular_y)
+        train_df, X_train, y_train = self.create_tabular_data(train_df, lag, horizon, target_cols, tabular_y)
+        test_df, X_test, y_test = self.create_tabular_data(test_df, lag, horizon, target_cols, tabular_y)
 
         # Impute resulting missing values
         imputer = IterativeImputer(n_nearest_features=3, max_iter=5)
@@ -173,30 +173,37 @@ class Forecaster:
         return X_train, y_train, X_test, y_test
 
 
-    def create_tabular_data(self, df, lag, horizon, target, tabular_y, drop_original=False):
+    def create_tabular_data(self, df, lag, horizon, targets, tabular_y, drop_original=False):
         """Prepare time series data for tabular regression
 
         :param pd.DataFrame df: Time series data
         :param int lag: Lag/window size
         :param int horizon: Forecast horizon
-        :param str target: Name of target column to forecast
+        :param str or list targets: Name of target column(s) to forecast
         :return pd.DataFrame(s): Dataframe, features and targets
         """
+        if isinstance(targets, str):
+            targets = [ targets ]
+
         if tabular_y:
-            df, targets = self.create_future_values(df, horizon, target)
+            df, target_cols = self.create_future_values(df, horizon, targets)
         else:
-            targets = [ target ]
-        df = self.create_lag_features(df, targets, window_size=lag)
+            target_cols = targets
+
+        df = self.create_lag_features(df, targets, target_cols, window_size=lag)
 
         # Drop rows missing future target values
         # df = df[df[targets[-1]].notna()]
 
-        y = df[targets]
-        X = df.drop(targets, axis=1)
+        y = df[target_cols]
+        X = df.drop(target_cols, axis=1)
+        df.to_csv('df.csv')
+        X.to_csv('X.csv')
+        y.to_csv('y.csv')
         return df, X, y
 
 
-    def create_lag_features(self, df, targets, window_size, ignored=[]):
+    def create_lag_features(self, df, targets, target_cols, window_size, ignored=[]):
         """Create features based on historical feature values
 
         :param pd.DataFrame df: Input DataFrame
@@ -206,7 +213,7 @@ class Forecaster:
         :return pd.DataFrame: DataFrame with columns replaced with lagged versions
         """
         for col in df.columns:
-            if col not in ignored and col not in targets[1:]:
+            if col not in ignored and (col not in target_cols or col in targets):
                 for i in range(1, window_size+1):
                     df[f'{col}-{i}'] = df[col].shift(i)
 
@@ -215,15 +222,18 @@ class Forecaster:
         return df
 
 
-    def create_future_values(self, df, horizon, target):
+    def create_future_values(self, df, horizon, targets):
         """Create a window of future values for multioutput forecasting
         """
-        targets = [ target ]
-        for i in range(1, horizon):
-            col_name = f'{target}+{i}'
-            df[col_name] = df[target].shift(-i)
-            targets.append(col_name)
-        return df, targets
+        all_target_cols = []
+        for target in targets:
+            target_cols = [ target ]
+            for i in range(1, horizon):
+                col_name = f'{target}+{i}'
+                df[col_name] = df[target].shift(-i)
+                target_cols.append(col_name)
+            all_target_cols = all_target_cols + target_cols
+        return df, all_target_cols
 
 
     def estimate_initial_limit(self, time_limit, preset):
@@ -347,3 +357,45 @@ class Forecaster:
         #     actual = df.iloc[len(X_train):len(X_train)+horizon, 0]
         #     predictions.append([{ 'actual': actual, 'predicted': preds }])
         # return predictions
+
+
+    def tabular_regression(self, train_df, test_df, forecast_type, horizon, limit, frequency, tmp_dir,
+                           nproc=1,
+                           preset='LinearRegression',
+                           target_names=None):
+        """Perform tabular regression
+
+        :param pd.DataFrametrain_df: Dataframe of training data
+        :param pd.DataFrame test_df: Dataframe of test data
+        :param str forecast_type: Type of forecasting, 'global', 'univariate' or 'multivariate'
+        :param int horizon: Forecast horizon (how far ahead to predict) (int)
+        :param int limit: Iterations limit (int)
+        :param int frequency: Data frequency (str)
+        :param str tmp_dir: Path to directory to store temporary files (str)
+        :param int nproc: Number of threads/processes allowed, defaults to 1
+        :param str preset: Modelling presets
+        :param list target_names: List of names of target variables, defaults to None which means all.
+        """
+
+        # Create tabular data
+        if target_names is None:
+            raise NotImplementedError()
+
+        logger.debug('Formatting into tabular dataset...')
+        lag = self.get_default_lag(horizon)
+        X_train, y_train, X_test, y_test = self.create_tabular_dataset(train_df, test_df, horizon, target_names,
+                                                                       lag=lag)
+
+        # Fit model
+        logger.debug(f'Training {preset} model...')
+        if preset == 'Naive':
+            predictions = X_test[[f'{t}-24' for t in target_names]].values
+        elif preset == 'Constant':
+            predictions = np.full(len(y_test), np.mean(y_train, axis=1))
+        else:
+            X_train = X_train.tail(10000)
+            y_train = y_train[-10000:]
+            predictions = self.train_model(X_train, y_train, X_test, horizon, forecast_type, nproc, tmp_dir,
+                                            model_name=preset)
+        return predictions
+

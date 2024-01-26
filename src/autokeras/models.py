@@ -15,9 +15,10 @@ from src.util import Utils
 
 # Presets are every combination of the following:
 optimizers = ['hyperband', 'greedy', 'bayesian', 'random']
-num_epochs = ['10', '50', '100', '150', '1000']
-num_trials = [ '10', '100', '1000' ]
-presets = list(itertools.product(num_trials, num_epochs, optimizers))
+min_delta = [ '1', '2', '4', '8', '16' ]
+num_epochs = ['1000'] # default
+num_trials = ['100'] # default
+presets = list(itertools.product(num_trials, num_epochs, optimizers, min_delta))
 presets = [ '_'.join(p) for p in presets ]
 
 class AutoKerasForecaster(Forecaster):
@@ -64,10 +65,12 @@ class AutoKerasForecaster(Forecaster):
         else:
             raise NotImplementedError()
 
+        limit = int(limit)
         trials = int(preset.split('_')[0])
         epochs = int(preset.split('_')[1])
         optimizer = preset.split('_')[2]
-        tmp_dir = os.path.join(tmp_dir, f'{optimizer}_{epochs}epochs_{trials}trials_{limit}')
+        min_delta = int(preset.split('_')[3])
+        tmp_dir = os.path.join(tmp_dir, f'{optimizer}_{min_delta}delta_{epochs}epochs_{trials}trials_{limit}')
 
         # Initialise forecaster
         lookback = self.get_default_lag(horizon)
@@ -79,11 +82,11 @@ class AutoKerasForecaster(Forecaster):
             'overwrite': False,
             'predict_from': 1,
             'predict_until': horizon,
-            'seed': int(limit),
+            'seed': limit,
             'tuner': optimizer,
         }
         clf = ak.TimeseriesForecaster(**params)
-        logger.info(params)
+        logger.debug(params)
 
         # "lookback" must be divisable by batch size due to library bug:
         # https://github.com/keras-team/autokeras/issues/1720
@@ -96,13 +99,15 @@ class AutoKerasForecaster(Forecaster):
                 batch_size = size
             else:
                 size -= 1
-        logger.debug(f'Calculated batch size as {batch_size}...')
+        logger.debug(f'Calculated batch size as {batch_size}')
 
         # Create validation set
         x_train, X_val, y_train, y_val = train_test_split(X_train, y_train, test_size=0.2, random_state=int(limit))
 
         # Callbacks
-        callbacks = [ EarlyStopping(monitor='val_mean_squared_error', patience=3, min_delta=1, verbose=1, mode='auto') ]
+        callbacks = [
+            EarlyStopping(monitor='val_mean_squared_error', patience=3, min_delta=min_delta, verbose=1, mode='auto')
+        ]
 
         # Train models
         logger.info(f'Fitting AutoKeras with preset {preset}...')
@@ -112,9 +117,9 @@ class AutoKerasForecaster(Forecaster):
             # validation_split=0.2, # Internal errors
             validation_data=(X_val, y_val),
             batch_size=batch_size,
-            # callbacks=callbacks,
+            callbacks=callbacks,
             epochs=epochs,
-            verbose=1
+            verbose=0
         )
 
         logger.info(f'Rolling origin forecast (preset: {preset})...')
@@ -161,9 +166,10 @@ class AutoKerasForecaster(Forecaster):
         assert len(preds.flatten()) > 0
         predictions = [ preds ]
 
-        for s in test_splits:
+        for i, s in enumerate(test_splits):
+            logger.debug(f'{i+1} of {len(test_splits)}')
             data = pd.concat([data, s])
-            preds = model.predict(data)
+            preds = model.predict(data, verbose=0)
 
             # AutoKeras can produce empty predictions on first inference (?)
             # Update: Only occurs trials = 1 and epochs = 1

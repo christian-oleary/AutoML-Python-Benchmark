@@ -3,6 +3,7 @@ Code for initiating forecasting experiments
 """
 
 import os
+from glob import glob
 import shutil
 from pathlib import Path
 import time
@@ -21,7 +22,7 @@ class Forecasting():
     """Functionality for applying forecasting libraries to existing datasets"""
 
 
-    univariate_forecaster_names = [ 'autogluon', 'autokeras', 'autots', 'autopytorch',
+    univariate_forecaster_names = [ 'autogluon', 'autokeras', 'autots', 'autopytorch', 'etna',
                                     'evalml', 'fedot', 'flaml', 'ludwig', 'pycaret']
 
     global_forecaster_names = [ 'autogluon', 'autokeras', 'autots', 'autopytorch', 'etna',
@@ -55,166 +56,182 @@ class Forecasting():
         :param str forecast_type: Type of forecasting, i.e. 'global', 'multivariate' or 'univariate'
         """
 
+        self.data_dir = data_dir
+        self.config = config
+        self.forecast_type = forecast_type
         self._validate_inputs(config, forecast_type)
 
-        csv_files = Utils.get_csv_datasets(data_dir)
-        metadata = pd.read_csv(os.path.join(data_dir, '0_metadata.csv'))
+        csv_files = Utils.get_csv_datasets(self.data_dir)
+        metadata = pd.read_csv(os.path.join(self.data_dir, '0_metadata.csv'))
 
         for csv_file in csv_files:
-            dataset_name = csv_file.split('.')[0]
+            self.dataset_name = csv_file.split('.')[0]
 
             # Filter datasets based on "Monash Time Series Forecasting Archive" by Godahewa et al. (2021)
             # we do not consider the London smart meters, wind farms, solar power, and wind power datasets
             # for both univariate and global model evaluations, the Kaggle web traffic daily dataset for
             # the global model evaluations and the solar 10 minutely dataset for the WaveNet evaluation
             filter_forecast_datasets = True # TODO: make an env variable
-            if filter_forecast_datasets and dataset_name in self.omitted_datasets:
-                logger.debug(f'Skipping dataset {dataset_name}')
+            if filter_forecast_datasets and self.dataset_name in self.omitted_datasets:
+                logger.debug(f'Skipping dataset {self.dataset_name}')
                 continue
 
             # Read dataset
-            dataset_path = os.path.join(data_dir, csv_file)
-            logger.info(f'Reading dataset {dataset_path}')
-            if forecast_type == 'global':
-                df = pd.read_csv(dataset_path, index_col=0)
-            elif forecast_type == 'univariate':
-                if 'libra' in dataset_path:
-                    df = pd.read_csv(dataset_path, header=None)
+            self.dataset_path = os.path.join(self.data_dir, csv_file)
+            logger.info(f'Reading dataset {self.dataset_path}')
+            if self.forecast_type == 'global':
+                self.df = pd.read_csv(self.dataset_path, index_col=0)
+            elif self.forecast_type == 'univariate':
+                if 'libra' in self.dataset_path:
+                    self.df = pd.read_csv(self.dataset_path, header=None)
                 else:
-                    df = pd.read_csv(dataset_path)
-                    df = df.set_index('applicable_date')
-                df.columns = [ 'target' ]
+                    self.df = pd.read_csv(self.dataset_path)
+                    self.df = self.df.set_index('applicable_date')
+                self.df.columns = [ 'target' ]
             else:
                 raise NotImplementedError()
 
             # I-SEM dataset
-            if 'ISEM_prices' in dataset_name:
-                train_df = df.loc[:'19/10/2020 23:00',:] # 293 days or ~80% of 2020
-                test_df = df.loc['20/10/2020 00:00':,:] # 73 days or ~20% of 2020
+            if 'ISEM_prices' in self.dataset_name:
+                self.train_df = self.df.loc[:'19/10/2020 23:00',:] # 293 days or ~80% of 2020
+                self.test_df = self.df.loc['20/10/2020 00:00':,:] # 73 days or ~20% of 2020
 
             # Holdout for model testing (80% training, 20% testing).
             # This seems to be used by Godahewa et al. for global forecasting:
             # https://github.com/rakshitha123/TSForecasting/blob/master/experiments/rolling_origin.R#L10
             # Also used by Bauer 2021 for univariate forecasting
             else:
-                train_df = df.head(int(len(df)* 0.8))
-                test_df = df.tail(int(len(df)* 0.2))
+                self.train_df = self.df.head(int(len(self.df)* 0.8))
+                self.test_df = self.df.tail(int(len(self.df)* 0.2))
 
             # Get dataset metadata
             if forecast_type == 'global':
                 raise NotImplementedError()
-                data = metadata[metadata['file'] == csv_file.replace('csv', 'tsf')]
+                self.data = metadata[metadata['file'] == csv_file.replace('csv', 'tsf')]
 
-                frequency = data['frequency'].iloc[0]
-                horizon = data['horizon'].iloc[0]
-                if pd.isna(horizon):
+                self.frequency = self.data['frequency'].iloc[0]
+                self.horizon = self.data['horizon'].iloc[0]
+                if pd.isna(self.horizon):
                     raise ValueError(f'Missing horizon in 0_metadata.csv for {csv_file}')
-                horizon = int(horizon)
+                self.horizon = int(self.horizon)
 
                 # TODO: revise frequencies, determine and data formatting stage
-                if pd.isna(frequency) and 'm3_other_dataset.csv' in csv_file:
-                    frequency = 'yearly'
-                actual = test_df.values
+                if pd.isna(self.frequency) and 'm3_other_dataset.csv' in csv_file:
+                    self.frequency = 'yearly'
+                self.actual = self.test_df.values
 
             else:
-                data = metadata[metadata['file'] == csv_file]
-                frequency = int(data['frequency'].iloc[0])
-                horizon = int(data['horizon'].iloc[0])
-                actual = test_df.copy().values.flatten()
-                y_train = train_df.copy().values.flatten() # Required for MASE
+                self.data = metadata[metadata['file'] == csv_file]
+                self.frequency = int(self.data['frequency'].iloc[0])
+                self.horizon = int(self.data['horizon'].iloc[0])
+                self.actual = self.test_df.copy().values.flatten()
+                self.y_train = self.train_df.copy().values.flatten() # Required for MASE
                 # Libra's custom rolling origin forecast:
                 # kwargs = {
-                #     'origin_index': int(data['origin_index'].iloc[0]),
-                #     'step_size': int(data['step_size'].iloc[0])
+                #     'origin_index': int(self.data['origin_index'].iloc[0]),
+                #     'step_size': int(self.data['step_size'].iloc[0])
                 #     }
 
-            test_df.to_csv('test_df.csv')
-            train_df.to_csv('train_df.csv')
+            self.train_df.to_csv('train_df.csv')
+            self.test_df.to_csv('test_df.csv')
 
             # Run each forecaster on the dataset
-            for forecaster_name in config.libraries:
+            for self.forecaster_name in config.libraries:
                 # Initialize forecaster and estimate a time/iterations limit
-                forecaster = self._init_forecaster(forecaster_name)
+                self.forecaster = self._init_forecaster(self.forecaster_name)
 
-                for preset in forecaster.presets:
-                    limit = forecaster.estimate_initial_limit(config.time_limit, preset)
-
-                    if config.results_dir != None:
-                        results_subdir = os.path.join(config.results_dir, f'{forecast_type}_forecasting', dataset_name,
-                                                    forecaster_name, f'preset-{preset}_proc-{config.nproc}_limit-{limit}')
-                        # If results are invalid and need to be removed:
-                        # if 'forecaster_name' in results_subdir and os.path.exists(results_subdir):
-                        #     shutil.rmtree(results_subdir)
-                    else:
-                        results_subdir = None
-
-                    # Option to skip training if completed previously
-                    if not config.repeat_results and self.results_exist(results_subdir, forecaster_name):
-                        logger.info(f'Results found for {results_subdir}. Skipping training')
-
-                        # Summarize experiment results
-                        if config.results_dir != None:
-                            Utils.summarize_dataset_results(
-                                os.path.join(config.results_dir, f'{forecast_type}_forecasting', dataset_name), plots=False)
-
-                        continue
-
-                    # Run forecaster and record total runtime
-                    logger.info(f'Applying {forecaster_name} (preset: {preset}) to {dataset_path}')
-                    start_time = time.perf_counter()
-                    # Recreate temporary files directory to ensure libraries start from scratch
-                    tmp_dir = os.path.join('tmp', dataset_name, forecaster_name)
-                    if os.path.exists(tmp_dir):
-                        shutil.rmtree(tmp_dir)
-                    os.makedirs(tmp_dir)
-                    try:
-                        predictions = forecaster.forecast(train_df.copy(), test_df.copy(), forecast_type, horizon,
-                                                          limit, frequency, tmp_dir, nproc=config.nproc, preset=preset)
-
-                        duration = round(time.perf_counter() - start_time, 2)
-                        logger.debug(f'{forecaster_name} (preset: {preset}) took {duration} seconds for {csv_file}')
-
-                        # Generate scores and plots
-                        if config.results_dir != None:
-                            self.evaluate_predictions(actual, predictions, y_train, results_subdir, forecaster_name, duration)
-
-                    except DatasetTooSmallError as e1:
-                        logger.error('Failed to fit. Dataset too small for library.')
-                        self.record_failure(results_subdir, e1)
-                    except AutomlLibraryError as e2:
-                        logger.error(f'{forecaster_name} (preset: {preset}) failed to fit.')
-                        self.record_failure(results_subdir, e2)
-                    except Exception as e3:
-                        logger.critical(f'{forecaster_name} (preset: {preset}) failed!')
-                        logger.critical(e3, exc_info=True)
-                        raise e3
-
-                    # Summarize experiment results
-                    if config.results_dir != None:
-                        Utils.summarize_dataset_results(
-                            os.path.join(config.results_dir, f'{forecast_type}_forecasting', dataset_name), plots=True)
+                for preset in self.forecaster.presets:
+                    self.limit = self.forecaster.estimate_initial_limit(config.time_limit, preset)
+                    self.evaluate_library_preset(preset, csv_file)
 
 
-    def results_exist(self, results_subdir, forecaster_name):
-        """Check if results have been generated for a given experiment
+    def evaluate_library_preset(self, preset, csv_file):
+        """Evaluate a specific library on a specific preset
 
-        :param str results_subdir: Path to results directory
-        :param str forecaster_name: Name of forecasting model
-        :return bool: True if results exist, False otherwise
+        :param str preset: Library specific preset
+        :param str csv_file: Name of dataset CSV file
         """
-        if results_subdir is not None:
-            results_csv_exists = os.path.exists(os.path.join(results_subdir, f'{forecaster_name}.csv'))
-            plots_exist = os.path.exists(os.path.join(results_subdir, 'plots'))
-
-            if results_csv_exists and plots_exist:
-                results_exist = True
-            elif os.path.exists(os.path.join(results_subdir, 'failed.txt')):
-                results_exist = True
-            else:
-                results_exist = False
+        if self.config.results_dir != None:
+            results_subdir = os.path.join(self.config.results_dir,
+                                          f'{self.forecast_type}_forecasting', self.dataset_name,
+                                          self.forecaster_name,
+                                          f'preset-{preset}_proc-{self.config.nproc}_limit-{self.limit}')
+            # If results are invalid and need to be removed:
+            # if 'forecaster_name' in results_subdir and os.path.exists(results_subdir):
+            #     shutil.rmtree(results_subdir)
+            #     return
         else:
-            results_exist = False
-        return results_exist
+            results_subdir = None
+
+        iterations = self.determine_num_trials(results_subdir)
+        # Option to skip training if completed previously
+        if iterations == 0:
+            logger.info(f'Results found for {results_subdir}. Skipping training')
+
+            # Summarize experiment results
+            if self.config.results_dir != None:
+                Utils.summarize_dataset_results(
+                    os.path.join(self.config.results_dir, f'{self.forecast_type}_forecasting', self.dataset_name),
+                    plots=False)
+            return
+
+        for iteration in range(iterations):
+            logger.info(f'Iteration {iteration+1} of {iterations}')
+
+            # Run forecaster and record total runtime
+            tmp_dir = self.delete_tmp_dirs()
+            logger.info(f'Applying {self.forecaster_name} (preset: {preset}) to {self.dataset_path}')
+            start_time = time.perf_counter()
+
+            try:
+                predictions = self.forecaster.forecast(self.train_df.copy(), self.test_df.copy(), self.forecast_type,
+                                                    self.horizon, self.limit, self.frequency, tmp_dir,
+                                                    nproc=self.config.nproc, preset=preset)
+
+                duration = round(time.perf_counter() - start_time, 2)
+                logger.debug(f'{self.forecaster_name} (preset: {preset}) took {duration} seconds for {csv_file}')
+
+                # Generate scores and plots
+                if self.config.results_dir != None:
+                    self.evaluate_predictions(self.actual, predictions, self.y_train, results_subdir, self.forecaster_name,
+                                            duration)
+
+            except DatasetTooSmallError as e1:
+                logger.error('Failed to fit. Dataset too small for library.')
+                self.record_failure(results_subdir, e1)
+            except AutomlLibraryError as e2:
+                logger.error(f'{self.forecaster_name} (preset: {preset}) failed to fit.')
+                self.record_failure(results_subdir, e2)
+            except Exception as e3:
+                logger.critical(f'{self.forecaster_name} (preset: {preset}) failed!')
+                logger.critical(e3, exc_info=True)
+                raise e3
+
+            # Summarize experiment results
+            if self.config.results_dir != None:
+                Utils.summarize_dataset_results(
+                    os.path.join(self.config.results_dir, f'{self.forecast_type}_forecasting', self.dataset_name),
+                    plots=True)
+
+
+    def determine_num_trials(self, results_subdir):
+        """Determine how many experiments to run"""
+        if self.config.repeat_results:
+            num_iterations = 1
+
+        elif results_subdir is not None:
+            results_path = os.path.join(results_subdir, f'{self.forecaster_name}.csv')
+            # How many results remaining
+            if os.path.exists(results_path):
+                results = pd.read_csv(results_path)
+                num_iterations = max(self.config.min_results - len(results), 0)
+            # Skip failing trials
+            elif os.path.exists(os.path.join(results_subdir, 'failed.txt')):
+                num_iterations = 0
+            else:
+                num_iterations = self.config.min_results
+
+        return num_iterations
 
 
     def record_failure(self, results_subdir, error):
@@ -285,6 +302,21 @@ class Forecasting():
 
         else:
             Utils.summarize_overall_results(config.results_dir, forecast_type, plots=plots)
+
+
+    def delete_tmp_dirs(self):
+        """Delete old temporary files directory to ensure libraries start from scratch"""
+        tmp_dir = os.path.join('tmp', self.dataset_name, self.forecaster_name)
+        paths_to_delete = [ tmp_dir, 'checkpoints', 'catboost_info', 'time_series_forecaster', 'etna-auto.db'
+                         ] + glob('.lr_find_*.ckpt')
+        for folder in paths_to_delete:
+            if os.path.exists(folder):
+                if os.path.isfile(folder):
+                    os.remove(folder)
+                else:
+                    shutil.rmtree(folder)
+        os.makedirs(tmp_dir)
+        return tmp_dir
 
 
     def _init_forecaster(self, forecaster_name):

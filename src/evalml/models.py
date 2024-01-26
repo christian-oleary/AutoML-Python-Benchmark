@@ -38,6 +38,7 @@ class EvalMLForecaster(Forecaster):
         :param str target_name: Name of target variable for multivariate forecasting, defaults to None
         :return predictions: Numpy array of predictions
         """
+        raise NotImplementedError()
 
         # Prepare data
         if target_name == None:

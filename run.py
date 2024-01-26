@@ -54,6 +54,9 @@ if __name__ == '__main__': # Needed for any multiprocessing
     parser.add_argument('--nproc', metavar='-N', type=int, nargs='?', default=1,
                         help='Number of processes to allow')
 
+    parser.add_argument('--min_results', metavar='-MR', type=int, nargs='?', default=1,
+                        help='Minimum number of results to generate per setup')
+
     parser.add_argument('--repeat_results', action='store_true', help='Train even if results exist for experiment')
 
     parser.add_argument('--results_dir', metavar='-R', type=str, nargs='?', default='results',
@@ -63,9 +66,7 @@ if __name__ == '__main__': # Needed for any multiprocessing
                         help='Time limit in seconds for each library. May not be strictly adhered to.')
 
     parser.add_argument('--univariate_forecasting_data_dir', metavar='-UF', type=str, nargs='?',
-                        default=os.path.join('data', 'univariate_libra'),
-                        # default=os.path.join('data', 'univariate_electricity'),
-                        # default=os.path.join('tests', 'data', 'univariate_electricity'),
+                        default=os.path.join('data', 'univariate_electricity'),
                         help='directory containing univariate forecasting datasets')
 
     args = parser.parse_args()

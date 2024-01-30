@@ -22,7 +22,6 @@ configs = [ 'superfast', 'fast', 'fast_parallel', 'default', 'all' ]
 time_limits = ['60', '120', '240', '480', '960', '1920'] # Minutes: 1, 2, 4, 8, 16, 32
 presets = list(itertools.product(configs, time_limits))
 presets = [ '__'.join(p) for p in presets ]
-# presets = configs
 
 class AutoTSForecaster(Forecaster):
 
@@ -121,15 +120,15 @@ class AutoTSForecaster(Forecaster):
             # Can randomly fail: https://github.com/winedarksea/AutoTS/issues/140
             for _ in range(3):
                 try:
-                    logger.debug('Fitting...')
+                    logger.debug(f'Fitting ({preset})...')
                     model = model.fit(train_df, future_regressor=train_regressors)
-                    logger.debug('Predicting...')
+                    logger.debug(f'Predicting ({preset})...')
                     predictions = model.predict(future_regressor=test_regressors, forecast_length=len(test_regressors)).forecast.values
                     assert np.isfinite(predictions).all()
                     break
                 except Exception as e:
                     logger.error(e)
-                    logger.error('Failed on fit attempt')
+                    logger.error(f'Failed on fit attempt ({preset})')
                     model = model.fit(train_df, future_regressor=train_regressors)
                     predictions = model.predict(future_regressor=test_regressors, forecast_length=horizon).forecast.values
                     assert np.isfinite(predictions).all()

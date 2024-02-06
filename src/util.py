@@ -591,7 +591,7 @@ class Utils:
 
             if plots:
                 logger.debug('Generating plots')
-                Utils.save_heatmap(summarized_scores, os.path.join(stats_dir, 'heatmap.csv'),
+                Utils.save_heatmap(summarized_scores, os.path.join(stats_dir, 'metrics_corr_heatmap.csv'),
                                    os.path.join(stats_dir, 'heatmap.png'))
                 Utils.plot_test_scores(all_scores, stats_dir, plots)
 
@@ -604,9 +604,23 @@ class Utils:
         :param str png_path: Path to PNG file
         """
         # Save Perason correlation heatmap of metrics as an indication of agreement.
-        columns = ['GM-MAE-SR', 'MAE', 'MASE', 'MSE', 'RMSE', 'SRC']
+        # columns = ['GM-MAE-SR', 'MAE', 'MASE', 'MSE', 'RMSE', 'SRC'] # SRC is not normally distributed
+        columns = ['GM-MAE-SR', 'MAE', 'MASE', 'MSE', 'RMSE'] # SRC removed
+        df[columns].to_csv('variables.csv')
         heatmap = df[columns].corr(method='pearson')
-        heatmap.to_csv(csv_path)
+
+        # Save correlations and corresponding p-values as CSV
+        heatmap.to_csv(csv_path) # Save correlations as CSV
+        heatmap.to_latex(csv_path.replace('.csv', '.tex')) # Save correlations as .tex
+        try:
+            calculate_pvalues = lambda x, y: pearsonr(x, y).pvalue
+            df[columns].corr(method=calculate_pvalues).to_csv(csv_path.replace('.csv', '_pvalues.csv'))
+        # older scipy versions return a tuple instead of an object
+        except:
+            calculate_pvalues = lambda x, y: pearsonr(x, y)[1]
+            df[columns].corr(method=calculate_pvalues).to_csv(csv_path.replace('.csv', '_pvalues.csv'))
+
+        # Save correlation heatmap as image
         axes = sns.heatmap(heatmap,
                             annot=True,
                             cbar=False,

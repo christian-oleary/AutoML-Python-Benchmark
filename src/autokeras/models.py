@@ -15,7 +15,10 @@ from src.util import Utils
 
 # Presets are every combination of the following:
 optimizers = ['hyperband', 'greedy', 'bayesian', 'random']
-min_delta = [ '1', '2', '4', '8', '16' ]
+min_delta = [
+    '0', # no early stopping
+    '1', '2', '4', '8', '16', '32', '64', '128', '256',
+    ]
 num_epochs = ['1000'] # default
 num_trials = ['100'] # default
 presets = list(itertools.product(num_trials, num_epochs, optimizers, min_delta))
@@ -105,9 +108,12 @@ class AutoKerasForecaster(Forecaster):
         x_train, X_val, y_train, y_val = train_test_split(X_train, y_train, test_size=0.2, random_state=int(limit))
 
         # Callbacks
-        callbacks = [
-            EarlyStopping(monitor='val_mean_squared_error', patience=3, min_delta=min_delta, verbose=1, mode='auto')
-        ]
+        if min_delta > 0:
+            callbacks = [
+                EarlyStopping(monitor='val_mean_squared_error', patience=3, min_delta=min_delta, verbose=1, mode='auto')
+            ]
+        else:
+            callbacks = []
 
         # Train models
         logger.info(f'Fitting AutoKeras with preset {preset}...')

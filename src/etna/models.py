@@ -127,7 +127,7 @@ class ETNAForecaster(Forecaster):
                     predictions = self.rolling_origin_forecast(best_pipeline, X_test, horizon, freq)
 
                 assert predictions is not None
-                logger.critical('SUCCESS. BREAKING')
+                logger.warning('SUCCESS. FINISHING')
                 break
             except  Exception as e2:
                 logger.debug('ETNA failed. Re-attempting training...')

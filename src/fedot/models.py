@@ -21,7 +21,8 @@ class FEDOTForecaster(Forecaster):
                 'ts',
                 # 'gpu', # Errors with cudf and cuml
                 'stable',
-                'best_quality', 'auto',
+                'auto',
+                'best_quality',
                 ]
 
     # Use 95% of maximum available time for model training in initial experiment

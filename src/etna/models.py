@@ -19,7 +19,7 @@ from src.TSForecasting.data_loader import FREQUENCY_MAP
 tune_size = ['5']
 n_trials = ['5']
 presets = list(itertools.product(tune_size, n_trials))
-presets = [ '_'.join(p) for p in presets] + ['0_0']
+presets = [ '_'.join(p) for p in presets]
 
 
 class ETNAForecaster(Forecaster):

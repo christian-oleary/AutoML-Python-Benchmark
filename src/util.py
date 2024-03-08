@@ -415,7 +415,7 @@ class Utils:
         # Scores per library across all presets and failed training counts
         if len(test_scores) > 0:
             summarized_scores = Utils.save_latex(test_scores, output_file.replace('csv', 'tex'))
-            if plots:
+            if plots and len(summarized_scores) > 2:
                 Utils.save_heatmap(summarized_scores, os.path.join(stats_dir, 'heatmap.csv'),
                                    os.path.join(stats_dir, 'heatmap.png'))
                 # Utils.plot_test_scores(test_scores, stats_dir, plots)
@@ -484,7 +484,7 @@ class Utils:
         test_scores = test_scores[~test_scores['preset'].isin(Utils.ignored_presets)]
 
         # Save overall scores and generate plots
-        if plots:
+        if plots and len(test_scores) > 2:
             # Bar plot of failed training attempts
             test_scores.plot.bar(y='failed', figsize=(35, 10))
             save_path = os.path.join(stats_dir, '3_failed_counts.png')
@@ -524,7 +524,7 @@ class Utils:
             output_file = os.path.join(stats_dir, f'3_mean_scores_by_{group_col}.csv')
             mean_scores.to_csv(output_file)
 
-            if plots:
+            if plots and len(mean_scores) > 2:
                 # Bar plot of failed training attempts
                 mean_scores.plot.bar(y='failed', figsize=(fig_width, fig_height))
                 save_path = os.path.join(stats_dir, f'3_failed_counts_by_{group_col}.png')
@@ -589,7 +589,7 @@ class Utils:
             summarized_scores = Utils.save_latex(all_scores, overall_scores_path.replace('csv', 'tex'))
 
 
-            if plots:
+            if plots and len(summarized_scores) > 2:
                 logger.debug('Generating plots')
                 Utils.save_heatmap(summarized_scores, os.path.join(stats_dir, 'metrics_corr_heatmap.csv'),
                                    os.path.join(stats_dir, 'heatmap.png'))

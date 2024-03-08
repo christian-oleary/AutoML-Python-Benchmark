@@ -6,11 +6,19 @@ from lightgbm import LGBMRegressor
 import numpy as np
 import pandas as pd
 from sklearn.dummy import DummyRegressor
-from sklearn.linear_model import LinearRegression
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.gaussian_process import GaussianProcessRegressor
+from sklearn.linear_model import (BayesianRidge, ElasticNet, Lasso, LinearRegression,
+                                  PassiveAggressiveRegressor, Ridge, SGDRegressor)
+from sklearn.kernel_ridge import KernelRidge
 from sklearn.impute import IterativeImputer
 from sklearn.model_selection import RandomizedSearchCV
 from sklearn.multioutput import MultiOutputRegressor
+from sklearn.neighbors import KNeighborsRegressor
+from sklearn.neural_network import MLPRegressor
 from sklearn.preprocessing import MinMaxScaler
+from sklearn.svm import LinearSVR, NuSVR, SVR
+from sklearn.tree import DecisionTreeRegressor, ExtraTreeRegressor
 from xgboost import XGBRegressor
 
 from src.util import Utils
@@ -21,7 +29,56 @@ class Forecaster:
     """Base Forecaster"""
 
     regression_models = {
+        BayesianRidge.__name__: (BayesianRidge, {
+            'n_iter': [150, 300, 450],
+            'tol': [1e-2, 1e-3, 1e-4],
+            'alpha_1': [1e-5, 1e-6, 1e-7],
+            'alpha_2': [1e-5, 1e-6, 1e-7],
+            'lambda_1': [1e-5, 1e-6, 1e-7],
+            'lambda_2': [1e-5, 1e-6, 1e-7],
+        }),
+        DecisionTreeRegressor.__name__: (DecisionTreeRegressor, {
+            'criterion': ['absolute_error', 'friedman_mse', 'squared_error'],
+            'splitter': ['best', 'random'],
+            'max_depth': [8, 16, 32, 64, 128, None],
+            'max_features':['auto', 'sqrt', 'log2'],
+        }),
         DummyRegressor.__name__: (DummyRegressor, {}),
+        ExtraTreeRegressor.__name__: (ExtraTreeRegressor, {
+            'criterion': ['absolute_error', 'friedman_mse', 'squared_error'],
+            'splitter': ['best', 'random'],
+            'max_depth': [8, 16, 32, 64, 128, None],
+            'max_features':['auto', 'sqrt', 'log2'],
+        }),
+        ElasticNet.__name__: (ElasticNet, {
+            'alpha': [0.2, 0.4, 0.6, 0.8, 1],
+            'l1_ratio': [0, 0.2, 0.4, 0.6, 0.8, 1],
+            'tol': [1e-5, 1e-4, 1e-3],
+            'selection': ['cyclic', 'random'],
+        }),
+        GaussianProcessRegressor.__name__: (GaussianProcessRegressor, {
+            'alpha': [1e-8, 1e-9, 1e-10, 1e-11, 1e-12],
+            'n_restarts_optimizer': [0, 1, 2, 3],
+            'normalize_y': [True, False],
+        }),
+        KernelRidge.__name__: (KernelRidge, {
+            # KRR uses squared error loss while support vector regression uses epsilon-insensitive loss
+            'alpha': [0.2, 0.4, 0.6, 0.8, 1.0],
+            'kernel': ['additive_chi2', 'chi2', 'linear', 'poly', 'polynomial',
+                       'rbf', 'laplacian', 'sigmoid', 'cosine'],
+            'degree': [2, 3, 4, 5, 6],
+            'coef0': [0.0, 0.5, 1.0],
+        }),
+        KNeighborsRegressor.__name__: (KNeighborsRegressor, {
+            'n_neighbors': list(range(1, 50)),
+            'weights': ['uniform', 'distance'],
+            'p': [2, 3, 4],
+        }),
+        Lasso.__name__: (Lasso, {
+            'alpha': [0.2, 0.4, 0.6, 0.8, 1.0],
+            'tol': [1e-2, 1e-3, 1e-4],
+            'selection': ['cyclic', 'random'],
+        }),
         LGBMRegressor.__name__: (LGBMRegressor, {
             'verbosity': [ -1 ],
             # Based on Lynch et al. 2021:
@@ -34,6 +91,73 @@ class Forecaster:
             'min_child_samples': range(10, 71, 10)
         }),
         LinearRegression.__name__: (LinearRegression, {}),
+        LinearSVR.__name__: (LinearSVR, {
+            'epsilon': [0.0, 0.5, 1.0],
+            'tol': [1e-3, 1e-4, 1e-5],
+            'C': [0.01, 0.1, 1.0, 10],
+            'loss': ['squared_epsilon_insensitive', 'epsilon_insensitive'],
+            'intercept_scaling': [0.001, 0.1, 1, 10],
+            'max_iter': [500, 1000, 1500],
+        }),
+        MLPRegressor.__name__: (MLPRegressor, {
+            'learning_rate': [ 'constant', 'invscaling', 'adaptive' ],
+            'hidden_layer_sizes': [(1,), (2,), (3,), (4,), (1,1,), (2,2,), (3,3,), (4,4,)],
+            'activation': ['relu'],
+            'solver': ['lbfgs', 'adam', 'sgd'],
+            'alpha': [0.00001, 0.0001, 0.001, 0.01, 0.1],
+            'learning_rate_init': [ 1, 0.1, 0.01, 0.001 ],
+        }),
+        NuSVR.__name__: (NuSVR, {
+            'nu': [0.0, 0.2, 0.4, 0.6, 0.8, 1.0],
+            'C': [0.001, 0.01, 0.1, 1.0],
+            'kernel': ['rbf', 'sigmoid', 'linear'],
+            'degree': [2, 3, 4, 5, 6],
+            'gamma': ['scale', 'auto'],
+            'coef0': [0.0, 0.5, 1.0],
+            'shrinking': [True, False],
+            'tol': [1e-3, 1e-4, 1e-5],
+        }),
+        PassiveAggressiveRegressor.__name__: (PassiveAggressiveRegressor, {
+            'C': [0.001, 0.01, 0.1],
+            'loss': ['epsilon_insensitive', 'squared_epsilon_insensitive'],
+            'epsilon': [0.001, 0.01, 0.1, 1.0],
+            # 'average': [True, 10],
+            'early_stopping': [True, False],
+        }),
+        RandomForestRegressor.__name__: (RandomForestRegressor, {
+            'n_estimators': [10, 50, 100, 150, 200],
+            'criterion': ['absolute_error', 'poisson', 'squared_error'],
+            'max_depth': [16, 32, 64, 128, None],
+            'max_features':['auto', 'sqrt', 'log2'],
+            'bootstrap': [True, False],
+        }),
+        Ridge.__name__: (Ridge, {
+            'alpha': [0.2, 0.4, 0.6, 0.8, 1.0],
+            'tol': [1e-2, 1e-3, 1e-4],
+            'solver': ['auto', 'svd', 'cholesky', 'sparse_cg', 'lsqr'], # sag & saga removed due to NumPy related bugs
+        }),
+        SGDRegressor.__name__: (SGDRegressor, {
+            'loss': ['squared_loss', 'huber', 'epsilon_insensitive', 'squared_epsilon_insensitive'],
+            'penalty': ['l2', 'l1', 'elasticnet'],
+            'alpha': [1e-3, 1e-4, 1e-5],
+            'l1_ratio': [0.0, 0.15, 0.5, 1.0],
+            'max_iter': [100, 1000, 10000],
+            'tol': [1e-2, 1e-3, 1e-4],
+            'epsilon': [0.001, 0.01, 0.1, 1.0],
+            'learning_rate': ['constant', 'optimal', 'invscaling', 'adaptive'],
+            'early_stopping': [True, False],
+        }),
+        SVR.__name__: (SVR, {
+            'kernel': ['linear', 'poly', 'rbf', 'sigmoid'],
+            'degree': [2, 3, 4, 5, 6],
+            'gamma': ['scale', 'auto'],
+            'coef0': [0.0, 0.5, 1.0],
+            'tol': [1e-3, 1e-4, 1e-5],
+            'C': [0.01, 0.1, 1.0, 10, 100],
+            'epsilon': [0.0, 0.5, 1.0],
+            'shrinking': [True, False],
+            'max_iter': [50, 100, 150, 200, 250, 300],
+        }),
         XGBRegressor.__name__: (XGBRegressor, {
             'verbosity': [ 0 ],
             # Based on Lynch et al. 2021:
@@ -43,7 +167,6 @@ class Forecaster:
             'subsample': np.arange(0.1, 1.1, 0.1),
             'colsample_bytree': np.arange(0.1, 1.1, 0.1)
         }),
-
     }
 
     presets = [ 'Naive', 'Constant' ] + list(regression_models.keys())

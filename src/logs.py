@@ -45,12 +45,14 @@ logging.getLogger('matplotlib.font_manager').disabled = True
 logger = logging.getLogger('Benchmark')
 
 # Format logs for log files
-log_dir = 'logs'
-os.makedirs(log_dir, exist_ok=True)
-file_handler = TimedRotatingFileHandler(os.path.join(log_dir, 'log.log'),
-                                        when='H', backupCount=24, utc=True)
-file_handler.setFormatter(logging.Formatter(log_format, time_format))
-logger.addHandler(file_handler)
+def set_log_dir(log_dir='logs'):
+    if log_dir is not None:
+        os.makedirs(log_dir, exist_ok=True)
+        file_handler = TimedRotatingFileHandler(os.path.join(log_dir, 'log'),
+                                                when='H', backupCount=24, utc=True)
+        file_handler.setFormatter(logging.Formatter(log_format, time_format))
+        logger.addHandler(file_handler)
+        logger.info(f'Logging to directory: {log_dir}')
 
 # Format logs for stdout
 stream_handler = logging.StreamHandler(sys.stdout)
@@ -63,6 +65,3 @@ logger.setLevel(level=logging.DEBUG)
 # Reduce logs from matplotlib
 logging.getLogger('matplotlib').setLevel(logging.ERROR)
 logging.getLogger('matplotlib.font_manager').disabled = True
-
-logger.info(f'Application started at: {datetime.now().strftime("%d-%m-%y %H:%M:%S")}')
-logger.info(f'Logging to directory: {log_dir}')

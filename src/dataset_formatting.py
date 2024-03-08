@@ -16,13 +16,29 @@ from src.TSForecasting.data_loader import convert_tsf_to_dataframe, FREQUENCY_MA
 from src.util import Utils
 
 
-class DatasetFormatting:
+class DatasetFormatter:
     """Methods for formatting raw datasets in preparation for modelling."""
 
     default_start_timestamp = datetime.strptime('1970-01-01 00-00-00', '%Y-%m-%d %H-%M-%S')
 
-    @staticmethod
-    def format_univariate_forecasting_data(data_dir):
+    def format_data(self, config):
+        """Format data in a given config.data_dir in preparation for modelling
+
+        :param argparse.Namespace config: arguments from command line
+        """
+        if config.task == 'univariate':
+            self.format_univariate_forecasting_data(config.data_dir)
+        elif config.task == 'global':
+            self.format_global_forecasting_data(config.data_dir)
+        else:
+            raise NotImplementedError()
+
+
+    def format_univariate_forecasting_data(self, data_dir):
+        """Format data for univariate forecasting
+
+        :param str data_dir: Data directory
+        """
 
         headers_and_timestamps = 'libra' not in data_dir # Libra dataset is missing indices and headers
 
@@ -90,15 +106,14 @@ class DatasetFormatting:
         logger.info('Univariate forecasting data ready.')
 
 
-    @staticmethod
-    def format_global_forecasting_data(data_dir, gather_metadata=False):
+    def format_global_forecasting_data(self, data_dir, gather_metadata=False):
         """Prepare forecasting data for modelling from zip files
 
         :param str data_dir: Path to data directory
         :param bool gather_metadata: Store datasets metadata in a CSV file, defaults to False
         """
 
-        tsf_files = DatasetFormatting.extract_forecasting_data(data_dir)
+        tsf_files = DatasetFormatter.extract_forecasting_data(data_dir)
 
         if gather_metadata:
             meta_data = {
@@ -122,7 +137,7 @@ class DatasetFormatting:
                     os.path.join(data_dir, tsf_file), 'NaN', 'value')
 
                 if horizon == None:
-                    horizon = DatasetFormatting.select_horizon(freq, csv_path)
+                    horizon = DatasetFormatter.select_horizon(freq, csv_path)
 
                 if gather_metadata:
                     meta_data['file'].append(tsf_file)
@@ -143,7 +158,7 @@ class DatasetFormatting:
                 columns = []
                 for row_index in range(len(data)):
                     # Convert TSF row to CSV column
-                    column = DatasetFormatting.process_row(data, row_index, freq)
+                    column = DatasetFormatter.process_row(data, row_index, freq)
                     columns.append(column)
 
                     if row_index % 1000 == 0:
@@ -165,8 +180,7 @@ class DatasetFormatting:
         logger.info('Global forecasting data ready.')
 
 
-    @staticmethod
-    def select_horizon(freq, csv_path):
+    def select_horizon(self, freq, csv_path):
         """Select horizon for forecasters for a given dataset
 
         :param freq: Time series frequency (str)
@@ -201,8 +215,7 @@ class DatasetFormatting:
         return horizon
 
 
-    @staticmethod
-    def process_row(data, row_index, freq):
+    def process_row(self, data, row_index, freq):
         """Convert Dataframe row to column with correct timestamp as index
 
         :param data: Original dataframe
@@ -219,7 +232,7 @@ class DatasetFormatting:
         if 'start_timestamp' in data.columns:
             start_timestamp = series.loc['start_timestamp']
         else:
-            start_timestamp = DatasetFormatting.default_start_timestamp
+            start_timestamp = DatasetFormatter.default_start_timestamp
 
         # Format and apply date range index
         column = pd.DataFrame({series_name: values})
@@ -249,8 +262,7 @@ class DatasetFormatting:
         return column
 
 
-    @staticmethod
-    def extract_forecasting_data(data_dir):
+    def extract_forecasting_data(self, data_dir):
         """Read zip files from directory and extract .tsf files
 
         :param data_dir: Path to data directory of zip files
@@ -281,23 +293,21 @@ class DatasetFormatting:
         return tsf_files
 
 
-    @staticmethod
-    def format_anomaly_data(data_dir):
+    def format_anomaly_data(self, data_dir):
         """Format anomaly detection datasets
 
         :param data_dir: Path to directory of datasets
         """
 
-        DatasetFormatting.format_3W_data(data_dir)
-        DatasetFormatting.format_falling_data(data_dir)
-        DatasetFormatting.format_BETH_data(data_dir)
-        DatasetFormatting.format_HAI_data(data_dir)
-        DatasetFormatting.format_NAB_data(data_dir)
-        DatasetFormatting.format_SKAB_data(data_dir)
+        DatasetFormatter.format_3W_data(data_dir)
+        DatasetFormatter.format_falling_data(data_dir)
+        DatasetFormatter.format_BETH_data(data_dir)
+        DatasetFormatter.format_HAI_data(data_dir)
+        DatasetFormatter.format_NAB_data(data_dir)
+        DatasetFormatter.format_SKAB_data(data_dir)
 
 
-    @staticmethod
-    def format_3W_data(data_dir):
+    def format_3W_data(self, data_dir):
         """Format 3W data
 
         :param data_dir: Path to directory of datasets
@@ -305,40 +315,35 @@ class DatasetFormatting:
         subdir = os.path.join(data_dir, '3W')
 
 
-    @staticmethod
-    def format_falling_data(data_dir):
+    def format_falling_data(self, data_dir):
         """Format falling data
 
         :param data_dir: Path to directory of datasets
         """
 
 
-    @staticmethod
-    def format_BETH_data(data_dir):
+    def format_BETH_data(self, data_dir):
         """Format 3W data
 
         :param data_dir: Path to directory of datasets
         """
 
 
-    @staticmethod
-    def format_HAI_data(data_dir):
+    def format_HAI_data(self, data_dir):
         """Format HAI Security Dataset data
 
         :param data_dir: Path to directory of datasets
         """
 
 
-    @staticmethod
-    def format_NAB_data(data_dir):
+    def format_NAB_data(self, data_dir):
         """Format Numenta Anomaly detection Benchmark data
 
         :param data_dir: Path to directory of datasets
         """
 
 
-    @staticmethod
-    def format_SKAB_data(data_dir):
+    def format_SKAB_data(self, data_dir):
         """Format Skoltech Anomaly Benchmark data
 
         :param data_dir: Path to directory of datasets

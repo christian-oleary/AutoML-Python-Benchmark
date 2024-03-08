@@ -5,12 +5,10 @@ Code for initiating forecasting experiments
 import os
 from glob import glob
 import shutil
-from pathlib import Path
 import time
 
 import numpy as np
 import pandas as pd
-from sklearn.impute import IterativeImputer
 
 from src.base import Forecaster
 from src.errors import AutomlLibraryError, DatasetTooSmallError
@@ -21,12 +19,10 @@ from src.util import Utils
 class Forecasting():
     """Functionality for applying forecasting libraries to existing datasets"""
 
+    tasks = [ 'global', 'multivariate', 'univariate' ]
 
-    univariate_forecaster_names = [ 'autogluon', 'autokeras', 'autots', 'autopytorch', 'etna',
-                                    'evalml', 'fedot', 'flaml', 'ludwig', 'pycaret']
-
-    global_forecaster_names = [ 'autogluon', 'autokeras', 'autots', 'autopytorch', 'etna',
-                                'evalml', 'fedot', 'flaml', 'ludwig', 'pycaret']
+    forecaster_names = [ 'autogluon', 'autokeras', 'autots', 'autopytorch', 'etna',
+                        'evalml', 'fedot', 'flaml', 'ludwig', 'pycaret']
 
     # Filter datasets based on "Monash Time Series Forecasting Archive" by Godahewa et al. (2021):
     # "we do not consider the London smart meters, wind farms, solar power, and wind power datasets
@@ -48,18 +44,16 @@ class Forecasting():
         ]
 
 
-    def run_forecasting_libraries(self, data_dir, config, forecast_type):
+    def run_forecasting_libraries(self, config):
         """Entrypoint to run forecasting libraries on available datasets
 
-        :param str data_dir: Path to datasets directory
         :param argparse.Namespace config: arguments from command line
-        :param str forecast_type: Type of forecasting, i.e. 'global', 'multivariate' or 'univariate'
         """
 
-        self.data_dir = data_dir
         self.config = config
-        self.forecast_type = forecast_type
-        self._validate_inputs(config, forecast_type)
+        self.data_dir = config.data_dir
+        self.forecast_type = config.task
+        self._validate_inputs(config)
 
         csv_files = Utils.get_csv_datasets(self.data_dir)
         metadata = pd.read_csv(os.path.join(self.data_dir, '0_metadata.csv'))
@@ -105,7 +99,7 @@ class Forecasting():
                 self.test_df = self.df.tail(int(len(self.df)* 0.2))
 
             # Get dataset metadata
-            if forecast_type == 'global':
+            if self.forecast_type == 'global':
                 raise NotImplementedError()
                 self.data = metadata[metadata['file'] == csv_file.replace('csv', 'tsf')]
 
@@ -120,7 +114,10 @@ class Forecasting():
                     self.frequency = 'yearly'
                 self.actual = self.test_df.values
 
-            else:
+            elif self.forecast_type == 'multivariate':
+                raise NotImplementedError()
+
+            elif self.forecast_type == 'univariate':
                 self.data = metadata[metadata['file'] == csv_file]
                 self.frequency = int(self.data['frequency'].iloc[0])
                 self.horizon = int(self.data['horizon'].iloc[0])
@@ -131,9 +128,8 @@ class Forecasting():
                 #     'origin_index': int(self.data['origin_index'].iloc[0]),
                 #     'step_size': int(self.data['step_size'].iloc[0])
                 #     }
-
-            self.train_df.to_csv('train_df.csv')
-            self.test_df.to_csv('test_df.csv')
+            else:
+                raise ValueError(f'Unknown value for forecast_type: {self.forecast_type}')
 
             # Run each forecaster on the dataset
             for self.forecaster_name in config.libraries:
@@ -284,16 +280,15 @@ class Forecasting():
             Utils.plot_forecast(actual, predictions, results_subdir, f'{forecaster_name}_{round(scores["R2"], 2)}')
 
 
-    def analyse_results(self, config, forecast_type, plots=True):
+    def analyse_results(self, config, plots=True):
         """Analyse the overall results of running AutoML libraries on datasets
 
         :param str data_dir: Path to datasets directory
         :param argparse.Namespace config: arguments from command line
-        :param str forecast_type: Type of forecasting, i.e. 'global', 'multivariate' or 'univariate'
         :param bool plots: Save plots as images, defaults to True
         """
-        logger.info(f'Analysing results ({forecast_type})')
-        self._validate_inputs(config, forecast_type)
+        logger.info(f'Analysing results ({config.task})')
+        self._validate_inputs(config)
 
         if config.results_dir == None:
             logger.warning('No results directory specified. Skipping')
@@ -302,7 +297,7 @@ class Forecasting():
             logger.error(f'Results directory not found: {config.results_dir} ({type(config.results_dir)})')
 
         else:
-            Utils.summarize_overall_results(config.results_dir, forecast_type, plots=plots)
+            Utils.summarize_overall_results(config.results_dir, config.task, plots=plots)
 
 
     def delete_tmp_dirs(self):
@@ -321,7 +316,7 @@ class Forecasting():
 
 
     def _init_forecaster(self, forecaster_name):
-        """Create forecaster object from name (see Forecasting.get_forecaster_names())
+        """Create forecaster object from name (see Forecasting.forecaster_names)
 
         :param forecaster_name: Name of forecaster (str)
         :raises ValueError: Raised for unknown forecaster name
@@ -362,22 +357,22 @@ class Forecasting():
             from src.pycaret.models import PyCaretForecaster
             forecaster = PyCaretForecaster()
         else:
-            raise ValueError(f'Unknown forecaster {forecaster_name}. Options: {self.global_forecaster_names}')
+            raise ValueError(f'Unknown forecaster {forecaster_name}. Options: {self.forecaster_names}')
         return forecaster
 
 
-    def _validate_inputs(self, config, forecast_type):
+    def _validate_inputs(self, config):
         """Validation inputs for entrypoint run_forecasting_libraries()"""
 
         options = ['global', 'multivariate', 'univariate']
-        if forecast_type not in options:
-            raise ValueError(f'Unrecognised forecast type: {forecast_type}. Options: {options}')
+        if config.task not in options:
+            raise ValueError(f'Unrecognised forecast type: {config.task}. Options: {options}')
 
-        if forecast_type == 'multivariate':
+        if config.task == 'multivariate':
             raise NotImplementedError('multivariate forecasting not implemented')
 
         if config.libraries == 'all':
-            config.libraries = self.global_forecaster_names
+            config.libraries = self.forecaster_names
 
         elif config.libraries == 'installed':
             config = self._check_installed(config)
@@ -386,8 +381,8 @@ class Forecasting():
                 raise TypeError(f'forecaster_names must be a list or "all". Received: {type(config.libraries)}')
 
             for name in config.libraries:
-                if name not in [ 'None', 'test' ] and name not in self.global_forecaster_names:
-                    raise ValueError(f'Unknown forecaster. Options: {self.global_forecaster_names}')
+                if name not in [ 'None', 'test' ] and name not in self.forecaster_names:
+                    raise ValueError(f'Unknown forecaster. Options: {self.forecaster_names}')
 
         if not isinstance(config.nproc, int):
             raise TypeError(f'nproc must be an int. Received {type(config.nproc)}')
@@ -402,14 +397,9 @@ class Forecasting():
             config.results_dir = None
 
         try:
-            _ = os.listdir(config.univariate_forecasting_data_dir)
+            os.listdir(config.data_dir)
         except NotADirectoryError as e:
-            raise NotADirectoryError(f'Unknown directory for datasets_directory. Received: {config.forecasting_data_dir}') from e
-
-        try:
-            _ = os.listdir(config.global_forecasting_data_dir)
-        except NotADirectoryError as e:
-            raise NotADirectoryError(f'Unknown directory for datasets_directory. Received: {config.forecasting_data_dir}') from e
+            raise NotADirectoryError(f'Unknown directory for data_dir. Received: {config.data_dir}') from e
 
         if not isinstance(config.time_limit, int):
             raise TypeError(f'time_limit must be an int. Received: {config.time_limit}')
@@ -492,11 +482,3 @@ class Forecasting():
 
         logger.info(f'Using Libraries: {config.libraries}')
         return config
-
-
-    def get_global_forecaster_names(self):
-        """Return list of forecaster names
-
-        :return: list of forecaster names (str)
-        """
-        return self.global_forecaster_names

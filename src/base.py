@@ -174,7 +174,8 @@ class Forecaster:
     def forecast(self, train_df, test_df, forecast_type, horizon, limit, frequency, tmp_dir,
                  nproc=1,
                  preset='LinearRegression',
-                 target=None):
+                 target=None,
+                 verbose=1):
         """Perform time series forecasting
 
         :param pd.DataFrametrain_df: Dataframe of training data
@@ -188,6 +189,7 @@ class Forecaster:
         :param str preset: Modelling presets
         :param str target_name: Name of target variable for multivariate forecasting, defaults to None
         """
+        self.verbose = verbose
 
         if forecast_type == 'univariate':
             # Create tabular data
@@ -231,8 +233,8 @@ class Forecaster:
             model = constructor()
 
         model = MultiOutputRegressor(model)
-        model = RandomizedSearchCV(estimator=model, param_distributions=hyperparameters, n_jobs=nproc, verbose=1,
-                                   cv=10, scoring='neg_mean_absolute_error')
+        model = RandomizedSearchCV(estimator=model, param_distributions=hyperparameters, n_jobs=nproc,
+                                   verbose=self.verbose, cv=10, scoring='neg_mean_absolute_error')
         model.fit(X_train, y_train)
 
         # Generate predictions

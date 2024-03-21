@@ -10,7 +10,8 @@ from sklearn.experimental import enable_iterative_imputer # pylint: disable=W061
 
 from src.dataset_formatting import DatasetFormatter
 from src.forecasting import Forecasting
-from src.logs import logger, set_log_dir
+from src.logs import logger, LogLevel, set_log_dir
+from src.validation import Library, Task, Validator
 
 if __name__ == '__main__': # Needed for any multiprocessing
 
@@ -21,13 +22,14 @@ if __name__ == '__main__': # Needed for any multiprocessing
     start_time = time.perf_counter()
 
     # Configuration is set up first
-    parser = argparse.ArgumentParser(description='AutoML Python Benchmark')
+    parser = argparse.ArgumentParser(description='AutoML Python Benchmark',
+                                     formatter_class=argparse.RawTextHelpFormatter)
 
     # CPU Only
     parser.add_argument('--cpu_only', '-CO', action='store_true', help='Only use CPU. No modelling on GPU.\n\n')
 
     # Data Directory
-    parser.add_argument('--data_dir', '-DD', type=str, nargs='?', default=None,
+    parser.add_argument('--data_dir', '-DD', metavar='...', type=str, nargs='?', default=None,
                         help='directory containing datasets\n\n')
 
     # Libraries
@@ -35,33 +37,33 @@ if __name__ == '__main__': # Needed for any multiprocessing
         'all', # Will run all libraries
         'installed', # Will run all correctly installed libraries
         'test', # Will run baseline models
-        'None', # No experiments (just other functions)
-        *Forecasting.forecaster_names
+        'none', # No experiments (just other functions)
+        *Library.get_options()
     ]
     default = 'installed'
-    parser.add_argument('--libraries', '-L', type=str, nargs='*', default=default, choices=options,
+    parser.add_argument('--libraries', '-L', metavar='', type=str.lower, nargs='*', default=default, choices=options,
                         help=f'AutoML libraries to run: {options_as_str(options)}\n\n')
 
     # Log Level
-    options = [ 'CRITICAL', 'ERROR', 'WARNING', 'INFO', 'DEBUG' ]
-    default = [ 'DEBUG' ]
+    options = LogLevel
+    default = LogLevel.DEBUG.value
     description = f'Log level. (default={default})' + ''.join([f'\n- {o}' for o in options]) + '\n\n'
-    parser.add_argument('--log_level', '-LL', type=str, nargs='*', default=default,
+    parser.add_argument('--log_level', '-LL', metavar='', type=str.upper, nargs='*', default=default,
                         choices=options, help=description)
 
     # Log Directory
     default = None
-    parser.add_argument('--log_dir', '-LD', type=str, nargs='?', default=default,
+    parser.add_argument('--log_dir', '-LD', metavar='...', type=str, nargs='?', default=default,
                         help=f'Directory containing logs (default={default})\n\n')
 
     # Num. Processes
     default = 1
-    parser.add_argument('--nproc', '-N', type=int, nargs='?', default=default,
+    parser.add_argument('--nproc', '-N', metavar='...', type=int, nargs='?', default=default,
                         help='Number of processes to allow\n\n')
 
     # Maximum Results
     default = 1 # i.e. skip if 1 result existing
-    parser.add_argument('--max_results', '-MR', type=int, nargs='?', default=default,
+    parser.add_argument('--max_results', '-MR', metavar='...', type=int, nargs='?', default=default,
                         help='Maximum number of results to generate per library/preset setup\n\n')
 
     # Repeat Results
@@ -70,33 +72,44 @@ if __name__ == '__main__': # Needed for any multiprocessing
 
     # Results Directory
     default = 'results'
-    parser.add_argument('--results_dir', '-RD', type=str, nargs='?', default=default,
-                        help='Directory to store results\n')
+    parser.add_argument('--results_dir', '-RD', metavar='...', type=str, nargs='?', default=default,
+                        help='Directory to store results\n\n')
 
     # Task
-    options = [ *Forecasting.tasks ]
-    default = 'univariate'
-    parser.add_argument('--task', '-T', type=str, nargs='*', default=default, choices=options,
-                        help=f'Task type to execute: {options_as_str(options)}\n\n')
+    options = Task.get_options()
+    default = Task.UNIVARIATE_FORECASTING
+    parser.add_argument('--task', '-T', metavar='', type=str.lower, nargs='?', default=default, choices=options,
+                        help=f'Task type to execute: {options_as_str(options)}\n')
 
     # Time Limit
     default = 3600 # 1 hour
-    parser.add_argument('--time_limit', '-TL', type=int, nargs='?', default=default,
+    parser.add_argument('--time_limit', '-TL', metavar='...', type=int, nargs='?', default=default,
                         help='Time limit in seconds for each library. May not be strictly adhered to.\n\n')
+
+    # Verbosity of Python libraries
+    # Scikit-learn: 0 = silent, 3 = maximum information
+    # TensorFlow: 0 = silent, 1 = progress bar, 2 = single line
+    default = 1
+    parser.add_argument('--verbose', '-V', metavar='...', type=int, nargs='?', default=default,
+                        help=f'Verbosity of Python libraries (default={default})\n\n')
 
     ######################################################
 
     # Parse CLI arguments
     args = parser.parse_args()
 
-    # Set logging directory (if any) and level
-    logger.setLevel(args.log_level[0])
+    # Validate CLI inputs
+    args = Validator().validate_inputs(args)
+
+    # Set log level
+    logger.setLevel(args.log_level.upper())
     logger.info(f'Started at {datetime.now().strftime("%d-%m-%y %H:%M:%S")}')
 
-    if args.log_dir is not None:
-        set_log_dir()
-    else:
+    # Set logging directory (if any)
+    if args.log_dir is None:
         logger.warning('No logging dir set. Log directory can be set with --log_dir')
+    else:
+        set_log_dir()
 
     # Show CLI argument values
     args_str = '\n-> '.join([ f'{arg}: {getattr(args, arg)}' for arg in vars(args) ])
@@ -117,13 +130,6 @@ if __name__ == '__main__': # Needed for any multiprocessing
 
         # assert gpu_test.tensorflow_test(), 'TensorFlow cannot access GPU'
         # assert gpu_test.pytorch_test(), 'PyTorch cannot access GPU'
-
-    # Initial validation of mandatory arguments
-    if args.task is None:
-        raise ValueError('task must be specified')
-
-    if args.data_dir is None:
-        raise ValueError('data_dir must be specified')
 
     # Format datasets if needed
     data_formatter = DatasetFormatter()

@@ -1,8 +1,35 @@
-import os
-from datetime import datetime
+from enum import Enum
 import logging
 from logging.handlers import TimedRotatingFileHandler
+import os
 import sys
+
+
+class BaseEnum(Enum):
+
+    def __str__(self):
+        return self.value.lower()
+
+    @classmethod
+    def _missing_(cls, value):
+        value = value.lower()
+        for member in cls:
+            if member.__str__().lower() == value:
+                return member
+        return None
+
+    @classmethod
+    def get_options(cls):
+        return [ e.__str__().lower() for e in list(cls) ]
+
+
+class LogLevel(BaseEnum):
+    CRITICAL = 'CRITICAL'
+    ERROR = 'ERROR'
+    WARNING = 'WARNING'
+    INFO = 'INFO'
+    DEBUG = 'DEBUG'
+
 
 # https://docs.python.org/3/library/logging.html#logrecord-attributes
 # log_format = '|%(module)s.py|%(funcName)s|line %(lineno)d|%(asctime)s|%(levelname)s|: %(message)s'

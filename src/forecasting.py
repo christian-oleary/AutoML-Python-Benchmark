@@ -14,6 +14,7 @@ from src.base import Forecaster
 from src.errors import AutomlLibraryError, DatasetTooSmallError
 from src.logs import logger
 from src.util import Utils
+from src.validation import Task
 
 
 class Forecasting():
@@ -48,7 +49,6 @@ class Forecasting():
         self.config = config
         self.data_dir = config.data_dir
         self.forecast_type = config.task
-        self._validate_inputs(config)
 
         csv_files = Utils.get_csv_datasets(self.data_dir)
         metadata = pd.read_csv(os.path.join(self.data_dir, '0_metadata.csv'))
@@ -68,9 +68,11 @@ class Forecasting():
             # Read dataset
             self.dataset_path = os.path.join(self.data_dir, csv_file)
             logger.info(f'Reading dataset {self.dataset_path}')
-            if self.forecast_type == 'global':
+
+            if self.forecast_type == Task.GLOBAL_FORECASTING:
                 self.df = pd.read_csv(self.dataset_path, index_col=0)
-            elif self.forecast_type == 'univariate':
+
+            elif self.forecast_type == Task.UNIVARIATE_FORECASTING:
                 if 'libra' in self.dataset_path:
                     self.df = pd.read_csv(self.dataset_path, header=None)
                 else:
@@ -94,7 +96,7 @@ class Forecasting():
                 self.test_df = self.df.tail(int(len(self.df)* 0.2))
 
             # Get dataset metadata
-            if self.forecast_type == 'global':
+            if self.forecast_type == Task.GLOBAL_FORECASTING:
                 raise NotImplementedError()
                 self.data = metadata[metadata['file'] == csv_file.replace('csv', 'tsf')]
 
@@ -109,10 +111,10 @@ class Forecasting():
                     self.frequency = 'yearly'
                 self.actual = self.test_df.values
 
-            elif self.forecast_type == 'multivariate':
+            elif self.forecast_type == Task.MULTIVARIATE_FORECASTING:
                 raise NotImplementedError()
 
-            elif self.forecast_type == 'univariate':
+            elif self.forecast_type == Task.UNIVARIATE_FORECASTING:
                 self.data = metadata[metadata['file'] == csv_file]
                 self.frequency = int(self.data['frequency'].iloc[0])
                 self.horizon = int(self.data['horizon'].iloc[0])
@@ -124,7 +126,7 @@ class Forecasting():
                 #     'step_size': int(self.data['step_size'].iloc[0])
                 #     }
             else:
-                raise ValueError(f'Unknown value for forecast_type: {self.forecast_type}')
+                raise ValueError(f'Unknown forecast_type: {self.forecast_type}')
 
             # Run each forecaster on the dataset
             for self.forecaster_name in config.libraries:

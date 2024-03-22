@@ -4,10 +4,22 @@ from src.logs import BaseEnum, logger
 
 
 class Task(BaseEnum):
-    NONE = 'none'
     UNIVARIATE_FORECASTING = 'univariate'
     MULTIVARIATE_FORECASTING = 'multivariate'
     GLOBAL_FORECASTING = 'global'
+    ANOMALY_DETECTION = 'anomaly_detection'
+
+    @classmethod
+    def is_forecasting_task(cls, value):
+        forecasting_tasks = [
+            cls.UNIVARIATE_FORECASTING.value,
+            cls.MULTIVARIATE_FORECASTING.value,
+            cls.GLOBAL_FORECASTING.value,
+        ]
+        print('value.__str__()', value.__str__(), type(value.__str__()))
+        print('forecasting_tasks', forecasting_tasks)
+        print( value.__str__().lower() in forecasting_tasks)
+        return value.__str__().lower() in forecasting_tasks
 
 
 class Library(BaseEnum):
@@ -32,17 +44,11 @@ class Validator:
         :param argparse.Namespace args: arguments from command line
         """
 
-        # Standardize strings and None values
-        for arg in vars(args):
-            if isinstance(getattr(args, arg), str):
-                value = getattr(args, arg).lower().strip()
-                if value == 'none':
-                    value = None
-                setattr(args, arg, value)
-
+        # Task
         if args.task in [ 'multivariate', 'global' ]:
             raise NotImplementedError('multivariate forecasting not implemented')
 
+        # Libraries
         if args.libraries == 'all':
             args.libraries = Task.get_options()
 

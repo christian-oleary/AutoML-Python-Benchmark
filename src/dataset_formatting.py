@@ -13,7 +13,7 @@ import pandas as pd
 from src.frequencies import frequencies
 from src.logs import logger
 from src.TSForecasting.data_loader import convert_tsf_to_dataframe, FREQUENCY_MAP
-from src.util import Utils
+from src.validation import Task
 
 
 class DatasetFormatter:
@@ -26,10 +26,12 @@ class DatasetFormatter:
 
         :param argparse.Namespace config: arguments from command line
         """
-        if config.task == 'univariate':
+        if config.task == Task.UNIVARIATE_FORECASTING:
             self.format_univariate_forecasting_data(config.data_dir)
-        elif config.task == 'global':
+        elif config.task == Task.GLOBAL_FORECASTING:
             self.format_global_forecasting_data(config.data_dir)
+        elif config.task == Task.NONE:
+            pass
         else:
             raise NotImplementedError()
 
@@ -81,14 +83,10 @@ class DatasetFormatter:
 
                 # The horizon/frequency are based on the paper:
                 # "Libra: A Benchmark for Time Series Forecasting Methods" Bauer 2021
-                #
                 # - "the horizon is 20% of the time series length"
-                #
                 # - "the [rolling origin] starting point is set either to [a maximum of] 40% of the time series or at two
                 #    times the frequency of the time series plus 1"
-                #
                 # - "the range between the starting point and endpoint is divided into 100 [equal (rounded up)] parts"
-                #
                 frequency = frequencies[csv_file]
                 meta_data['file'].append(csv_file)
                 # meta_data['horizon'].append(int(df.shape[0] * 0.2))

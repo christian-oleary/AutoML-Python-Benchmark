@@ -12,6 +12,7 @@ from src.base import Forecaster
 from src.errors import AutomlLibraryError
 from src.logs import logger
 from src.util import Utils
+from src.validation import Task
 
 # Presets are every combination of the following:
 optimizers = ['hyperband', 'greedy', 'bayesian', 'random']
@@ -58,7 +59,7 @@ class AutoKerasForecaster(Forecaster):
         tmp_dir = 'time_series_forecaster'
         shutil.rmtree(tmp_dir, ignore_errors=True)
 
-        if forecast_type == 'univariate':
+        if forecast_type == Task.UNIVARIATE_FORECASTING:
             target_name = 'target'
             train_df.columns = [ target_name ]
             test_df.columns = [ target_name ]

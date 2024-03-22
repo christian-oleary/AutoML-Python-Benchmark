@@ -45,10 +45,10 @@ if __name__ == '__main__': # Needed for any multiprocessing
                         help=f'AutoML libraries to run: {options_as_str(options)}\n\n')
 
     # Log Level
-    options = LogLevel
+    options = LogLevel.get_options()
     default = LogLevel.DEBUG.value
     description = f'Log level. (default={default})' + ''.join([f'\n- {o}' for o in options]) + '\n\n'
-    parser.add_argument('--log_level', '-LL', metavar='', type=str.upper, nargs='*', default=default,
+    parser.add_argument('--log_level', '-LL', metavar='', type=str.lower, nargs='?', default=default,
                         choices=options, help=description)
 
     # Log Directory
@@ -136,8 +136,8 @@ if __name__ == '__main__': # Needed for any multiprocessing
     data_formatter.format_data(args)
 
     # Run libraries
-    if 'None' not in args.libraries:
-        if args.task in Forecasting.tasks:
+    if None not in args.libraries:
+        if Task.is_forecasting_task(args.task):
             Forecasting().run_forecasting_libraries(args)
             Forecasting().analyse_results(args)
         else:

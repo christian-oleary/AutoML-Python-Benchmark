@@ -41,14 +41,14 @@ class Forecaster:
             'criterion': ['absolute_error', 'friedman_mse', 'squared_error'],
             'splitter': ['best', 'random'],
             'max_depth': [8, 16, 32, 64, 128, None],
-            'max_features':['auto', 'sqrt', 'log2'],
+            'max_features':[1.0, 'sqrt', 'log2'],
         }),
         DummyRegressor.__name__: (DummyRegressor, {}),
         ExtraTreeRegressor.__name__: (ExtraTreeRegressor, {
             'criterion': ['absolute_error', 'friedman_mse', 'squared_error'],
             'splitter': ['best', 'random'],
             'max_depth': [8, 16, 32, 64, 128, None],
-            'max_features':['auto', 'sqrt', 'log2'],
+            'max_features':[1.0, 'sqrt', 'log2'],
         }),
         ElasticNet.__name__: (ElasticNet, {
             'alpha': [0.2, 0.4, 0.6, 0.8, 1],
@@ -64,8 +64,7 @@ class Forecaster:
         KernelRidge.__name__: (KernelRidge, {
             # KRR uses squared error loss while support vector regression uses epsilon-insensitive loss
             'alpha': [0.2, 0.4, 0.6, 0.8, 1.0],
-            'kernel': ['additive_chi2', 'chi2', 'linear', 'poly', 'polynomial',
-                       'rbf', 'laplacian', 'sigmoid', 'cosine'],
+            'kernel': ['additive_chi2', 'chi2', 'linear', 'poly', 'polynomial', 'rbf', 'laplacian', 'sigmoid','cosine'],
             'degree': [2, 3, 4, 5, 6],
             'coef0': [0.0, 0.5, 1.0],
         }),
@@ -108,7 +107,7 @@ class Forecaster:
             'learning_rate_init': [ 1, 0.1, 0.01, 0.001 ],
         }),
         NuSVR.__name__: (NuSVR, {
-            'nu': [0.0, 0.2, 0.4, 0.6, 0.8, 1.0],
+            'nu': [0.2, 0.4, 0.6, 0.8, 1.0],
             'C': [0.001, 0.01, 0.1, 1.0],
             'kernel': ['rbf', 'sigmoid', 'linear'],
             'degree': [2, 3, 4, 5, 6],
@@ -128,7 +127,7 @@ class Forecaster:
             'n_estimators': [10, 50, 100, 150, 200],
             'criterion': ['absolute_error', 'poisson', 'squared_error'],
             'max_depth': [16, 32, 64, 128, None],
-            'max_features':['auto', 'sqrt', 'log2'],
+            'max_features':[1.0, 'sqrt', 'log2'],
             'bootstrap': [True, False],
         }),
         Ridge.__name__: (Ridge, {
@@ -137,7 +136,7 @@ class Forecaster:
             'solver': ['auto', 'svd', 'cholesky', 'sparse_cg', 'lsqr'], # sag & saga removed due to NumPy related bugs
         }),
         SGDRegressor.__name__: (SGDRegressor, {
-            'loss': ['squared_loss', 'huber', 'epsilon_insensitive', 'squared_epsilon_insensitive'],
+            'loss': ['squared_error', 'huber', 'epsilon_insensitive', 'squared_epsilon_insensitive'],
             'penalty': ['l2', 'l1', 'elasticnet'],
             'alpha': [1e-3, 1e-4, 1e-5],
             'l1_ratio': [0.0, 0.15, 0.5, 1.0],
@@ -171,20 +170,20 @@ class Forecaster:
 
     presets = [ 'Naive', 'Constant' ] + list(regression_models.keys())
 
-    def forecast(self, train_df, test_df, forecast_type, horizon, limit, frequency, tmp_dir,
+    def forecast(self, train_df, test_df, forecast_type, horizon, limit, frequency, tmp_dir, # pylint: disable=W0613
                  nproc=1,
                  preset='LinearRegression',
                  target=None,
                  verbose=1):
         """Perform time series forecasting
 
-        :param pd.DataFrametrain_df: Dataframe of training data
-        :param pd.DataFrame test_df: Dataframe of test data
+        :param pd.DataFrame train_df: DataFrame of training data
+        :param pd.DataFrame test_df: DataFrame of test data
         :param str forecast_type: Type of forecasting, 'global', 'univariate' or 'multivariate'
-        :param int horizon: Forecast horizon (how far ahead to predict) (int)
-        :param int limit: Iterations limit (int)
-        :param int frequency: Data frequency (str)
-        :param str tmp_dir: Path to directory to store temporary files (str)
+        :param int horizon: Forecast horizon (how far ahead to predict)
+        :param int limit: Iterations limit (included for API compatibility)
+        :param int frequency: Data frequency (included for API compatibility)
+        :param str tmp_dir: Path to directory to store temporary files
         :param int nproc: Number of threads/processes allowed, defaults to 1
         :param str preset: Modelling presets
         :param str target_name: Name of target variable for multivariate forecasting, defaults to None
@@ -205,20 +204,32 @@ class Forecaster:
             # Fit model
             logger.debug(f'Training {preset} model...')
             if preset == 'Naive':
-                predictions = X_test[f'{target}-24'].values
+                predictions = X_test[f'{target}-{horizon}'].values
             elif preset == 'Constant':
                 predictions = np.full(len(y_test), np.mean(y_train))
             else:
                 X_train = X_train.tail(10000)
                 y_train = y_train[-10000:]
-                predictions = self.train_model(X_train, y_train, X_test, horizon, forecast_type, nproc, tmp_dir,
-                                               model_name=preset)
+                predictions = self.train_model(
+                    X_train, y_train, X_test, forecast_type, nproc, tmp_dir,model_name=preset)
         else:
             raise NotImplementedError('Base models not implemented for multivariate/global forecasting yet')
         return predictions
 
 
-    def train_model(self, X_train, y_train, X_test, horizon, forecast_type, nproc, tmp_dir, model_name):
+    def train_model(self, X_train, y_train, X_test, forecast_type, nproc, tmp_dir, model_name):
+        """Train machine learning model
+
+        :param pd.DataFrame X_train: Training features
+        :param np.array y_train: Training target values
+        :param pd.DataFrame X_test: Test features
+        :param str forecast_type: Type of forecasting (univariate, multivariate or global)
+        :param int nproc: Number of processes
+        :param str tmp_dir: Dir to store any temporary files
+        :param str model_name: Name of model
+        :raises NotImplementedError: Unsupported forecasting methods
+        :return np.array: Forecast predictions
+        """
         # Scale data
         scaler = MinMaxScaler()
         X_train = scaler.fit_transform(X_train)
@@ -229,7 +240,7 @@ class Forecaster:
 
         try:
             model = constructor(n_jobs=nproc)
-        except: # If API does not have n_jobs
+        except TypeError as _: # If API for model does not have n_jobs
             model = constructor()
 
         model = MultiOutputRegressor(model)
@@ -251,6 +262,11 @@ class Forecaster:
             X_test = scaler.transform(X_test)
             predictions = model.predict(X_test)
             predictions = predictions.flatten()
+
+        elif forecast_type == 'multivariate':
+            raise NotImplementedError()
+        elif forecast_type == 'global':
+            raise NotImplementedError()
         else:
             raise NotImplementedError()
         return predictions
@@ -266,21 +282,22 @@ class Forecaster:
         return horizon # horizon may be used (Monash 2021). Libra does not specify.
 
 
-    def create_tabular_dataset(self, train_df, test_df, horizon, target_cols, tabular_y=True, lag=None):
+    def create_tabular_dataset(self, train_df:pd.DataFrame, test_df:pd.DataFrame, horizon:int, target_cols:list,
+                               tabular_y:bool=True, lag:int=None):
         """Prepare training and test sets for tabular regression
 
         :param pd.DataFrame train_df: Training data
         :param pd.DataFrame test_df: Test data
         :param int horizon: Forecast horizon
         :param str or list target_cols: Name of target column(s)
-        :param bool tabular_y: Target (y) returned with 'horizon' columns if true, as one column otherwise, defaults to False
+        :param bool tabular_y: Target returned with 'horizon' columns if true, as one column otherwise, default is False
         :param int lag: Lag/window size, defaults to None
         :return tuple: Tuple containing training features, training labels, test features
         """
-        if lag == None and horizon == None:
+        if lag is None and horizon is None:
             raise ValueError('Either lag or horizon must be provided')
 
-        if lag == None:
+        if lag is None:
             lag = self.get_default_lag(horizon)
 
         train_df, X_train, y_train = self.create_tabular_data(train_df, lag, horizon, target_cols, tabular_y)
@@ -371,7 +388,7 @@ class Forecaster:
 
 
     def estimate_new_limit(self, time_limit, current_limit, duration, limit_type='time'):
-        """Estimate what time/interations limit to use
+        """Estimate what time/iterations limit to use
 
         :param time_limit: Required time limit for valid experiment
         :param current_limit: The limit used for the previous experiment
@@ -490,7 +507,7 @@ class Forecaster:
                            target_names=None):
         """Perform tabular regression
 
-        :param pd.DataFrametrain_df: Dataframe of training data
+        :param pd.DataFrame train_df: Dataframe of training data
         :param pd.DataFrame test_df: Dataframe of test data
         :param str forecast_type: Type of forecasting, 'global', 'univariate' or 'multivariate'
         :param int horizon: Forecast horizon (how far ahead to predict) (int)
@@ -523,4 +540,3 @@ class Forecaster:
             predictions = self.train_model(X_train, y_train, X_test, horizon, forecast_type, nproc, tmp_dir,
                                             model_name=preset)
         return predictions
-

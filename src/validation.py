@@ -1,9 +1,13 @@
+"""File for validating program inputs"""
+
 import os
 
 from src.logs import BaseEnum, logger
 
 
 class Task(BaseEnum):
+    """Machine Learning Tasks"""
+
     UNIVARIATE_FORECASTING = 'univariate'
     MULTIVARIATE_FORECASTING = 'multivariate'
     GLOBAL_FORECASTING = 'global'
@@ -11,18 +15,22 @@ class Task(BaseEnum):
 
     @classmethod
     def is_forecasting_task(cls, value):
+        """Determine if task involves time series forecasting"""
         forecasting_tasks = [
             cls.UNIVARIATE_FORECASTING.value,
             cls.MULTIVARIATE_FORECASTING.value,
             cls.GLOBAL_FORECASTING.value,
         ]
-        print('value.__str__()', value.__str__(), type(value.__str__()))
-        print('forecasting_tasks', forecasting_tasks)
-        print( value.__str__().lower() in forecasting_tasks)
-        return value.__str__().lower() in forecasting_tasks
+        # print('value.__str__()', value.__str__(), type(value.__str__()))
+        # print('forecasting_tasks', forecasting_tasks)
+        # print( value.__str__().lower() in forecasting_tasks)
+        # return value.__str__().lower() in forecasting_tasks
+        return value.lower() in forecasting_tasks
 
 
 class Library(BaseEnum):
+    """AutoML Libraries"""
+
     AutoGluon = 'autogluon'
     AutoKeras = 'autokeras'
     AutoTS = 'autots'

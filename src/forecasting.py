@@ -69,10 +69,10 @@ class Forecasting():
             self.dataset_path = os.path.join(self.data_dir, csv_file)
             logger.info(f'Reading dataset {self.dataset_path}')
 
-            if self.forecast_type == Task.GLOBAL_FORECASTING:
+            if self.forecast_type == Task.GLOBAL_FORECASTING.value:
                 self.df = pd.read_csv(self.dataset_path, index_col=0)
 
-            elif self.forecast_type == Task.UNIVARIATE_FORECASTING:
+            elif self.forecast_type == Task.UNIVARIATE_FORECASTING.value:
                 if 'libra' in self.dataset_path:
                     self.df = pd.read_csv(self.dataset_path, header=None)
                 else:
@@ -96,7 +96,7 @@ class Forecasting():
                 self.test_df = self.df.tail(int(len(self.df)* 0.2))
 
             # Get dataset metadata
-            if self.forecast_type == Task.GLOBAL_FORECASTING:
+            if self.forecast_type == Task.GLOBAL_FORECASTING.value:
                 raise NotImplementedError()
                 self.data = metadata[metadata['file'] == csv_file.replace('csv', 'tsf')]
 
@@ -111,10 +111,10 @@ class Forecasting():
                     self.frequency = 'yearly'
                 self.actual = self.test_df.values
 
-            elif self.forecast_type == Task.MULTIVARIATE_FORECASTING:
+            elif self.forecast_type == Task.MULTIVARIATE_FORECASTING.value:
                 raise NotImplementedError()
 
-            elif self.forecast_type == Task.UNIVARIATE_FORECASTING:
+            elif self.forecast_type == Task.UNIVARIATE_FORECASTING.value:
                 self.data = metadata[metadata['file'] == csv_file]
                 self.frequency = int(self.data['frequency'].iloc[0])
                 self.horizon = int(self.data['horizon'].iloc[0])
@@ -284,10 +284,9 @@ class Forecasting():
         :param argparse.Namespace config: arguments from command line
         :param bool plots: Save plots as images, defaults to True
         """
-        logger.info(f'Analysing results ({config.task})')
-        self._validate_inputs(config)
+        logger.info(f'Analyzing results ({config.task})')
 
-        if config.results_dir == None:
+        if config.results_dir is None:
             logger.warning('No results directory specified. Skipping')
 
         elif not os.path.exists(config.results_dir):
@@ -320,7 +319,8 @@ class Forecasting():
         :return: Forecaster object
         """
 
-        # Import statements included here to accomodate different/conflicting setups
+        # Import statements included here to accommodate different/conflicting setups
+        # pylint: disable=C0415:import-outside-toplevel
         if forecaster_name == 'test':
             forecaster = Forecaster()
         elif forecaster_name == 'autogluon':

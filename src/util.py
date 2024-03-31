@@ -596,14 +596,15 @@ class Utils:
                 Utils.plot_test_scores(all_scores, stats_dir, plots)
 
 
-    def save_heatmap(df, csv_path, png_path):
+    @staticmethod
+    def save_heatmap(df:pd.DataFrame, csv_path:str, png_path:str):
         """Save Pearson Correlation Matrix of metrics
 
         :param pd.DataFrame df: Results
         :param str csv_path: Path to CSV file
         :param str png_path: Path to PNG file
         """
-        # Save Perason correlation heatmap of metrics as an indication of agreement.
+        # Save Pearson correlation heatmap of metrics as an indication of agreement.
         # columns = ['GM-MAE-SR', 'MAE', 'MASE', 'MSE', 'RMSE', 'SRC'] # SRC is not normally distributed
         columns = ['GM-MAE-SR', 'MAE', 'MASE', 'MSE', 'RMSE'] # SRC removed
         df[columns].to_csv('variables.csv')

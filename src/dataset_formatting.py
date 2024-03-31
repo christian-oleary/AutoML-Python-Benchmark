@@ -26,9 +26,9 @@ class DatasetFormatter:
 
         :param argparse.Namespace config: arguments from command line
         """
-        if config.task == Task.UNIVARIATE_FORECASTING:
+        if config.task == Task.UNIVARIATE_FORECASTING.value:
             self.format_univariate_forecasting_data(config.data_dir)
-        elif config.task == Task.GLOBAL_FORECASTING:
+        elif config.task == Task.GLOBAL_FORECASTING.value:
             self.format_global_forecasting_data(config.data_dir)
         elif config.task == Task.NONE:
             pass

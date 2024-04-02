@@ -141,6 +141,7 @@ Linting:
 ```bash
 pip install -r ./tests/requirements.txt
 python -m pylint src
+python -m pylint src --disable=all --enable=W0102
 ```
 
 Check if TensorFlow/PyTorch can access GPUs:

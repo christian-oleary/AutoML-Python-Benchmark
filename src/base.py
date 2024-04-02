@@ -345,7 +345,7 @@ class Forecaster:
         return df, X, y
 
 
-    def create_lag_features(self, df, targets, target_cols, window_size, ignored=[]):
+    def create_lag_features(self, df, targets, target_cols, window_size, ignored=None):
         """Create features based on historical feature values
 
         :param pd.DataFrame df: Input DataFrame
@@ -354,6 +354,9 @@ class Forecaster:
         :param list ignored: List of column names to ignore
         :return pd.DataFrame: DataFrame with columns replaced with lagged versions
         """
+        if ignored is None:
+            ignored = []
+
         lagged_cols = {}
         for col in df.columns:
             if col not in ignored and (col not in target_cols or col in targets):

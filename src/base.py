@@ -272,7 +272,7 @@ class Forecaster:
         return predictions
 
 
-    def get_default_lag(self, horizon):
+    def get_default_lag(self, horizon:int):
         """Get default lag/lookback for generating a sliding window of features
 
         :param int horizon: Prediction horizon
@@ -315,7 +315,7 @@ class Forecaster:
         return X_train, y_train, X_test, y_test
 
 
-    def create_tabular_data(self, df, lag, horizon, targets, tabular_y, drop_original=False):
+    def create_tabular_data(self, df:pd.DataFrame, lag:int, horizon:int, targets:list, tabular_y:bool):
         """Prepare time series data for tabular regression
 
         :param pd.DataFrame df: Time series data
@@ -354,13 +354,17 @@ class Forecaster:
         :param list ignored: List of column names to ignore
         :return pd.DataFrame: DataFrame with columns replaced with lagged versions
         """
+        lagged_cols = {}
         for col in df.columns:
             if col not in ignored and (col not in target_cols or col in targets):
                 for i in range(1, window_size+1):
-                    df[f'{col}-{i}'] = df[col].shift(i)
+                    lagged_cols[f'{col}-{i}'] = df[col].shift(i)
 
                 if col != targets[0]:
                     df = df.drop(col, axis=1)
+
+        new_cols = pd.concat(lagged_cols, axis=1, ignore_index=False)
+        df = pd.concat((df, new_cols), axis=1, ignore_index=False)
         return df
 
 

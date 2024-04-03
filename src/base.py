@@ -345,7 +345,8 @@ class Forecaster:
         return df, X, y
 
 
-    def create_lag_features(self, df, targets, target_cols, window_size, ignored=None):
+    def create_lag_features(self, df:pd.DataFrame, targets:list, target_cols:list,
+                            window_size:int, ignored:bool=None) -> pd.DataFrame:
         """Create features based on historical feature values
 
         :param pd.DataFrame df: Input DataFrame
@@ -375,21 +376,30 @@ class Forecaster:
         """Create a window of future values for multioutput forecasting
         """
         all_target_cols = []
+        future_cols = {}
         for target in targets:
             target_cols = [ target ]
+
             for i in range(1, horizon):
                 col_name = f'{target}+{i}'
-                df[col_name] = df[target].shift(-i)
+                # df[col_name] = df[target].shift(-i)
                 target_cols.append(col_name)
+                future_cols[col_name] = df[target].shift(i)
+
             all_target_cols = all_target_cols + target_cols
+
+        new_cols = pd.concat(future_cols, axis=1, ignore_index=False)
+        df = pd.concat((df, new_cols), axis=1, ignore_index=False)
+
         return df, all_target_cols
 
 
-    def estimate_initial_limit(self, time_limit, preset):
+    def estimate_initial_limit(self, time_limit:int, preset:str) -> int: # pylint: disable=W0613
         """Estimate initial time limit to use for TimeSeriesPredictor fit()
 
-        :param time_limit: Maximum time allowed for AutoGluonForecaster.forecast() (int)
-        :return: Estimated time limit (int)
+        :param int time_limit: Maximum time allowed for AutoGluonForecaster.forecast()
+        :param str preset: Library preset (unused in Forecaster class)
+        :return int: Estimated time limit
         """
         return time_limit
 

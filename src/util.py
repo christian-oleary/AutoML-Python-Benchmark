@@ -431,12 +431,12 @@ class Utils:
         # Sort by GM-MAE-SR
         df = df.sort_values('GM-MAE-SR')
         # Filter columns
-        df = df[['library', 'preset', 'duration', 'GM-MAE-SR', 'MAE', 'MASE', 'MSE', 'RMSE',
-                                        'Spearman Correlation']]
+        df = df[['library', 'preset', 'duration', 'GM-MAE-SR', 'MAE', 'MASE', 'MSE', 'RMSE', 'Spearman Correlation']]
         # Rename columns
-        df.columns = ['Library', 'Preset', 'Duration (sec.)', 'GM-MAE-SR', 'MAE', 'MASE', 'MSE', 'RMSE',
-                                    'SRC']
-        df['Library'] = df['Library'].str.capitalize() # Format library names
+        df.columns = ['Library', 'Preset', 'Duration (sec.)', 'GM-MAE-SR', 'MAE', 'MASE', 'MSE', 'RMSE', 'SRC']
+        # Format library names
+        df['Library'] = df['Library'].str.capitalize()
+        # Format presets
         df['Preset'] = df['Preset'] \
             .str.replace('Fedot', 'FEDOT') \
             .str.replace('Flaml', 'FLAML') \
@@ -490,7 +490,7 @@ class Utils:
             save_path = os.path.join(stats_dir, '3_failed_counts.png')
             Utils.save_plot('Failed Counts', save_path=save_path)
 
-            # Boxplots
+            # Box plots
             for col, filename, title in [
                 ('MAE', '5_MAE_box.png', 'MAE'),
                 ('MSE', '5_MSE_box.png', 'MSE'),
@@ -530,7 +530,7 @@ class Utils:
                 save_path = os.path.join(stats_dir, f'3_failed_counts_by_{group_col}.png')
                 Utils.save_plot(f'Failed Counts by {group_col}', save_path=save_path, legend=None, yscale='linear')
 
-                # Boxplots
+                # Box plots
                 for col, filename, title, yscale in [
                     ('R2_mean', f'4_R2_mean_by_{group_col}.png', 'Mean R2', 'linear'),
                     ('MAE_mean', f'5_MAE_mean_by_{group_col}.png', 'Mean MAE', 'linear'),
@@ -542,10 +542,7 @@ class Utils:
                     Utils.save_plot(title, save_path=save_path, legend=None, yscale=yscale)
 
         # Plot mean scores by library
-        plot_averages(group_col='library',
-                      cols_to_drop=['file', 'failed', 'preset'],
-                      fig_width=6,
-                      fig_height=3)
+        plot_averages(group_col='library', cols_to_drop=['file', 'failed', 'preset'], fig_width=6, fig_height=3)
 
         # # Plot mean scores by library/preset
         # test_scores['library-preset'] = test_scores['library'] + ': ' + test_scores['preset']
@@ -612,12 +609,13 @@ class Utils:
 
         # Save correlations and corresponding p-values as CSV
         heatmap.to_csv(csv_path) # Save correlations as CSV
-        heatmap.to_latex(csv_path.replace('.csv', '.tex')) # Save correlations as .tex
+        # heatmap.to_latex(csv_path.replace('.csv', '.tex')) # Save correlations as .tex
+        heatmap.style.to_latex(csv_path.replace('.csv', '.tex')) # Save correlations as .tex
         try:
             calculate_pvalues = lambda x, y: pearsonr(x, y).pvalue
             df[columns].corr(method=calculate_pvalues).to_csv(csv_path.replace('.csv', '_pvalues.csv'))
         # older scipy versions return a tuple instead of an object
-        except:
+        except AttributeError as _:
             calculate_pvalues = lambda x, y: pearsonr(x, y)[1]
             df[columns].corr(method=calculate_pvalues).to_csv(csv_path.replace('.csv', '_pvalues.csv'))
 

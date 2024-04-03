@@ -4,7 +4,9 @@ import argparse
 from datetime import datetime, timedelta
 import os
 import time
+import warnings
 
+from sklearn.exceptions import ConvergenceWarning
 # import needed for IterativeImputer
 from sklearn.experimental import enable_iterative_imputer # pylint: disable=W0611
 
@@ -13,17 +15,20 @@ from src.forecasting import Forecasting
 from src.logs import logger, LogLevel, set_log_dir
 from src.validation import Library, Task, Validator
 
-if __name__ == '__main__': # Needed for any multiprocessing
 
-    def options_as_str(options):
-        return ''.join([f'\n- {o}' for o in options]) + '\n'
+if __name__ == '__main__': # Needed for any multiprocessing
+    warnings.simplefilter('ignore', category=ConvergenceWarning)
+
+    def options_as_str(param_options:list):
+        """Parameter options formatting"""
+        return ''.join([f'\n- {o}' for o in param_options]) + '\n'
 
     # Start timer
     start_time = time.perf_counter()
 
     # Configuration is set up first
-    parser = argparse.ArgumentParser(description='AutoML Python Benchmark',
-                                     formatter_class=argparse.RawTextHelpFormatter)
+    parser = argparse.ArgumentParser(
+        description='AutoML Python Benchmark', formatter_class=argparse.RawTextHelpFormatter)
 
     # CPU Only
     parser.add_argument('--cpu_only', '-CO', action='store_true', help='Only use CPU. No modelling on GPU.\n\n')

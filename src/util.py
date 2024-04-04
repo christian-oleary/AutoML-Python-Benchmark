@@ -7,12 +7,13 @@ import math
 import os
 import platform
 import time
+import warnings
 
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import seaborn as sns
-from scipy.stats import gmean, pearsonr, spearmanr
+from scipy.stats import ConstantInputWarning, gmean, pearsonr, spearmanr
 from sklearn.metrics import (mean_absolute_error, mean_absolute_percentage_error, median_absolute_error,
                              mean_squared_error, r2_score)
 from sktime.performance_metrics.forecasting import MeanAbsoluteScaledError
@@ -61,8 +62,8 @@ class Utils:
         :param np.array predicted: Predicted time series values
         :param np.array y_train: Training values (required for MASE)
         :param str scores_dir: Path to file to record scores (str or None), defaults to None
-        :param str forecaster_name: Name of model (str)
-        :param str multioutput: 'raw_values' (raw errors), 'uniform_average' (averaged errors), defaults to 'uniform_average'
+        :param str forecaster_name: Name of model
+        :param str multioutput: 'raw_values' (raw error), 'uniform_average' (averaged error), default: 'uniform_average'
         :raises TypeError: If forecaster_name is not provided when saving results to file
         :return results: Dictionary of results
         """
@@ -75,8 +76,11 @@ class Utils:
             raise ValueError(f'Predicted ({predicted.shape}) and actual ({actual.shape}) shapes do not match!')
 
         mase = MeanAbsoluteScaledError(multioutput='uniform_average')
-        pearson = Utils.correlation(actual, predicted, method='pearson')
-        spearman = Utils.correlation(actual, predicted, method='spearman')
+
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore', category=ConstantInputWarning)
+            pearson = Utils.correlation(actual, predicted, method='pearson')
+            spearman = Utils.correlation(actual, predicted, method='spearman')
 
         results = {
             'MAE': mean_absolute_error(actual, predicted, multioutput=multioutput),
@@ -102,11 +106,11 @@ class Utils:
         results['GM-MAE-SR'] = Utils.geometric_mean(results['MAE'], results['Spearman Correlation'])
         results['GM-MASE-SR'] = Utils.geometric_mean(results['MASE'], results['Spearman Correlation'])
 
-        if 'duration' in kwargs.keys():
+        if 'duration' in kwargs:
             results['duration'] = kwargs['duration']
 
-        if scores_dir != None:
-            if forecaster_name == None:
+        if scores_dir is not None:
+            if forecaster_name is None:
                 raise TypeError('Forecaster name required to save scores')
             os.makedirs(scores_dir, exist_ok=True)
 
@@ -143,9 +147,9 @@ class Utils:
         :param np.array predicted: Predicted values
         :return float: Geometric mean of MAE and SRC
         """
-        MAE = mean_absolute_error(actual, predicted, multioutput='uniform_average'),
+        MAE = mean_absolute_error(actual, predicted, multioutput='uniform_average')
         SRC = Utils.correlation(actual, predicted, method='spearman')[0]
-        return Utils.geometric_mean([MAE, SRC])
+        return Utils.geometric_mean(MAE, SRC)
 
 
     @staticmethod
@@ -168,7 +172,7 @@ class Utils:
         try:
             correlation = result.correlation
             pvalue = result.pvalue
-        except: # older scipy versions returned a tuple instead of an object
+        except AttributeError as _:
             correlation = result[0]
             pvalue = result[1]
 

@@ -2,7 +2,13 @@
 
 Benchmarks of AutoML Frameworks for time series forecasting and anomaly detection.
 
-These experiments are run with Python 3.8 and CUDA versions 11.2 and 11.7.
+## Publications
+
+A Comparative Analysis of Automated Machine Learning Libraries for Electricity Price Forecasting
+
+- [Tag](https://github.com/christian-oleary/AutoML-Python-Benchmark/releases/tag/electricity_price_forecasting)
+- [Code](https://github.com/christian-oleary/AutoML-Python-Benchmark/tree/c436f3f83e6872ab8a4bb430923fc5aaf64f5ade)
+- These experiments are run with Python 3.9 and CUDA versions 11.2 and 11.7.
 
 ## Downloading Datasets
 

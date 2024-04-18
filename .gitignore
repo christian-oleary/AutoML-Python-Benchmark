@@ -8,6 +8,7 @@ env*/
 data/
 ignore/
 logs/
+papers/
 repositories/
 results/
 tmp/

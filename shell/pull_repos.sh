@@ -9,6 +9,8 @@ repo_dir=./repositories/
 mkdir -p ${repo_dir}
 
 # Clone repository or pull if already existing
+if echo SCAIT-Python: && cd ${repo_dir}SCAIT-Python; then git pull && cd ../../; else git clone https://github.com/farshad1982/SCAIT-Python.git ${repo_dir}SCAIT-Python; fi
+
 if echo Adanet: && cd ${repo_dir}adanet; then git pull && cd ../../; else git clone https://github.com/tensorflow/adanet.git ${repo_dir}adanet; fi
 if echo Auto-PyTorch: && cd ${repo_dir}Auto-PyTorch; then git pull && cd ../../; else git clone https://github.com/automl/Auto-PyTorch.git ${repo_dir}Auto-PyTorch; fi
 if echo auto-sklearn: && cd ${repo_dir}auto-sklearn; then git pull && cd ../../; else git clone https://github.com/automl/auto-sklearn ${repo_dir}auto-sklearn; fi

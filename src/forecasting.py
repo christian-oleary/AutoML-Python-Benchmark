@@ -37,8 +37,7 @@ class Forecasting():
         'wind_farms_minutely_dataset_without_missing_values',
         'wind_farms_minutely_dataset_with_missing_values',
         'wind_4_seconds_dataset',
-        ]
-
+    ]
 
     def run_forecasting_libraries(self, config):
         """Entrypoint to run forecasting libraries on available datasets
@@ -60,7 +59,7 @@ class Forecasting():
             # we do not consider the London smart meters, wind farms, solar power, and wind power datasets
             # for both univariate and global model evaluations, the Kaggle web traffic daily dataset for
             # the global model evaluations and the solar 10 minutely dataset for the WaveNet evaluation
-            filter_forecast_datasets = True # TODO: make an env variable
+            filter_forecast_datasets = True  # TODO: make an env variable
             if filter_forecast_datasets and self.dataset_name in self.omitted_datasets:
                 logger.debug(f'Skipping dataset {self.dataset_name}')
                 continue
@@ -78,22 +77,22 @@ class Forecasting():
                 else:
                     self.df = pd.read_csv(self.dataset_path)
                     self.df = self.df.set_index('applicable_date')
-                self.df.columns = [ 'target' ]
+                self.df.columns = ['target']
             else:
                 raise NotImplementedError()
 
             # I-SEM dataset
             if 'ISEM_prices' in self.dataset_name:
-                self.train_df = self.df.loc[:'19/10/2020 23:00',:] # 293 days or ~80% of 2020
-                self.test_df = self.df.loc['20/10/2020 00:00':,:] # 73 days or ~20% of 2020
+                self.train_df = self.df.loc[:'19/10/2020 23:00', :]  # 293 days or ~80% of 2020
+                self.test_df = self.df.loc['20/10/2020 00:00':, :]  # 73 days or ~20% of 2020
 
             # Holdout for model testing (80% training, 20% testing).
             # This seems to be used by Godahewa et al. for global forecasting:
             # https://github.com/rakshitha123/TSForecasting/blob/master/experiments/rolling_origin.R#L10
             # Also used by Bauer 2021 for univariate forecasting
             else:
-                self.train_df = self.df.head(int(len(self.df)* 0.8))
-                self.test_df = self.df.tail(int(len(self.df)* 0.2))
+                self.train_df = self.df.head(int(len(self.df) * 0.8))
+                self.test_df = self.df.tail(int(len(self.df) * 0.2))
 
             # Get dataset metadata
             if self.forecast_type == Task.GLOBAL_FORECASTING.value:
@@ -119,7 +118,7 @@ class Forecasting():
                 self.frequency = int(self.data['frequency'].iloc[0])
                 self.horizon = int(self.data['horizon'].iloc[0])
                 self.actual = self.test_df.copy().values.flatten()
-                self.y_train = self.train_df.copy().values.flatten() # Required for MASE
+                self.y_train = self.train_df.copy().values.flatten()  # Required for MASE
                 # Libra's custom rolling origin forecast:
                 # kwargs = {
                 #     'origin_index': int(self.data['origin_index'].iloc[0]),
@@ -137,18 +136,17 @@ class Forecasting():
                     self.limit = self.forecaster.estimate_initial_limit(config.time_limit, preset)
                     self.evaluate_library_preset(preset, csv_file)
 
-
     def evaluate_library_preset(self, preset, csv_file):
         """Evaluate a specific library on a specific preset
 
         :param str preset: Library specific preset
         :param str csv_file: Name of dataset CSV file
         """
-        if self.config.results_dir != None:
-            results_subdir = os.path.join(self.config.results_dir,
-                                          f'{self.forecast_type}_forecasting', self.dataset_name,
-                                          self.forecaster_name,
-                                          f'preset-{preset}_proc-{self.config.nproc}_limit-{self.limit}')
+        if self.config.results_dir is not None:
+            results_subdir = os.path.join(
+                self.config.results_dir, f'{self.forecast_type}_forecasting', self.dataset_name, self.forecaster_name,
+                f'preset-{preset}_proc-{self.config.nproc}_limit-{self.limit}'
+            )
             # If results are invalid and need to be removed:
             # if 'forecaster_name' in results_subdir and os.path.exists(results_subdir):
             #     shutil.rmtree(results_subdir)
@@ -162,10 +160,11 @@ class Forecasting():
             logger.info(f'Results found for {results_subdir}. Skipping training')
 
             # Summarize experiment results
-            if self.config.results_dir != None:
+            if self.config.results_dir is not None:
                 Utils.summarize_dataset_results(
                     os.path.join(self.config.results_dir, f'{self.forecast_type}_forecasting', self.dataset_name),
-                    plots=False)
+                    plots=False
+                )
             return
 
         # for iteration in range(min_trials):
@@ -186,9 +185,10 @@ class Forecasting():
                 logger.debug(f'{self.forecaster_name} (preset: {preset}) took {duration} seconds for {csv_file}')
 
                 # Generate scores and plots
-                if self.config.results_dir != None:
-                    self.evaluate_predictions(self.actual, predictions, self.y_train, results_subdir, self.forecaster_name,
-                                            duration)
+                if self.config.results_dir is not None:
+                    self.evaluate_predictions(
+                        self.actual, predictions, self.y_train, results_subdir, self.forecaster_name, duration
+                    )
 
             except DatasetTooSmallError as e1:
                 logger.error('Failed to fit. Dataset too small for library.')
@@ -202,11 +202,10 @@ class Forecasting():
                 raise e3
 
             # Summarize experiment results
-            if self.config.results_dir != None:
+            if self.config.results_dir is not None:
                 Utils.summarize_dataset_results(
                     os.path.join(self.config.results_dir, f'{self.forecast_type}_forecasting', self.dataset_name),
                     plots=True)
-
 
     def determine_num_trials(self, results_subdir):
         """Determine how many experiments to run"""
@@ -227,12 +226,11 @@ class Forecasting():
 
         return num_iterations
 
-
     def record_failure(self, results_subdir, error):
+        """Record failed forecasting attempts"""
         os.makedirs(results_subdir, exist_ok=True)
-        with open(os.path.join(results_subdir, 'failed.txt'), 'w') as fh:
+        with open(os.path.join(results_subdir, 'failed.txt'), 'w', encoding='utf8') as fh:
             fh.write(str(error))
-
 
     def evaluate_predictions(self, actual, predictions, y_train, results_subdir, forecaster_name, duration):
         """Generate model scores and plots from predictions
@@ -271,11 +269,11 @@ class Forecasting():
 
         try: # If pandas Series
             predictions = predictions.reset_index(drop=True)
-        except: pass
+        except:
+            pass
 
-        if results_subdir != None:
+        if results_subdir is not None:
             Utils.plot_forecast(actual, predictions, results_subdir, f'{forecaster_name}_{round(scores["R2"], 2)}')
-
 
     def analyse_results(self, config, plots=True):
         """Analyse the overall results of running AutoML libraries on datasets
@@ -295,12 +293,13 @@ class Forecasting():
         else:
             Utils.summarize_overall_results(config.results_dir, config.task, plots=plots)
 
-
     def delete_tmp_dirs(self):
         """Delete old temporary files directory to ensure libraries start from scratch"""
         tmp_dir = os.path.join('tmp', self.dataset_name, self.forecaster_name)
-        paths_to_delete = [ tmp_dir, 'checkpoints', 'catboost_info', 'time_series_forecaster', 'etna-auto.db'
-                         ] + glob('.lr_find_*.ckpt')
+        paths_to_delete = [
+            tmp_dir, 'checkpoints', 'catboost_info', 'time_series_forecaster', 'etna-auto.db'
+        ] + glob('.lr_find_*.ckpt')
+
         for folder in paths_to_delete:
             if os.path.exists(folder):
                 if os.path.isfile(folder):
@@ -309,7 +308,6 @@ class Forecasting():
                     shutil.rmtree(folder)
         os.makedirs(tmp_dir)
         return tmp_dir
-
 
     def _init_forecaster(self, forecaster_name):
         """Create forecaster object from name (see Forecasting.forecaster_names)

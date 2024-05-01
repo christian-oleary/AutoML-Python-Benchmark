@@ -8,8 +8,9 @@ import pandas as pd
 from sklearn.dummy import DummyRegressor
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.gaussian_process import GaussianProcessRegressor
-from sklearn.linear_model import (BayesianRidge, ElasticNet, Lasso, LinearRegression,
-                                  PassiveAggressiveRegressor, Ridge, SGDRegressor)
+from sklearn.linear_model import (
+    BayesianRidge, ElasticNet, Lasso, LinearRegression, PassiveAggressiveRegressor, Ridge, SGDRegressor
+)
 from sklearn.kernel_ridge import KernelRidge
 from sklearn.impute import IterativeImputer
 from sklearn.model_selection import RandomizedSearchCV
@@ -542,8 +543,7 @@ class Forecaster:
 
         logger.debug('Formatting into tabular dataset...')
         lag = self.get_default_lag(horizon)
-        X_train, y_train, X_test, y_test = self.create_tabular_dataset(train_df, test_df, horizon, target_names,
-                                                                       lag=lag)
+        X_train, y_train, X_test, y_test = self.create_tabular_dataset(train_df, test_df, horizon, target_names,lag=lag)
 
         # Fit model
         logger.debug(f'Training {preset} model...')
@@ -554,6 +554,5 @@ class Forecaster:
         else:
             X_train = X_train.tail(10000)
             y_train = y_train[-10000:]
-            predictions = self.train_model(X_train, y_train, X_test, horizon, forecast_type, nproc, tmp_dir,
-                                            model_name=preset)
+            predictions = self.train_model(X_train, y_train, X_test, forecast_type, nproc, tmp_dir, model_name=preset)
         return predictions

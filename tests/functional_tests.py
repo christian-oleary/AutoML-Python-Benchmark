@@ -10,6 +10,7 @@ from sklearn.experimental import enable_iterative_imputer # pylint: disable=W061
 from src.dataset_formatting import DatasetFormatter
 from src.forecasting import Forecasting
 from src.util import Utils
+from src.validation import Library
 
 
 def setup(overwrite=True):
@@ -87,28 +88,25 @@ def test_dataset_formatting_extract_forecasting_data(fixture): # pylint: disable
     """Test zip file parsing and data extraction"""
 
     with pytest.raises(NotADirectoryError):
-        DatasetFormatter.extract_forecasting_data('README.md')
+        DatasetFormatter().extract_forecasting_data('README.md')
 
     with pytest.raises(IOError):
-        DatasetFormatter.extract_forecasting_data('tests')
+        DatasetFormatter().extract_forecasting_data('tests')
 
 
-def test_dataset_formatting_get_globabl_forecasting_datasets(fixture): # pylint: disable=W0621
+def test_dataset_formatting_get_global_forecasting_datasets(fixture): # pylint: disable=W0621
     """Test CSV file discovery"""
 
     config = fixture
-
     Utils.get_csv_datasets(config.univariate_forecasting_data_dir)
     with pytest.raises(IOError):
-        DatasetFormatter.extract_forecasting_data('tests')
+        DatasetFormatter().extract_forecasting_data('tests')
 
 
 def test_forecasting_run_forecasting_libraries_test(fixture): # pylint: disable=W0621
     """Test running a basic forecasting model on a small dataset"""
 
     config = fixture
-
-    forecasters = Forecasting().forecaster_names
+    forecasters = Library.get_options()
     assert len(forecasters) > 0, 'No forecasters found'
-
-    Forecasting().run_forecasting_libraries(config.univariate_forecasting_data_dir, config, 'univariate')
+    Forecasting().run_forecasting_libraries(config)

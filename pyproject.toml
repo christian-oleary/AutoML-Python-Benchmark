@@ -1,0 +1,37 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+
+[project]
+name = "automl_benchmark"
+version = "0.0.1"
+authors = [
+    { name="Christian O'Leary", email="christian.oleary@mtu.ie" },
+]
+description = "AutoML Python Benchmark"
+readme = "README.md"
+requires-python = ">=3.9"
+dynamic = ["dependencies", "optional-dependencies"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Operating System :: OS Independent",
+]
+
+
+[project.urls]
+Homepage = "https://github.com/christian-oleary/AutoML-Python-Benchmark"
+Issues = "https://github.com/christian-oleary/AutoML-Python-Benchmark/issues"
+
+
+[tool.pytest.ini_options]
+addopts = "-ra --quiet"
+console_output_style = "progress"
+filterwarnings = "ignore::DeprecationWarning"
+minversion = "6.0"
+testpaths = [ "tests" ]
+
+
+[tool.setuptools.dynamic]
+dependencies = {file = ["requirements.txt"]}
+optional-dependencies = {test = { file = ["./tests/requirements.txt"] }}

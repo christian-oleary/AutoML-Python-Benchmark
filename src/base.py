@@ -461,19 +461,19 @@ class Forecaster:
 
         # Make predictions
         preds = model.predict(X_train)
-        if column != None:
+        if column is not None:
             preds = preds[column].values
 
         if len(preds.flatten()) > 0:
             preds = preds[-horizon:]
 
-        predictions = [ preds ]
+        predictions = [preds]
 
         for s in test_splits:
             X_train = pd.concat([X_train, s])
 
             preds = model.predict(X_train)
-            if column != None:
+            if column is not None:
                 preds = preds[column].values
 
             if len(preds.flatten()) > 0:
@@ -483,9 +483,9 @@ class Forecaster:
 
         # Flatten predictions and truncate if needed
         try:
-            predictions = np.concatenate([ p.flatten() for p in predictions ])
-        except:
-            predictions = np.concatenate([ p.values.flatten() for p in predictions ])
+            predictions = np.concatenate([p.flatten() for p in predictions])
+        except AttributeError():
+            predictions = np.concatenate([p.values.flatten() for p in predictions])
         predictions = predictions[:len(X_test)]
         return predictions
 

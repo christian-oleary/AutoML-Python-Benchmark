@@ -84,7 +84,7 @@ if __name__ == '__main__':  # Needed for any multiprocessing
 
     # Task
     options = Task.get_options()
-    default = Task.UNIVARIATE_FORECASTING
+    default = Task.UNIVARIATE_FORECASTING.value
     parser.add_argument('--task', '-T', metavar='', type=str.lower, nargs='?',
                         default=default, choices=options,
                         help=f'Task type to execute: {options_as_str(options)}\n')

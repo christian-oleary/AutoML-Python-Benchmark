@@ -349,7 +349,7 @@ class Utils:
         for _ in range(0, len(test_df)-1, horizon):  # The -1 is because the last split may be less than horizon
             try:
                 test_splits.append(test_df.iloc[total:total+horizon, :])
-            except: # If 1D (series)
+            except:  # If 1D (series)
                 test_splits.append(test_df.iloc[total:total+horizon])
             total += horizon
 

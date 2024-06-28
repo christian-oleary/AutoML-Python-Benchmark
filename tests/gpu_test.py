@@ -3,8 +3,9 @@
 import tensorflow as tf
 import torch
 
+
 def tensorflow_test(debug=False):
-    """Test TensroFlow GPU access"""
+    """Test TensorFlow GPU access"""
     if debug:
         print('\nTesting TensorFlow...\n')
 
@@ -17,6 +18,7 @@ def tensorflow_test(debug=False):
             print('TensorFlow cannot access a GPU')
         access_gpu = False
     return access_gpu
+
 
 def pytorch_test(debug=False):
     """Test PyTorch GPU access"""
@@ -32,6 +34,7 @@ def pytorch_test(debug=False):
             print('PyTorch cannot access a GPU')
         access_gpu = False
     return access_gpu
+
 
 if __name__ == '__main__':
     tensorflow_test(True)

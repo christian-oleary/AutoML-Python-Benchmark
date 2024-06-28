@@ -2,6 +2,8 @@
 Base Classes
 """
 
+from pathlib import Path
+
 from lightgbm import LGBMRegressor
 import numpy as np
 import pandas as pd
@@ -31,7 +33,6 @@ class Forecaster:
 
     regression_models = {
         BayesianRidge.__name__: (BayesianRidge, {
-            'n_iter': [150, 300, 450],
             'tol': [1e-2, 1e-3, 1e-4],
             'alpha_1': [1e-5, 1e-6, 1e-7],
             'alpha_2': [1e-5, 1e-6, 1e-7],
@@ -42,14 +43,14 @@ class Forecaster:
             'criterion': ['absolute_error', 'friedman_mse', 'squared_error'],
             'splitter': ['best', 'random'],
             'max_depth': [8, 16, 32, 64, 128, None],
-            'max_features':[1.0, 'sqrt', 'log2'],
+            'max_features': [1.0, 'sqrt', 'log2'],
         }),
         DummyRegressor.__name__: (DummyRegressor, {}),
         ExtraTreeRegressor.__name__: (ExtraTreeRegressor, {
             'criterion': ['absolute_error', 'friedman_mse', 'squared_error'],
             'splitter': ['best', 'random'],
             'max_depth': [8, 16, 32, 64, 128, None],
-            'max_features':[1.0, 'sqrt', 'log2'],
+            'max_features': [1.0, 'sqrt', 'log2'],
         }),
         ElasticNet.__name__: (ElasticNet, {
             'alpha': [0.2, 0.4, 0.6, 0.8, 1],
@@ -65,7 +66,10 @@ class Forecaster:
         KernelRidge.__name__: (KernelRidge, {
             # KRR uses squared error loss while support vector regression uses epsilon-insensitive loss
             'alpha': [0.2, 0.4, 0.6, 0.8, 1.0],
-            'kernel': ['additive_chi2', 'chi2', 'linear', 'poly', 'polynomial', 'rbf', 'laplacian', 'sigmoid','cosine'],
+            'kernel': [
+                'additive_chi2', 'chi2', 'linear', 'poly', 'polynomial',
+                'rbf', 'laplacian', 'sigmoid', 'cosine'
+            ],
             'degree': [2, 3, 4, 5, 6],
             'coef0': [0.0, 0.5, 1.0],
         }),
@@ -87,7 +91,7 @@ class Forecaster:
             'max_depth': range(3, 14, 2),
             'subsample': np.arange(0.1, 1.1, 0.1),
             'colsample_bytree': np.arange(0.1, 1.1, 0.1),
-            'num_leaves': [round(0.6*2**x) for x in range(3,14,2)],
+            'num_leaves': [round(0.6*2**x) for x in range(3, 14, 2)],
             'min_child_samples': range(10, 71, 10)
         }),
         LinearRegression.__name__: (LinearRegression, {}),
@@ -100,12 +104,12 @@ class Forecaster:
             'max_iter': [500, 1000, 1500],
         }),
         MLPRegressor.__name__: (MLPRegressor, {
-            'learning_rate': [ 'constant', 'invscaling', 'adaptive' ],
-            'hidden_layer_sizes': [(1,), (2,), (3,), (4,), (1,1,), (2,2,), (3,3,), (4,4,)],
+            'learning_rate': ['constant', 'invscaling', 'adaptive'],
+            'hidden_layer_sizes': [(1,), (2,), (3,), (4,), (1, 1,), (2, 2,), (3, 3,), (4, 4,)],
             'activation': ['relu'],
             'solver': ['lbfgs', 'adam', 'sgd'],
             'alpha': [0.00001, 0.0001, 0.001, 0.01, 0.1],
-            'learning_rate_init': [ 1, 0.1, 0.01, 0.001 ],
+            'learning_rate_init': [1, 0.1, 0.01, 0.001],
         }),
         NuSVR.__name__: (NuSVR, {
             'nu': [0.2, 0.4, 0.6, 0.8, 1.0],
@@ -134,7 +138,7 @@ class Forecaster:
         Ridge.__name__: (Ridge, {
             'alpha': [0.2, 0.4, 0.6, 0.8, 1.0],
             'tol': [1e-2, 1e-3, 1e-4],
-            'solver': ['auto', 'svd', 'cholesky', 'sparse_cg', 'lsqr'], # sag & saga removed due to NumPy related bugs
+            'solver': ['auto', 'svd', 'cholesky', 'sparse_cg', 'lsqr'],  # sag & saga removed due to NumPy related bugs
         }),
         SGDRegressor.__name__: (SGDRegressor, {
             'loss': ['squared_error', 'huber', 'epsilon_insensitive', 'squared_epsilon_insensitive'],
@@ -159,9 +163,9 @@ class Forecaster:
             'max_iter': [50, 100, 150, 200, 250, 300],
         }),
         XGBRegressor.__name__: (XGBRegressor, {
-            'verbosity': [ 0 ],
+            'verbosity': [0],
             # Based on Lynch et al. 2021:
-            'learning_rate': [ 0.2, 0.1, 0.05, 0.025, 0.0125 ],
+            'learning_rate': [0.2, 0.1, 0.05, 0.025, 0.0125],
             'n_estimators': range(50, 500, 50),
             'max_depth': range(3, 14, 2),
             'subsample': np.arange(0.1, 1.1, 0.1),
@@ -169,13 +173,16 @@ class Forecaster:
         }),
     }
 
-    presets = [ 'Naive', 'Constant' ] + list(regression_models.keys())
+    presets = ['Naive', 'Constant'] + list(regression_models.keys())
 
-    def forecast(self, train_df, test_df, forecast_type, horizon, limit, frequency, tmp_dir, # pylint: disable=W0613
-                 nproc=1,
-                 preset='LinearRegression',
-                 target=None,
-                 verbose=1):
+    def forecast(
+        self,
+        train_df, test_df, forecast_type, horizon, limit, frequency, tmp_dir,
+        nproc=1,
+        preset='LinearRegression',
+        target=None,
+        verbose=1
+    ):
         """Perform time series forecasting
 
         :param pd.DataFrame train_df: DataFrame of training data
@@ -195,8 +202,8 @@ class Forecaster:
             # Create tabular data
             if target is None:
                 target = 'target'
-            train_df.columns = [ target ]
-            test_df.columns = [ target ]
+            train_df.columns = [target]
+            test_df.columns = [target]
 
             logger.debug('Formatting into tabular dataset...')
             lag = self.get_default_lag(horizon)
@@ -212,11 +219,10 @@ class Forecaster:
                 X_train = X_train.tail(10000)
                 y_train = y_train[-10000:]
                 predictions = self.train_model(
-                    X_train, y_train, X_test, forecast_type, nproc, tmp_dir,model_name=preset)
+                    X_train, y_train, X_test, forecast_type, nproc, tmp_dir, model_name=preset)
         else:
             raise NotImplementedError('Base models not implemented for multivariate/global forecasting yet')
         return predictions
-
 
     def train_model(self, X_train, y_train, X_test, forecast_type, nproc, tmp_dir, model_name):
         """Train machine learning model
@@ -241,18 +247,18 @@ class Forecaster:
 
         try:
             model = constructor(n_jobs=nproc)
-        except TypeError as _: # If API for model does not have n_jobs
+        except TypeError:
             model = constructor()
 
         model = MultiOutputRegressor(model)
-        model = RandomizedSearchCV(estimator=model, param_distributions=hyperparameters, n_jobs=nproc,
-                                   verbose=self.verbose, cv=10, scoring='neg_mean_absolute_error')
+        model = RandomizedSearchCV(
+            estimator=model, param_distributions=hyperparameters, n_jobs=nproc,
+            verbose=self.verbose, cv=10, scoring='neg_mean_absolute_error'
+        )
         model.fit(X_train, y_train)
 
         # Generate predictions
         if forecast_type == 'univariate':
-            # model = Model(model)
-
             # Drop irrelevant rows
             if 'I-SEM' in tmp_dir or 'ISEM' in tmp_dir:
                 X_test['base_datetime'] = X_test.index
@@ -272,19 +278,23 @@ class Forecaster:
             raise NotImplementedError()
         return predictions
 
-
-    def get_default_lag(self, horizon:int):
-        """Get default lag/lookback for generating a sliding window of features
+    def get_default_lag(self, horizon: int):
+        """Get default lag/look-back for generating a sliding window of features
 
         :param int horizon: Prediction horizon
         :return int: Equals horizon
         """
+        return horizon  # horizon may be used (Monash 2021). Libra does not specify.
 
-        return horizon # horizon may be used (Monash 2021). Libra does not specify.
-
-
-    def create_tabular_dataset(self, train_df:pd.DataFrame, test_df:pd.DataFrame, horizon:int, target_cols:list,
-                               tabular_y:bool=True, lag:int=None):
+    def create_tabular_dataset(
+        self,
+        train_df: pd.DataFrame,
+        test_df: pd.DataFrame,
+        horizon: int,
+        target_cols: list,
+        tabular_y: bool = True,
+        lag: int = None
+    ):
         """Prepare training and test sets for tabular regression
 
         :param pd.DataFrame train_df: Training data
@@ -315,8 +325,7 @@ class Forecaster:
         X_test = pd.DataFrame(imputer.transform(X_test), index=X_test.index, columns=X_test.columns)
         return X_train, y_train, X_test, y_test
 
-
-    def create_tabular_data(self, df:pd.DataFrame, lag:int, horizon:int, targets:list, tabular_y:bool):
+    def create_tabular_data(self, df: pd.DataFrame, lag: int, horizon: int, targets: list, tabular_y: bool):
         """Prepare time series data for tabular regression
 
         :param pd.DataFrame df: Time series data
@@ -326,7 +335,7 @@ class Forecaster:
         :return pd.DataFrame(s): Dataframe, features and targets
         """
         if isinstance(targets, str):
-            targets = [ targets ]
+            targets = [targets]
 
         if tabular_y:
             df, target_cols = self.create_future_values(df, horizon, targets)
@@ -345,9 +354,14 @@ class Forecaster:
         y.to_csv('y.csv')
         return df, X, y
 
-
-    def create_lag_features(self, df:pd.DataFrame, targets:list, target_cols:list,
-                            window_size:int, ignored:bool=None) -> pd.DataFrame:
+    def create_lag_features(
+        self,
+        df: pd.DataFrame,
+        targets: list,
+        target_cols: list,
+        window_size: int,
+        ignored: bool = None
+    ) -> pd.DataFrame:
         """Create features based on historical feature values
 
         :param pd.DataFrame df: Input DataFrame
@@ -372,14 +386,13 @@ class Forecaster:
         df = pd.concat((df, new_cols), axis=1, ignore_index=False)
         return df
 
-
-    def create_future_values(self, df, horizon, targets):
+    def create_future_values(self, df: pd.DataFrame, horizon: int, targets: list):
         """Create a window of future values for multioutput forecasting
         """
         all_target_cols = []
         future_cols = {}
         for target in targets:
-            target_cols = [ target ]
+            target_cols = [target]
 
             for i in range(1, horizon):
                 col_name = f'{target}+{i}'
@@ -394,8 +407,11 @@ class Forecaster:
 
         return df, all_target_cols
 
-
-    def estimate_initial_limit(self, time_limit:int, preset:str) -> int: # pylint: disable=W0613
+    def estimate_initial_limit(
+        self,
+        time_limit: int,
+        preset: str
+    ) -> int:
         """Estimate initial time limit to use for TimeSeriesPredictor fit()
 
         :param int time_limit: Maximum time allowed for AutoGluonForecaster.forecast()
@@ -403,7 +419,6 @@ class Forecaster:
         :return int: Estimated time limit
         """
         return time_limit
-
 
     def estimate_new_limit(self, time_limit, current_limit, duration, limit_type='time'):
         """Estimate what time/iterations limit to use
@@ -414,7 +429,6 @@ class Forecaster:
         :param limit_type: Limit type ("time" or "iterations")
         :return new_limit: New time/iterations limit
         """
-
         if duration <= time_limit:
             raise ValueError(f'Invalid call as last experiment was within time limit: {duration} <= {time_limit}')
 
@@ -422,12 +436,11 @@ class Forecaster:
             raise ValueError(f'current_limit is greater than time_limit: {duration} <= {time_limit}')
 
         if limit_type == 'time':
-            new_limit = int(current_limit - (duration - current_limit)) # Subtract overtime from training time
+            new_limit = int(current_limit - (duration - current_limit))  # Subtract overtime from training time
         else:
             raise NotImplementedError()
 
         return new_limit
-
 
     def rolling_origin_forecast(self, model, X_train, X_test, horizon, column=None):
         """Iteratively forecast over increasing dataset
@@ -440,7 +453,6 @@ class Forecaster:
         :return: Predictions (numpy array)
         """
         raise NotImplementedError('Subclasses should implement rolling_origin_forecast()')
-
 
     def _rolling_origin_forecast(self, model, X_train, X_test, horizon, column=None):
         """DEPRECATED. Libraries should implement their own methods.
@@ -455,40 +467,30 @@ class Forecaster:
         :return: Predictions (numpy array)
         """
         raise NotImplementedError()
-
-        # Split test set
-        test_splits = Utils.split_test_set(X_test, horizon)
-
-        # Make predictions
-        preds = model.predict(X_train)
-        if column is not None:
-            preds = preds[column].values
-
-        if len(preds.flatten()) > 0:
-            preds = preds[-horizon:]
-
-        predictions = [preds]
-
-        for s in test_splits:
-            X_train = pd.concat([X_train, s])
-
-            preds = model.predict(X_train)
-            if column is not None:
-                preds = preds[column].values
-
-            if len(preds.flatten()) > 0:
-                preds = preds[-horizon:]
-
-            predictions.append(preds)
-
-        # Flatten predictions and truncate if needed
-        try:
-            predictions = np.concatenate([p.flatten() for p in predictions])
-        except AttributeError():
-            predictions = np.concatenate([p.values.flatten() for p in predictions])
-        predictions = predictions[:len(X_test)]
-        return predictions
-
+        # # Split test set
+        # test_splits = Utils.split_test_set(X_test, horizon)
+        # # Make predictions
+        # predictions = model.predict(X_train)
+        # if column is not None:
+        #     predictions = predictions[column].values
+        # if len(predictions.flatten()) > 0:
+        #     predictions = predictions[-horizon:]
+        # predictions = [predictions]
+        # for s in test_splits:
+        #     X_train = pd.concat([X_train, s])
+        #     predictions = model.predict(X_train)
+        #     if column is not None:
+        #         predictions = predictions[column].values
+        #     if len(predictions.flatten()) > 0:
+        #         predictions = predictions[-horizon:]
+        #     predictions.append(predictions)
+        # # Flatten predictions and truncate if needed
+        # try:
+        #     predictions = np.concatenate([p.flatten() for p in predictions])
+        # except AttributeError():
+        #     predictions = np.concatenate([p.values.flatten() for p in predictions])
+        # predictions = predictions[:len(X_test)]
+        # return predictions
 
     def libra_forecast(self, model, X_train, X_test, horizon, step_size):
         """DEPRECATED. Iteratively forecast over increasing dataset
@@ -505,54 +507,64 @@ class Forecaster:
         # # Split test set
         # test_splits = Utils.split_test_set(X_test, step_size)
         # # Make predictions
-        # preds = model.predict(X_train)
-        # # preds.to_csv('preds.csv', index=False)
+        # predictions = model.predict(X_train)
+        # # predictions.to_csv('predictions.csv', index=False)
         # actual = df.iloc[len(X_train):len(X_train)+horizon, 0]
         # # actual.to_csv('actual.csv', index=False)
-        # predictions = [{ 'actual': actual, 'predicted': preds }]
+        # predictions = [{ 'actual': actual, 'predicted': predictions }]
         # for s in test_splits:
         #     X_train = pd.concat([X_train, s])
         #     # Need to retrain model here
-        #     preds = model.predict(X_train)
+        #     predictions = model.predict(X_train)
         #     actual = df.iloc[len(X_train):len(X_train)+horizon, 0]
-        #     predictions.append([{ 'actual': actual, 'predicted': preds }])
+        #     predictions.append([{ 'actual': actual, 'predicted': predictions }])
         # return predictions
 
+    # def tabular_regression(
+    #     self,
+    #     train_df: pd.DataFrame,
+    #     test_df: pd.DataFrame,
+    #     forecast_type: str,
+    #     horizon: int,
+    #     limit: int,
+    #     frequency: str,
+    #     tmp_dir: str | Path,
+    #     nproc: int = 1,
+    #     preset: str = 'LinearRegression',
+    #     target_names: list = None
+    # ):
+    #     """Perform tabular regression
 
-    def tabular_regression(self, train_df, test_df, forecast_type, horizon, limit, frequency, tmp_dir,
-                           nproc=1,
-                           preset='LinearRegression',
-                           target_names=None):
-        """Perform tabular regression
+    #     :param pd.DataFrame train_df: Dataframe of training data
+    #     :param pd.DataFrame test_df: Dataframe of test data
+    #     :param str forecast_type: Type of forecasting, 'global', 'univariate' or 'multivariate'
+    #     :param int horizon: Forecast horizon (how far ahead to predict) (int)
+    #     :param int limit: Iterations limit (int)
+    #     :param int frequency: Data frequency (str)
+    #     :param str | Path tmp_dir: Path to directory to store temporary files (str)
+    #     :param int nproc: Number of threads/processes allowed, defaults to 1
+    #     :param str preset: Modelling presets
+    #     :param list target_names: List of names of target variables, defaults to None which means all.
+    #     """
 
-        :param pd.DataFrame train_df: Dataframe of training data
-        :param pd.DataFrame test_df: Dataframe of test data
-        :param str forecast_type: Type of forecasting, 'global', 'univariate' or 'multivariate'
-        :param int horizon: Forecast horizon (how far ahead to predict) (int)
-        :param int limit: Iterations limit (int)
-        :param int frequency: Data frequency (str)
-        :param str tmp_dir: Path to directory to store temporary files (str)
-        :param int nproc: Number of threads/processes allowed, defaults to 1
-        :param str preset: Modelling presets
-        :param list target_names: List of names of target variables, defaults to None which means all.
-        """
+    #     # Create tabular data
+    #     if target_names is None:
+    #         raise NotImplementedError()
 
-        # Create tabular data
-        if target_names is None:
-            raise NotImplementedError()
+    #     logger.debug('Formatting into tabular dataset...')
+    #     lag = self.get_default_lag(horizon)
+    #     X_train, y_train, X_test, y_test = self.create_tabular_dataset(
+    #         train_df, test_df, horizon, target_names, lag=lag)
 
-        logger.debug('Formatting into tabular dataset...')
-        lag = self.get_default_lag(horizon)
-        X_train, y_train, X_test, y_test = self.create_tabular_dataset(train_df, test_df, horizon, target_names,lag=lag)
-
-        # Fit model
-        logger.debug(f'Training {preset} model...')
-        if preset == 'Naive':
-            predictions = X_test[[f'{t}-24' for t in target_names]].values
-        elif preset == 'Constant':
-            predictions = np.full(len(y_test), np.mean(y_train, axis=1))
-        else:
-            X_train = X_train.tail(10000)
-            y_train = y_train[-10000:]
-            predictions = self.train_model(X_train, y_train, X_test, forecast_type, nproc, tmp_dir, model_name=preset)
-        return predictions
+    #     # Fit model
+    #     logger.debug(f'Training {preset} model...')
+    #     if preset == 'Naive':
+    #         predictions = X_test[[f'{t}-24' for t in target_names]].values
+    #     elif preset == 'Constant':
+    #         predictions = np.full(len(y_test), np.mean(y_train, axis=1))
+    #     else:
+    #         X_train = X_train.tail(10000)
+    #         y_train = y_train[-10000:]
+    #         predictions = self.train_model(
+    #             X_train, y_train, X_test, forecast_type, nproc, tmp_dir, model_name=preset)
+    #     return predictions

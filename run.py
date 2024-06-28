@@ -69,7 +69,7 @@ if __name__ == '__main__':  # Needed for any multiprocessing
                         help='Number of processes to allow\n\n')
 
     # Maximum Results
-    default = 1 # i.e. skip if 1 result existing
+    default = 1  # i.e. skip if 1 result existing
     parser.add_argument('--max_results', '-MR', metavar='...', type=int, nargs='?', default=default,
                         help='Maximum number of results to generate per library/preset setup\n\n')
 

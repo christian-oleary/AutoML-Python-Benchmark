@@ -4,11 +4,12 @@ import argparse
 from datetime import datetime, timedelta
 import os
 import time
+from typing import Any
 import warnings
 
 from sklearn.exceptions import ConvergenceWarning
 # import needed for IterativeImputer
-from sklearn.experimental import enable_iterative_imputer # pylint: disable=W0611
+from sklearn.experimental import enable_iterative_imputer  # pylint: disable=W0611  # noqa
 
 from src.dataset_formatting import DatasetFormatter
 from src.forecasting import Forecasting
@@ -16,10 +17,10 @@ from src.logs import logger, LogLevel, set_log_dir
 from src.validation import Library, Task, Validator
 
 
-if __name__ == '__main__': # Needed for any multiprocessing
+if __name__ == '__main__':  # Needed for any multiprocessing
     warnings.simplefilter('ignore', category=ConvergenceWarning)
 
-    def options_as_str(param_options:list):
+    def options_as_str(param_options: list):
         """Parameter options formatting"""
         return ''.join([f'\n- {o}' for o in param_options]) + '\n'
 
@@ -39,14 +40,15 @@ if __name__ == '__main__': # Needed for any multiprocessing
 
     # Libraries
     options = [
-        'all', # Will run all libraries
-        'installed', # Will run all correctly installed libraries
-        'test', # Will run baseline models
-        'none', # No experiments (just other functions)
+        'all',  # Will run all libraries
+        'installed',  # Will run all correctly installed libraries
+        'test',  # Will run baseline models
+        'none',  # No experiments (just other functions)
         *Library.get_options()
     ]
-    default = 'installed'
-    parser.add_argument('--libraries', '-L', metavar='', type=str.lower, nargs='*', default=default, choices=options,
+    default: Any = 'installed'
+    parser.add_argument('--libraries', '-L', metavar='', type=str.lower, nargs='*',
+                        default=default, choices=options,
                         help=f'AutoML libraries to run: {options_as_str(options)}\n\n')
 
     # Log Level
@@ -83,11 +85,12 @@ if __name__ == '__main__': # Needed for any multiprocessing
     # Task
     options = Task.get_options()
     default = Task.UNIVARIATE_FORECASTING
-    parser.add_argument('--task', '-T', metavar='', type=str.lower, nargs='?', default=default, choices=options,
+    parser.add_argument('--task', '-T', metavar='', type=str.lower, nargs='?',
+                        default=default, choices=options,
                         help=f'Task type to execute: {options_as_str(options)}\n')
 
     # Time Limit
-    default = 3600 # 1 hour
+    default = 3600  # 1 hour
     parser.add_argument('--time_limit', '-TL', metavar='...', type=int, nargs='?', default=default,
                         help='Time limit in seconds for each library. May not be strictly adhered to.\n\n')
 
@@ -117,13 +120,13 @@ if __name__ == '__main__': # Needed for any multiprocessing
         set_log_dir()
 
     # Show CLI argument values
-    args_str = '\n-> '.join([ f'{arg}: {getattr(args, arg)}' for arg in vars(args) ])
+    args_str = '\n-> '.join([f'{arg}: {getattr(args, arg)}' for arg in vars(args)])
     args_str = '\n-> ' + args_str + '\n'
     logger.debug(f'CLI arguments: {args_str}')
 
     # Check GPU access
     if args.cpu_only:
-        os.environ['CUDA_VISIBLE_DEVICES'] = '-1' # Use CPU instead of GPU
+        os.environ['CUDA_VISIBLE_DEVICES'] = '-1'  # Use CPU instead of GPU
     else:
         logger.info('Checking GPU access...')
         from tests import gpu_test

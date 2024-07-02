@@ -11,7 +11,13 @@ from sklearn.dummy import DummyRegressor
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.gaussian_process import GaussianProcessRegressor
 from sklearn.linear_model import (
-    BayesianRidge, ElasticNet, Lasso, LinearRegression, PassiveAggressiveRegressor, Ridge, SGDRegressor
+    BayesianRidge,
+    ElasticNet,
+    Lasso,
+    LinearRegression,
+    PassiveAggressiveRegressor,
+    Ridge,
+    SGDRegressor,
 )
 from sklearn.kernel_ridge import KernelRidge
 from sklearn.impute import IterativeImputer
@@ -32,156 +38,219 @@ class Forecaster:
     """Base Forecaster"""
 
     regression_models = {
-        BayesianRidge.__name__: (BayesianRidge, {
-            'tol': [1e-2, 1e-3, 1e-4],
-            'alpha_1': [1e-5, 1e-6, 1e-7],
-            'alpha_2': [1e-5, 1e-6, 1e-7],
-            'lambda_1': [1e-5, 1e-6, 1e-7],
-            'lambda_2': [1e-5, 1e-6, 1e-7],
-        }),
-        DecisionTreeRegressor.__name__: (DecisionTreeRegressor, {
-            'criterion': ['absolute_error', 'friedman_mse', 'squared_error'],
-            'splitter': ['best', 'random'],
-            'max_depth': [8, 16, 32, 64, 128, None],
-            'max_features': [1.0, 'sqrt', 'log2'],
-        }),
+        BayesianRidge.__name__: (
+            BayesianRidge,
+            {
+                'tol': [1e-2, 1e-3, 1e-4],
+                'alpha_1': [1e-5, 1e-6, 1e-7],
+                'alpha_2': [1e-5, 1e-6, 1e-7],
+                'lambda_1': [1e-5, 1e-6, 1e-7],
+                'lambda_2': [1e-5, 1e-6, 1e-7],
+            },
+        ),
+        DecisionTreeRegressor.__name__: (
+            DecisionTreeRegressor,
+            {
+                'criterion': ['absolute_error', 'friedman_mse', 'squared_error'],
+                'splitter': ['best', 'random'],
+                'max_depth': [8, 16, 32, 64, 128, None],
+                'max_features': [1.0, 'sqrt', 'log2'],
+            },
+        ),
         DummyRegressor.__name__: (DummyRegressor, {}),
-        ExtraTreeRegressor.__name__: (ExtraTreeRegressor, {
-            'criterion': ['absolute_error', 'friedman_mse', 'squared_error'],
-            'splitter': ['best', 'random'],
-            'max_depth': [8, 16, 32, 64, 128, None],
-            'max_features': [1.0, 'sqrt', 'log2'],
-        }),
-        ElasticNet.__name__: (ElasticNet, {
-            'alpha': [0.2, 0.4, 0.6, 0.8, 1],
-            'l1_ratio': [0, 0.2, 0.4, 0.6, 0.8, 1],
-            'tol': [1e-5, 1e-4, 1e-3],
-            'selection': ['cyclic', 'random'],
-        }),
-        GaussianProcessRegressor.__name__: (GaussianProcessRegressor, {
-            'alpha': [1e-8, 1e-9, 1e-10, 1e-11, 1e-12],
-            'n_restarts_optimizer': [0, 1, 2, 3],
-            'normalize_y': [True, False],
-        }),
-        KernelRidge.__name__: (KernelRidge, {
-            # KRR uses squared error loss while support vector regression uses epsilon-insensitive loss
-            'alpha': [0.2, 0.4, 0.6, 0.8, 1.0],
-            'kernel': [
-                'additive_chi2', 'chi2', 'linear', 'poly', 'polynomial',
-                'rbf', 'laplacian', 'sigmoid', 'cosine'
-            ],
-            'degree': [2, 3, 4, 5, 6],
-            'coef0': [0.0, 0.5, 1.0],
-        }),
-        KNeighborsRegressor.__name__: (KNeighborsRegressor, {
-            'n_neighbors': list(range(1, 50)),
-            'weights': ['uniform', 'distance'],
-            'p': [2, 3, 4],
-        }),
-        Lasso.__name__: (Lasso, {
-            'alpha': [0.2, 0.4, 0.6, 0.8, 1.0],
-            'tol': [1e-2, 1e-3, 1e-4],
-            'selection': ['cyclic', 'random'],
-        }),
-        LGBMRegressor.__name__: (LGBMRegressor, {
-            'verbosity': [ -1 ],
-            # Based on Lynch et al. 2021:
-            'learning_rate': [0.2, 0.1, 0.05, 0.025, 0.0125],
-            'n_estimators': range(50, 501, 50),
-            'max_depth': range(3, 14, 2),
-            'subsample': np.arange(0.1, 1.1, 0.1),
-            'colsample_bytree': np.arange(0.1, 1.1, 0.1),
-            'num_leaves': [round(0.6*2**x) for x in range(3, 14, 2)],
-            'min_child_samples': range(10, 71, 10)
-        }),
+        ExtraTreeRegressor.__name__: (
+            ExtraTreeRegressor,
+            {
+                'criterion': ['absolute_error', 'friedman_mse', 'squared_error'],
+                'splitter': ['best', 'random'],
+                'max_depth': [8, 16, 32, 64, 128, None],
+                'max_features': [1.0, 'sqrt', 'log2'],
+            },
+        ),
+        ElasticNet.__name__: (
+            ElasticNet,
+            {
+                'alpha': [0.2, 0.4, 0.6, 0.8, 1],
+                'l1_ratio': [0, 0.2, 0.4, 0.6, 0.8, 1],
+                'tol': [1e-5, 1e-4, 1e-3],
+                'selection': ['cyclic', 'random'],
+            },
+        ),
+        GaussianProcessRegressor.__name__: (
+            GaussianProcessRegressor,
+            {
+                'alpha': [1e-8, 1e-9, 1e-10, 1e-11, 1e-12],
+                'n_restarts_optimizer': [0, 1, 2, 3],
+                'normalize_y': [True, False],
+            },
+        ),
+        KernelRidge.__name__: (
+            KernelRidge,
+            {
+                # KRR uses squared error loss while support vector regression uses epsilon-insensitive loss
+                'alpha': [0.2, 0.4, 0.6, 0.8, 1.0],
+                'kernel': [
+                    'additive_chi2', 'chi2', 'linear', 'poly', 'polynomial',
+                    'rbf', 'laplacian', 'sigmoid', 'cosine',
+                ],
+                'degree': [2, 3, 4, 5, 6],
+                'coef0': [0.0, 0.5, 1.0],
+            },
+        ),
+        KNeighborsRegressor.__name__: (
+            KNeighborsRegressor,
+            {
+                'n_neighbors': list(range(1, 50)),
+                'weights': ['uniform', 'distance'],
+                'p': [2, 3, 4],
+            },
+        ),
+        Lasso.__name__: (
+            Lasso,
+            {
+                'alpha': [0.2, 0.4, 0.6, 0.8, 1.0],
+                'tol': [1e-2, 1e-3, 1e-4],
+                'selection': ['cyclic', 'random'],
+            },
+        ),
+        LGBMRegressor.__name__: (
+            LGBMRegressor,
+            {
+                'verbosity': [-1],
+                # Based on Lynch et al. 2021:
+                'learning_rate': [0.2, 0.1, 0.05, 0.025, 0.0125],
+                'n_estimators': range(50, 501, 50),
+                'max_depth': range(3, 14, 2),
+                'subsample': np.arange(0.1, 1.1, 0.1),
+                'colsample_bytree': np.arange(0.1, 1.1, 0.1),
+                'num_leaves': [round(0.6 * 2**x) for x in range(3, 14, 2)],
+                'min_child_samples': range(10, 71, 10),
+            },
+        ),
         LinearRegression.__name__: (LinearRegression, {}),
-        LinearSVR.__name__: (LinearSVR, {
-            'epsilon': [0.0, 0.5, 1.0],
-            'tol': [1e-3, 1e-4, 1e-5],
-            'C': [0.01, 0.1, 1.0, 10],
-            'loss': ['squared_epsilon_insensitive', 'epsilon_insensitive'],
-            'intercept_scaling': [0.001, 0.1, 1, 10],
-            'max_iter': [500, 1000, 1500],
-        }),
-        MLPRegressor.__name__: (MLPRegressor, {
-            'learning_rate': ['constant', 'invscaling', 'adaptive'],
-            'hidden_layer_sizes': [(1,), (2,), (3,), (4,), (1, 1,), (2, 2,), (3, 3,), (4, 4,)],
-            'activation': ['relu'],
-            'solver': ['lbfgs', 'adam', 'sgd'],
-            'alpha': [0.00001, 0.0001, 0.001, 0.01, 0.1],
-            'learning_rate_init': [1, 0.1, 0.01, 0.001],
-        }),
-        NuSVR.__name__: (NuSVR, {
-            'nu': [0.2, 0.4, 0.6, 0.8, 1.0],
-            'C': [0.001, 0.01, 0.1, 1.0],
-            'kernel': ['rbf', 'sigmoid', 'linear'],
-            'degree': [2, 3, 4, 5, 6],
-            'gamma': ['scale', 'auto'],
-            'coef0': [0.0, 0.5, 1.0],
-            'shrinking': [True, False],
-            'tol': [1e-3, 1e-4, 1e-5],
-        }),
-        PassiveAggressiveRegressor.__name__: (PassiveAggressiveRegressor, {
-            'C': [0.001, 0.01, 0.1],
-            'loss': ['epsilon_insensitive', 'squared_epsilon_insensitive'],
-            'epsilon': [0.001, 0.01, 0.1, 1.0],
-            # 'average': [True, 10],
-            'early_stopping': [True, False],
-        }),
-        RandomForestRegressor.__name__: (RandomForestRegressor, {
-            'n_estimators': [10, 50, 100, 150, 200],
-            'criterion': ['absolute_error', 'poisson', 'squared_error'],
-            'max_depth': [16, 32, 64, 128, None],
-            'max_features':[1.0, 'sqrt', 'log2'],
-            'bootstrap': [True, False],
-        }),
-        Ridge.__name__: (Ridge, {
-            'alpha': [0.2, 0.4, 0.6, 0.8, 1.0],
-            'tol': [1e-2, 1e-3, 1e-4],
-            'solver': ['auto', 'svd', 'cholesky', 'sparse_cg', 'lsqr'],  # sag & saga removed due to NumPy related bugs
-        }),
-        SGDRegressor.__name__: (SGDRegressor, {
-            'loss': ['squared_error', 'huber', 'epsilon_insensitive', 'squared_epsilon_insensitive'],
-            'penalty': ['l2', 'l1', 'elasticnet'],
-            'alpha': [1e-3, 1e-4, 1e-5],
-            'l1_ratio': [0.0, 0.15, 0.5, 1.0],
-            'max_iter': [100, 1000, 10000],
-            'tol': [1e-2, 1e-3, 1e-4],
-            'epsilon': [0.001, 0.01, 0.1, 1.0],
-            'learning_rate': ['constant', 'optimal', 'invscaling', 'adaptive'],
-            'early_stopping': [True, False],
-        }),
-        SVR.__name__: (SVR, {
-            'kernel': ['linear', 'poly', 'rbf', 'sigmoid'],
-            'degree': [2, 3, 4, 5, 6],
-            'gamma': ['scale', 'auto'],
-            'coef0': [0.0, 0.5, 1.0],
-            'tol': [1e-3, 1e-4, 1e-5],
-            'C': [0.01, 0.1, 1.0, 10, 100],
-            'epsilon': [0.0, 0.5, 1.0],
-            'shrinking': [True, False],
-            'max_iter': [50, 100, 150, 200, 250, 300],
-        }),
-        XGBRegressor.__name__: (XGBRegressor, {
-            'verbosity': [0],
-            # Based on Lynch et al. 2021:
-            'learning_rate': [0.2, 0.1, 0.05, 0.025, 0.0125],
-            'n_estimators': range(50, 500, 50),
-            'max_depth': range(3, 14, 2),
-            'subsample': np.arange(0.1, 1.1, 0.1),
-            'colsample_bytree': np.arange(0.1, 1.1, 0.1)
-        }),
+        LinearSVR.__name__: (
+            LinearSVR,
+            {
+                'epsilon': [0.0, 0.5, 1.0],
+                'tol': [1e-3, 1e-4, 1e-5],
+                'C': [0.01, 0.1, 1.0, 10],
+                'loss': ['squared_epsilon_insensitive', 'epsilon_insensitive'],
+                'intercept_scaling': [0.001, 0.1, 1, 10],
+                'max_iter': [500, 1000, 1500],
+            },
+        ),
+        MLPRegressor.__name__: (
+            MLPRegressor,
+            {
+                'learning_rate': ['constant', 'invscaling', 'adaptive'],
+                'hidden_layer_sizes': [
+                    (1,), (2,), (3,), (4,),
+                    (1, 1,), (2, 2,), (3, 3,), (4, 4,),
+                ],
+                'activation': ['relu'],
+                'solver': ['lbfgs', 'adam', 'sgd'],
+                'alpha': [0.00001, 0.0001, 0.001, 0.01, 0.1],
+                'learning_rate_init': [1, 0.1, 0.01, 0.001],
+            },
+        ),
+        NuSVR.__name__: (
+            NuSVR,
+            {
+                'nu': [0.2, 0.4, 0.6, 0.8, 1.0],
+                'C': [0.001, 0.01, 0.1, 1.0],
+                'kernel': ['rbf', 'sigmoid', 'linear'],
+                'degree': [2, 3, 4, 5, 6],
+                'gamma': ['scale', 'auto'],
+                'coef0': [0.0, 0.5, 1.0],
+                'shrinking': [True, False],
+                'tol': [1e-3, 1e-4, 1e-5],
+            },
+        ),
+        PassiveAggressiveRegressor.__name__: (
+            PassiveAggressiveRegressor,
+            {
+                'C': [0.001, 0.01, 0.1],
+                'loss': ['epsilon_insensitive', 'squared_epsilon_insensitive'],
+                'epsilon': [0.001, 0.01, 0.1, 1.0],
+                # 'average': [True, 10],
+                'early_stopping': [True, False],
+            },
+        ),
+        RandomForestRegressor.__name__: (
+            RandomForestRegressor,
+            {
+                'n_estimators': [10, 50, 100, 150, 200],
+                'criterion': ['absolute_error', 'poisson', 'squared_error'],
+                'max_depth': [16, 32, 64, 128, None],
+                'max_features': [1.0, 'sqrt', 'log2'],
+                'bootstrap': [True, False],
+            },
+        ),
+        Ridge.__name__: (
+            Ridge,
+            {
+                'alpha': [0.2, 0.4, 0.6, 0.8, 1.0],
+                'tol': [1e-2, 1e-3, 1e-4],
+                'solver': ['auto', 'svd', 'cholesky', 'sparse_cg', 'lsqr'],
+            },
+        ),
+        SGDRegressor.__name__: (
+            SGDRegressor,
+            {
+                'loss': ['squared_error', 'huber', 'epsilon_insensitive', 'squared_epsilon_insensitive'],
+                'penalty': ['l2', 'l1', 'elasticnet'],
+                'alpha': [1e-3, 1e-4, 1e-5],
+                'l1_ratio': [0.0, 0.15, 0.5, 1.0],
+                'max_iter': [100, 1000, 10000],
+                'tol': [1e-2, 1e-3, 1e-4],
+                'epsilon': [0.001, 0.01, 0.1, 1.0],
+                'learning_rate': ['constant', 'optimal', 'invscaling', 'adaptive'],
+                'early_stopping': [True, False],
+            },
+        ),
+        SVR.__name__: (
+            SVR,
+            {
+                'kernel': ['linear', 'poly', 'rbf', 'sigmoid'],
+                'degree': [2, 3, 4, 5, 6],
+                'gamma': ['scale', 'auto'],
+                'coef0': [0.0, 0.5, 1.0],
+                'tol': [1e-3, 1e-4, 1e-5],
+                'C': [0.01, 0.1, 1.0, 10, 100],
+                'epsilon': [0.0, 0.5, 1.0],
+                'shrinking': [True, False],
+                'max_iter': [50, 100, 150, 200, 250, 300],
+            },
+        ),
+        XGBRegressor.__name__: (
+            XGBRegressor,
+            {
+                'verbosity': [0],
+                # Based on Lynch et al. 2021:
+                'learning_rate': [0.2, 0.1, 0.05, 0.025, 0.0125],
+                'n_estimators': range(50, 500, 50),
+                'max_depth': range(3, 14, 2),
+                'subsample': np.arange(0.1, 1.1, 0.1),
+                'colsample_bytree': np.arange(0.1, 1.1, 0.1),
+            },
+        ),
     }
 
     presets = ['Naive', 'Constant'] + list(regression_models.keys())
 
     def forecast(
         self,
-        train_df, test_df, forecast_type, horizon, limit, frequency, tmp_dir,
+        train_df,
+        test_df,
+        forecast_type,
+        horizon,
+        limit,
+        frequency,
+        tmp_dir,
         nproc=1,
         preset='LinearRegression',
         target=None,
-        verbose=1
+        verbose=1,
     ):
         """Perform time series forecasting
 
@@ -207,7 +276,9 @@ class Forecaster:
 
             logger.debug('Formatting into tabular dataset...')
             lag = self.get_default_lag(horizon)
-            X_train, y_train, X_test, y_test = self.create_tabular_dataset(train_df, test_df, horizon, target, lag=lag)
+            X_train, y_train, X_test, y_test = self.create_tabular_dataset(
+                train_df, test_df, horizon, target, lag=lag
+            )
 
             # Fit model
             logger.debug(f'Training {preset} model...')
@@ -219,9 +290,12 @@ class Forecaster:
                 X_train = X_train.tail(10000)
                 y_train = y_train[-10000:]
                 predictions = self.train_model(
-                    X_train, y_train, X_test, forecast_type, nproc, tmp_dir, model_name=preset)
+                    X_train, y_train, X_test, forecast_type, nproc, tmp_dir, model_name=preset
+                )
         else:
-            raise NotImplementedError('Base models not implemented for multivariate/global forecasting yet')
+            raise NotImplementedError(
+                'Base models not implemented for multivariate/global forecasting yet'
+            )
         return predictions
 
     def train_model(self, X_train, y_train, X_test, forecast_type, nproc, tmp_dir, model_name):
@@ -243,7 +317,7 @@ class Forecaster:
 
         # Train model
         constructor, hyperparameters = self.regression_models[model_name]
-        hyperparameters = { f'estimator__{k}': v for k, v in hyperparameters.items() }
+        hyperparameters = {f'estimator__{k}': v for k, v in hyperparameters.items()}
 
         try:
             model = constructor(n_jobs=nproc)
@@ -252,8 +326,12 @@ class Forecaster:
 
         model = MultiOutputRegressor(model)
         model = RandomizedSearchCV(
-            estimator=model, param_distributions=hyperparameters, n_jobs=nproc,
-            verbose=self.verbose, cv=10, scoring='neg_mean_absolute_error'
+            estimator=model,
+            param_distributions=hyperparameters,
+            n_jobs=nproc,
+            verbose=self.verbose,
+            cv=10,
+            scoring='neg_mean_absolute_error',
         )
         model.fit(X_train, y_train)
 
@@ -293,7 +371,7 @@ class Forecaster:
         horizon: int,
         target_cols: list,
         tabular_y: bool = True,
-        lag: int = None
+        lag: int = None,
     ):
         """Prepare training and test sets for tabular regression
 
@@ -321,11 +399,15 @@ class Forecaster:
         if not tabular_y:
             y_train = y_train.flatten()
             y_test = y_test.flatten()
-        X_train = pd.DataFrame(imputer.fit_transform(X_train), index=X_train.index, columns=X_train.columns)
+        X_train = pd.DataFrame(
+            imputer.fit_transform(X_train), index=X_train.index, columns=X_train.columns
+        )
         X_test = pd.DataFrame(imputer.transform(X_test), index=X_test.index, columns=X_test.columns)
         return X_train, y_train, X_test, y_test
 
-    def create_tabular_data(self, df: pd.DataFrame, lag: int, horizon: int, targets: list, tabular_y: bool):
+    def create_tabular_data(
+        self, df: pd.DataFrame, lag: int, horizon: int, targets: list, tabular_y: bool
+    ):
         """Prepare time series data for tabular regression
 
         :param pd.DataFrame df: Time series data
@@ -360,7 +442,7 @@ class Forecaster:
         targets: list,
         target_cols: list,
         window_size: int,
-        ignored: bool = None
+        ignored: bool = None,
     ) -> pd.DataFrame:
         """Create features based on historical feature values
 
@@ -376,7 +458,7 @@ class Forecaster:
         lagged_cols = {}
         for col in df.columns:
             if col not in ignored and (col not in target_cols or col in targets):
-                for i in range(1, window_size+1):
+                for i in range(1, window_size + 1):
                     lagged_cols[f'{col}-{i}'] = df[col].shift(i)
 
                 if col != targets[0]:
@@ -387,8 +469,7 @@ class Forecaster:
         return df
 
     def create_future_values(self, df: pd.DataFrame, horizon: int, targets: list):
-        """Create a window of future values for multioutput forecasting
-        """
+        """Create a window of future values for multioutput forecasting"""
         all_target_cols = []
         future_cols = {}
         for target in targets:
@@ -407,11 +488,7 @@ class Forecaster:
 
         return df, all_target_cols
 
-    def estimate_initial_limit(
-        self,
-        time_limit: int,
-        preset: str
-    ) -> int:
+    def estimate_initial_limit(self, time_limit: int, preset: str) -> int:
         """Estimate initial time limit to use for TimeSeriesPredictor fit()
 
         :param int time_limit: Maximum time allowed for AutoGluonForecaster.forecast()
@@ -430,13 +507,19 @@ class Forecaster:
         :return new_limit: New time/iterations limit
         """
         if duration <= time_limit:
-            raise ValueError(f'Invalid call as last experiment was within time limit: {duration} <= {time_limit}')
+            raise ValueError(
+                f'Invalid call as last experiment was within time limit: {duration} <= {time_limit}'
+            )
 
         if current_limit > time_limit:
-            raise ValueError(f'current_limit is greater than time_limit: {duration} <= {time_limit}')
+            raise ValueError(
+                f'current_limit is greater than time_limit: {duration} <= {time_limit}'
+            )
 
         if limit_type == 'time':
-            new_limit = int(current_limit - (duration - current_limit))  # Subtract overtime from training time
+            new_limit = int(
+                current_limit - (duration - current_limit)
+            )  # Subtract overtime from training time
         else:
             raise NotImplementedError()
 

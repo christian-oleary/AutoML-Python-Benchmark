@@ -20,16 +20,24 @@ class AutoGluonForecaster(Forecaster):
         'medium_quality',
         'high_quality',
         'best_quality',
-        ]
+    ]
 
     # Use 90% of maximum available time for model training in initial experiment
     initial_training_fraction = 0.9
 
-
-    def forecast(self, train_df, test_df, forecast_type, horizon, limit, frequency, tmp_dir,
-                 nproc=1,
-                 preset='fast_training',
-                 target_name=None):
+    def forecast(
+        self,
+        train_df,
+        test_df,
+        forecast_type,
+        horizon,
+        limit,
+        frequency,
+        tmp_dir,
+        nproc=1,
+        preset='fast_training',
+        target_name=None,
+    ):
         """Perform time series forecasting using AutoGluon TimeSeriesPredictor
 
         :param pd.DataFrame train_df: Dataframe of training data
@@ -59,15 +67,15 @@ class AutoGluonForecaster(Forecaster):
         try:
             train_df = train_df.reset_index(names=[timestamp_column])
             test_df = test_df.reset_index(names=[timestamp_column])
-        except TypeError as e: # Pandas < 1.5.0
+        except TypeError as e:  # Pandas < 1.5.0
             train_df = train_df.rename_axis(timestamp_column).reset_index()
             test_df = test_df.rename_axis(timestamp_column).reset_index()
 
         # Format univariate data
         if forecast_type == 'univariate':
             target_name = 'target'
-            train_df.columns = [ timestamp_column, target_name ]
-            test_df.columns = [ timestamp_column, target_name ]
+            train_df.columns = [timestamp_column, target_name]
+            test_df.columns = [timestamp_column, target_name]
             if 'ISEM_prices' in tmp_dir:
                 ignore_time_index = False
             else:
@@ -77,7 +85,9 @@ class AutoGluonForecaster(Forecaster):
             raise NotImplementedError()
 
         if ignore_time_index:
-            logger.warning('The value of "ignore_time_index" is True. This will result in slower predictions')
+            logger.warning(
+                'The value of "ignore_time_index" is True. This will result in slower predictions'
+            )
 
         # AutoGluon requires an ID column
         train_df['ID'] = 1
@@ -85,8 +95,12 @@ class AutoGluonForecaster(Forecaster):
 
         logger.debug('Converting to TimeSeriesDataFrame...')
         # TimeSeriesDataFrame inherits from pandas.DataFrame
-        train_data = TimeSeriesDataFrame.from_data_frame(train_df, id_column='ID', timestamp_column=timestamp_column)
-        test_data = TimeSeriesDataFrame.from_data_frame(test_df, id_column='ID', timestamp_column=timestamp_column)
+        train_data = TimeSeriesDataFrame.from_data_frame(
+            train_df, id_column='ID', timestamp_column=timestamp_column
+        )
+        test_data = TimeSeriesDataFrame.from_data_frame(
+            test_df, id_column='ID', timestamp_column=timestamp_column
+        )
         # print('test_df.shape', test_df.shape)
         # print('test_data.shape', test_data.shape)
         # test_df.to_csv('test_df.csv')
@@ -105,9 +119,9 @@ class AutoGluonForecaster(Forecaster):
             freq = FREQUENCY_MAP[frequency].replace('1', '')
         elif forecast_type == 'univariate':
             if ignore_time_index:
-                freq = 'S' # based on Libra R repository.
+                freq = 'S'  # based on Libra R repository.
             else:
-                freq = 'H' # I-SEM
+                freq = 'H'  # I-SEM
 
         logger.debug('Index processing and imputation...')
         if train_data.freq == None:
@@ -133,30 +147,45 @@ class AutoGluonForecaster(Forecaster):
             logger.warning('Autogluon failed to impute some test data data. Filling with zeros')
 
         # Create Predictor
-        predictor = TimeSeriesPredictor(prediction_length=horizon,
-                                        path=tmp_dir,
-                                        target=target_name,
-                                        ignore_time_index=ignore_time_index,
-                                        verbosity=0,
-                                        cache_predictions=True,
-                                        eval_metric='sMAPE',
-                                        # eval_metric='AutoMLBenchmarkScorer',
-                                        )
+        predictor = TimeSeriesPredictor(
+            prediction_length=horizon,
+            path=tmp_dir,
+            target=target_name,
+            ignore_time_index=ignore_time_index,
+            verbosity=0,
+            cache_predictions=True,
+            eval_metric='sMAPE',
+            # eval_metric='AutoMLBenchmarkScorer',
+        )
 
         # For debugging only, i.e. all except Naive model
-        excluded_model_types = ['RecursiveTabular', 'SeasonalNaive', 'Theta', 'AutoETS', 'DeepAR',
-                                'TemporalFusionTransformer', 'PatchTST', 'DirectTabular', 'AutoARIMA']
+        excluded_model_types = [
+            'RecursiveTabular',
+            'SeasonalNaive',
+            'Theta',
+            'AutoETS',
+            'DeepAR',
+            'TemporalFusionTransformer',
+            'PatchTST',
+            'DirectTabular',
+            'AutoARIMA',
+        ]
 
         try:
             logger.debug('Training AutoGluon...')
             # Train models
-            predictor.fit(train_data, presets=preset, random_seed=limit, time_limit=limit,
-                        #   time_limit=100, excluded_model_types=excluded_model_types, # For debugging only
-                          )
+            predictor.fit(
+                train_data,
+                presets=preset,
+                random_seed=limit,
+                time_limit=limit,
+                #   time_limit=100, excluded_model_types=excluded_model_types, # For debugging only
+            )
             # Get predictions
             logger.debug('Making predictions...')
-            predictions = self.rolling_origin_forecast(predictor, train_data, test_data, horizon, tmp_dir,
-                                                       column='mean')
+            predictions = self.rolling_origin_forecast(
+                predictor, train_data, test_data, horizon, tmp_dir, column='mean'
+            )
         except NetworkXError as error:
             raise AutomlLibraryError('AutoGluon failed to fit/predict due to NetworkX', error)
 
@@ -182,7 +211,7 @@ class AutoGluonForecaster(Forecaster):
             # print('2 len(predictions)', len(predictions))
             # print('3 predictions[0].shape', predictions[0].shape)
             # print('4 flatten', np.concatenate([ p.flatten() for p in predictions ]).shape)
-            predictions = np.concatenate([ p.flatten() for p in predictions ])
+            predictions = np.concatenate([p.flatten() for p in predictions])
             # predictions = np.concatenate([ p.flatten() for p in predictions ][::horizon])
             # print('6 predictions.shape', predictions.shape)
             # predictions = predictions[:len(test_df)]
@@ -191,7 +220,6 @@ class AutoGluonForecaster(Forecaster):
             raise NotImplementedError()
 
         return predictions
-
 
     def estimate_initial_limit(self, time_limit, preset):
         """Estimate initial time limit to use for TimeSeriesPredictor fit()
@@ -202,7 +230,6 @@ class AutoGluonForecaster(Forecaster):
         """
 
         return int(time_limit * self.initial_training_fraction)
-
 
     def rolling_origin_forecast(self, model, X_train, X_test, horizon, tmp_dir, column=None):
         """Iteratively forecast over increasing dataset
@@ -221,13 +248,13 @@ class AutoGluonForecaster(Forecaster):
         if column != None:
             preds = preds[column].values[-horizon:]
         assert len(preds) == horizon
-        predictions = [ preds ]
+        predictions = [preds]
 
         # Split test set
         # test_splits = Utils.split_test_set(X_test, horizon)
         # for s in test_splits:
         #     s = s.head(1)
-            # data = pd.concat([data, s])
+        #     data = pd.concat([data, s])
 
         df = pd.concat([X_train, X_test])
         df = df.get_reindexed_view(freq=X_test.freq)

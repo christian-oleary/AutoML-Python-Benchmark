@@ -18,10 +18,11 @@ cmdstanpy_logger.propagate = False
 cmdstanpy_logger.setLevel(logging.CRITICAL)
 
 # Presets are every combination of the following:
-configs = [ 'superfast', 'fast', 'fast_parallel', 'default', 'all' ]
-time_limits = ['60', '120', '240', '480', '960', '1920'] # Minutes: 1, 2, 4, 8, 16, 32
+configs = ['superfast', 'fast', 'fast_parallel', 'default', 'all']
+time_limits = ['60', '120', '240', '480', '960', '1920']  # Minutes: 1, 2, 4, 8, 16, 32
 presets = list(itertools.product(configs, time_limits))
-presets = [ '__'.join(p) for p in presets ]
+presets = ['__'.join(p) for p in presets]
+
 
 class AutoTSForecaster(Forecaster):
 
@@ -30,10 +31,19 @@ class AutoTSForecaster(Forecaster):
     # Training configurations ordered from slowest to fastest
     presets = presets
 
-    def forecast(self, train_df, test_df, forecast_type, horizon, limit, frequency, tmp_dir,
-                 nproc=1,
-                 preset='superfast__60',
-                 target_name=None):
+    def forecast(
+        self,
+        train_df,
+        test_df,
+        forecast_type,
+        horizon,
+        limit,
+        frequency,
+        tmp_dir,
+        nproc=1,
+        preset='superfast__60',
+        target_name=None,
+    ):
         """Perform time series forecasting
 
         :param pd.DataFrame train_df: Dataframe of training data
@@ -73,11 +83,12 @@ class AutoTSForecaster(Forecaster):
                 train_df.index = pd.to_datetime(train_df.index, unit='D')
                 test_df.index = pd.to_datetime(test_df.index, unit='D')
 
-            train_df.columns = [ target_name ]
-            test_df.columns = [ target_name ]
+            train_df.columns = [target_name]
+            test_df.columns = [target_name]
 
-            X_train, _, X_test, __ = self.create_tabular_dataset(train_df, test_df, horizon, target_name,
-                                                                 tabular_y=False)
+            X_train, _, X_test, __ = self.create_tabular_dataset(
+                train_df, test_df, horizon, target_name, tabular_y=False
+            )
             train_regressors = X_train[f'{target_name}-{horizon}']
             test_regressors = X_test[f'{target_name}-{horizon}']
             assert np.isfinite(X_train).all().all()
@@ -86,15 +97,17 @@ class AutoTSForecaster(Forecaster):
             assert np.isfinite(test_regressors).all()
 
         min_allowed_train_percent = 0.1
-        if (horizon * min_allowed_train_percent) > int((train_df.shape[0]/4) - horizon):
+        if (horizon * min_allowed_train_percent) > int((train_df.shape[0] / 4) - horizon):
             raise DatasetTooSmallError('Time series is too short for AutoTS', ValueError())
 
         limit = int(limit)
         # Max generations and generation timeout (if converted back to seconds) should approxiamtely equal the limit
         # It can be slightly off due to rounding and the 0.95 modifier that accounts for miscellaneous processing
         max_generations = int(round((limit / int(preset.split('__')[1])) * 0.95, 0))
-        generation_timeout = int(round((limit / max_generations) / 60, 0)) # In minutes
-        logger.debug(f'Max. generations: {max_generations}, Generation timeout: {generation_timeout}')
+        generation_timeout = int(round((limit / max_generations) / 60, 0))  # In minutes
+        logger.debug(
+            f'Max. generations: {max_generations}, Generation timeout: {generation_timeout}'
+        )
 
         model = AutoTS(
             ensemble=['auto'],
@@ -123,21 +136,25 @@ class AutoTSForecaster(Forecaster):
                     logger.debug(f'Fitting ({preset})...')
                     model = model.fit(train_df, future_regressor=train_regressors)
                     logger.debug(f'Predicting ({preset})...')
-                    predictions = model.predict(future_regressor=test_regressors, forecast_length=len(test_regressors)).forecast.values
+                    predictions = model.predict(
+                        future_regressor=test_regressors, forecast_length=len(test_regressors)
+                    ).forecast.values
                     assert np.isfinite(predictions).all()
                     break
                 except Exception as e:
                     logger.error(e)
                     logger.error(f'Failed on fit attempt ({preset})')
                     model = model.fit(train_df, future_regressor=train_regressors)
-                    predictions = model.predict(future_regressor=test_regressors, forecast_length=horizon).forecast.values
+                    predictions = model.predict(
+                        future_regressor=test_regressors, forecast_length=horizon
+                    ).forecast.values
                     assert np.isfinite(predictions).all()
                     break
 
-        predictions = np.concatenate([ p.flatten()[:horizon] for p in predictions ][::horizon])
+        predictions = np.concatenate([p.flatten()[:horizon] for p in predictions][::horizon])
         if forecast_type == 'univariate':
             if 'ISEM_prices' not in tmp_dir:
-                predictions = predictions[:len(test_regressors)]
+                predictions = predictions[: len(test_regressors)]
 
         # # predictions = self.rolling_origin_forecast(model, test_df, test_regressors, horizon)
         # # predictions = model.predict(future_regressor=test_regressors, forecast_length=horizon).forecast.values
@@ -149,7 +166,6 @@ class AutoTSForecaster(Forecaster):
         # assert np.isfinite(np.array(predictions)).all()
 
         return predictions
-
 
     def estimate_initial_limit(self, time_limit, preset):
         """Estimate initial limit to use for training models
@@ -171,7 +187,6 @@ class AutoTSForecaster(Forecaster):
 
         # Calculated in forecasting function
         return time_limit
-
 
     def rolling_origin_forecast(self, model, test_X, test_regressors, horizon):
         """DEPRECATED. Iteratively forecast over increasing dataset

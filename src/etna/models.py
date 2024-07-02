@@ -19,21 +19,30 @@ from src.TSForecasting.data_loader import FREQUENCY_MAP
 tune_size = ['5']
 n_trials = ['5']
 presets = list(itertools.product(tune_size, n_trials))
-presets = [ '_'.join(p) for p in presets]
+presets = ['_'.join(p) for p in presets]
 
 
 class ETNAForecaster(Forecaster):
 
     name = 'ETNA'
 
-    initial_training_fraction = 0.95 # Use 95% of max. time for trainig in initial experiment
+    initial_training_fraction = 0.95  # Use 95% of max. time for trainig in initial experiment
 
     presets = presets
 
-    def forecast(self, train_df, test_df, forecast_type, horizon, limit, frequency, tmp_dir,
-                 nproc=1,
-                 preset=presets[0],
-                 target_name=None):
+    def forecast(
+        self,
+        train_df,
+        test_df,
+        forecast_type,
+        horizon,
+        limit,
+        frequency,
+        tmp_dir,
+        nproc=1,
+        preset=presets[0],
+        target_name=None,
+    ):
         """Perform time series forecasting
 
         :param pd.DataFrame train_df: Dataframe of training data
@@ -98,10 +107,14 @@ class ETNAForecaster(Forecaster):
         #     X_test = X_test.drop('etna_datetime', axis=1)
 
         # Shift data (lag) back by one period to prevent leakage
-        X_test = pd.concat([train_df.tail(horizon), test_df.head(len(test_df)-horizon)], ignore_index=True)
+        X_test = pd.concat(
+            [train_df.tail(horizon), test_df.head(len(test_df) - horizon)], ignore_index=True
+        )
 
         logger.debug(f'Training with ETNA ({preset})...')
-        auto = Auto(target_metric=SMAPE(), horizon=horizon, experiment_folder=os.path.join(tmp_dir, preset))
+        auto = Auto(
+            target_metric=SMAPE(), horizon=horizon, experiment_folder=os.path.join(tmp_dir, preset)
+        )
 
         # Get best pipeline
         preset_parts = preset.split('_')
@@ -111,10 +124,18 @@ class ETNAForecaster(Forecaster):
         best_pipeline = None
         predictions = None
         MAX_ATTEMPTS = 5
-        for i in range(MAX_ATTEMPTS): # May take multiple attempts due to a variety of internal ETNA errors
+        # May take multiple attempts due to a variety of internal ETNA errors
+        for i in range(MAX_ATTEMPTS):
             logger.warning(f'ATTEMPT {i+1} of {MAX_ATTEMPTS}')
             try:
-                best_pipeline = auto.fit(ts, timeout=limit, tune_size=tune_size, n_trials=n_trials, n_jobs=nproc, catch=())
+                best_pipeline = auto.fit(
+                    ts,
+                    timeout=limit,
+                    tune_size=tune_size,
+                    n_trials=n_trials,
+                    n_jobs=nproc,
+                    catch=(),
+                )
                 assert best_pipeline is not None, f'ETNA training failed using preset: {preset}'
                 logger.debug(f'Training finished, best_pipeline: {best_pipeline}')
 
@@ -129,13 +150,12 @@ class ETNAForecaster(Forecaster):
                 assert predictions is not None
                 logger.warning('SUCCESS. FINISHING')
                 break
-            except  Exception as e2:
+            except Exception as e2:
                 logger.debug('ETNA failed. Re-attempting training...')
 
         if predictions is None:
             raise AutomlLibraryError(f'ETNA failed with preset {preset}.', Exception)
         return predictions
-
 
     def estimate_initial_limit(self, time_limit, preset):
         """Estimate initial limit to use for training models
@@ -146,7 +166,6 @@ class ETNAForecaster(Forecaster):
         """
 
         return int(time_limit * self.initial_training_fraction)
-
 
     def rolling_origin_forecast(self, model, X_test, horizon, freq):
         """Iteratively forecast over increasing dataset
@@ -159,13 +178,14 @@ class ETNAForecaster(Forecaster):
 
         predictions = []
         for i in range(0, len(X_test), horizon):
-            data = X_test.head(i) # returns pd.DataFrame
+            data = X_test.head(i)  # returns pd.DataFrame
             ts = TSDataset(TSDataset.to_dataset(X_test), freq=freq)
             preds = model.forecast(ts).to_pandas().values
             predictions.append(preds)
 
-        if len(data)+horizon < len(X_test): # May happen if horizon does not divide evenly into len(X_text)
-            data = X_test.tail(horizon) # returns pd.DataFrame
+        # If horizon does not divide evenly into len(X_text)
+        if len(data) + horizon < len(X_test):
+            data = X_test.tail(horizon)  # returns pd.DataFrame
             ts = TSDataset(TSDataset.to_dataset(X_test), freq=freq)
             preds = model.forecast(ts).to_pandas().values
             predictions.append(preds)
@@ -173,9 +193,9 @@ class ETNAForecaster(Forecaster):
         # Flatten predictions
         # print('-> len(predictions)', len(predictions))
         try:
-            predictions = np.concatenate([ p.flatten() for p in predictions ])
+            predictions = np.concatenate([p.flatten() for p in predictions])
         except:
-            predictions = np.concatenate([ p.values.flatten() for p in predictions ])
+            predictions = np.concatenate([p.values.flatten() for p in predictions])
         assert len(predictions) == len(X_test)
         # print('-> predictions.shape', predictions.shape)
         # predictions = predictions[:len(X_test)] # Truncate if needed

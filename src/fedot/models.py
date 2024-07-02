@@ -17,22 +17,30 @@ class FEDOTForecaster(Forecaster):
 
     # Training configurations approximately ordered from slowest to fastest
     presets = [
-                'fast_train',
-                'ts',
-                # 'gpu', # Errors with cudf and cuml
-                'stable',
-                'auto',
-                'best_quality',
-                ]
+        'fast_train',
+        'ts',
+        # 'gpu', # Errors with cudf and cuml
+        'stable',
+        'auto',
+        'best_quality',
+    ]
 
     # Use 95% of maximum available time for model training in initial experiment
     initial_training_fraction = 0.95
 
-
-    def forecast(self, train_df, test_df, forecast_type, horizon, limit, frequency, tmp_dir,
-                 nproc=1,
-                 preset='fast_train',
-                 target_name=None):
+    def forecast(
+        self,
+        train_df,
+        test_df,
+        forecast_type,
+        horizon,
+        limit,
+        frequency,
+        tmp_dir,
+        nproc=1,
+        preset='fast_train',
+        target_name=None,
+    ):
         """Perform time series forecasting
 
         :param pd.DataFrame train_df: Dataframe of training data
@@ -50,11 +58,12 @@ class FEDOTForecaster(Forecaster):
 
         if forecast_type == 'univariate':
             target_name = 'target'
-            train_df.columns = [ target_name ]
-            test_df.columns = [ target_name ]
+            train_df.columns = [target_name]
+            test_df.columns = [target_name]
 
-        X_train, y_train, X_test, _ = self.create_tabular_dataset(train_df, test_df, horizon, target_name,
-                                                                  tabular_y=False, lag=None)
+        X_train, y_train, X_test, _ = self.create_tabular_dataset(
+            train_df, test_df, horizon, target_name, tabular_y=False, lag=None
+        )
 
         # print('X_test.shape', X_test.shape)
         if forecast_type == 'univariate' and 'ISEM_prices' in tmp_dir:
@@ -70,7 +79,7 @@ class FEDOTForecaster(Forecaster):
         def fill_gaps(dataframe):
             # Create model to infer missing values
             node_lagged = PrimaryNode('lagged')
-            node_lagged.custom_params = { 'window_size': horizon }
+            node_lagged.custom_params = {'window_size': horizon}
             node_final = SecondaryNode('ridge', nodes_from=[node_lagged])
             pipeline = Pipeline(node_final)
             model_gapfiller = ModelGapFiller(gap_value=-float('inf'), pipeline=pipeline)
@@ -87,15 +96,16 @@ class FEDOTForecaster(Forecaster):
 
         # Initialize for the time-series forecasting
         logger.info('Training FEDOT...')
-        model = Fedot(problem='ts_forecasting',
-                    task_params=task.task_params,
-                    # use_input_preprocessing=True, # fedot>=0.7.0
-                    timeout=limit, # minutes
-                    # timeout=1, # minutes
-                    preset=preset,
-                    seed=limit,
-                    n_jobs=nproc,
-                    )
+        model = Fedot(
+            problem='ts_forecasting',
+            task_params=task.task_params,
+            # use_input_preprocessing=True, # fedot>=0.7.0
+            timeout=limit,  # minutes
+            # timeout=1, # minutes
+            preset=preset,
+            seed=limit,
+            n_jobs=nproc,
+        )
 
         model.fit(X_train, y_train)
         model.test_data = X_test
@@ -105,7 +115,6 @@ class FEDOTForecaster(Forecaster):
         # print('predictions', predictions.shape)
         return predictions
 
-
     def estimate_initial_limit(self, time_limit, preset):
         """Estimate initial limit to use for training models
 
@@ -114,8 +123,7 @@ class FEDOTForecaster(Forecaster):
         :return: Time limit in minutes (int)
         """
 
-        return int((time_limit/60) * self.initial_training_fraction)
-
+        return int((time_limit / 60) * self.initial_training_fraction)
 
     def rolling_origin_forecast(self, model, X_train, X_test, horizon):
         """Iteratively forecast over increasing dataset
@@ -127,7 +135,6 @@ class FEDOTForecaster(Forecaster):
         :return: Predictions (numpy array)
         """
 
-
         # Make predictions
         data = X_train
         preds = model.predict(data, in_sample=False)
@@ -135,14 +142,14 @@ class FEDOTForecaster(Forecaster):
         if len(preds.flatten()) > 0:
             preds = preds[-horizon:]
 
-        predictions = [ preds ]
+        predictions = [preds]
 
         # # Split test set
         # test_splits = Utils.split_test_set(X_test, horizon)
         # for s in test_splits:
 
         # for s in X_test.iterrows():
-            # data.loc[len(data.index)] = s[1].values
+        #     data.loc[len(data.index)] = s[1].values
 
         # for i in range(len(X_test)):
         #     s = X_test.iloc[[i]]
@@ -174,9 +181,9 @@ class FEDOTForecaster(Forecaster):
         # print('predictions[0].shape', predictions[0].shape)
         # Flatten predictions and truncate if needed
         try:
-            predictions = np.concatenate([ p.flatten() for p in predictions ])
+            predictions = np.concatenate([p.flatten() for p in predictions])
         except:
-            predictions = np.concatenate([ p.values.flatten() for p in predictions ])
+            predictions = np.concatenate([p.values.flatten() for p in predictions])
         # print(predictions.shape)
         # predictions = predictions[:len(X_test)]
         # print(predictions.shape)

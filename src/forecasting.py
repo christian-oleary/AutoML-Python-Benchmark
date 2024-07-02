@@ -17,7 +17,7 @@ from src.util import Utils
 from src.validation import Task
 
 
-class Forecasting():
+class Forecasting:
     """Functionality for applying forecasting libraries to existing datasets"""
 
     # Filter datasets based on "Monash Time Series Forecasting Archive" by Godahewa et al. (2021):
@@ -144,8 +144,11 @@ class Forecasting():
         """
         if self.config.results_dir is not None:
             results_subdir = os.path.join(
-                self.config.results_dir, f'{self.forecast_type}_forecasting', self.dataset_name, self.forecaster_name,
-                f'preset-{preset}_proc-{self.config.nproc}_limit-{self.limit}'
+                self.config.results_dir,
+                f'{self.forecast_type}_forecasting',
+                self.dataset_name,
+                self.forecaster_name,
+                f'preset-{preset}_proc-{self.config.nproc}_limit-{self.limit}',
             )
             # If results are invalid and need to be removed:
             # if 'forecaster_name' in results_subdir and os.path.exists(results_subdir):
@@ -162,8 +165,12 @@ class Forecasting():
             # Summarize experiment results
             if self.config.results_dir is not None:
                 Utils.summarize_dataset_results(
-                    os.path.join(self.config.results_dir, f'{self.forecast_type}_forecasting', self.dataset_name),
-                    plots=False
+                    os.path.join(
+                        self.config.results_dir,
+                        f'{self.forecast_type}_forecasting',
+                        self.dataset_name,
+                    ),
+                    plots=False,
                 )
             return
 
@@ -173,21 +180,38 @@ class Forecasting():
         if max_trials > 0:
             # Run forecaster and record total runtime
             tmp_dir = self.delete_tmp_dirs()
-            logger.info(f'Applying {self.forecaster_name} (preset: {preset}) to {self.dataset_path}')
+            logger.info(
+                f'Applying {self.forecaster_name} (preset: {preset}) to {self.dataset_path}'
+            )
             start_time = time.perf_counter()
 
             try:
-                predictions = self.forecaster.forecast(self.train_df.copy(), self.test_df.copy(), self.forecast_type,
-                                                    self.horizon, self.limit, self.frequency, tmp_dir,
-                                                    nproc=self.config.nproc, preset=preset)
+                predictions = self.forecaster.forecast(
+                    self.train_df.copy(),
+                    self.test_df.copy(),
+                    self.forecast_type,
+                    self.horizon,
+                    self.limit,
+                    self.frequency,
+                    tmp_dir,
+                    nproc=self.config.nproc,
+                    preset=preset,
+                )
 
                 duration = round(time.perf_counter() - start_time, 2)
-                logger.debug(f'{self.forecaster_name} (preset: {preset}) took {duration} seconds for {csv_file}')
+                logger.debug(
+                    f'{self.forecaster_name} (preset: {preset}) took {duration} seconds for {csv_file}'
+                )
 
                 # Generate scores and plots
                 if self.config.results_dir is not None:
                     self.evaluate_predictions(
-                        self.actual, predictions, self.y_train, results_subdir, self.forecaster_name, duration
+                        self.actual,
+                        predictions,
+                        self.y_train,
+                        results_subdir,
+                        self.forecaster_name,
+                        duration,
                     )
 
             except DatasetTooSmallError as e1:
@@ -204,8 +228,13 @@ class Forecasting():
             # Summarize experiment results
             if self.config.results_dir is not None:
                 Utils.summarize_dataset_results(
-                    os.path.join(self.config.results_dir, f'{self.forecast_type}_forecasting', self.dataset_name),
-                    plots=True)
+                    os.path.join(
+                        self.config.results_dir,
+                        f'{self.forecast_type}_forecasting',
+                        self.dataset_name,
+                    ),
+                    plots=True,
+                )
 
     def determine_num_trials(self, results_subdir):
         """Determine how many experiments to run"""
@@ -232,7 +261,9 @@ class Forecasting():
         with open(os.path.join(results_subdir, 'failed.txt'), 'w', encoding='utf8') as fh:
             fh.write(str(error))
 
-    def evaluate_predictions(self, actual, predictions, y_train, results_subdir, forecaster_name, duration):
+    def evaluate_predictions(
+        self, actual, predictions, y_train, results_subdir, forecaster_name, duration
+    ):
         """Generate model scores and plots from predictions
 
         :param np.array actual: Original data
@@ -247,19 +278,22 @@ class Forecasting():
         if actual.shape[0] > predictions.shape[0]:
             logger.error(f'Predictions: {predictions}')
             logger.error(f'Actual: {actual}')
-            raise ValueError(f'Not enough predictions {predictions.shape[0]} for test set {actual.shape[0]}')
+            raise ValueError(
+                f'Not enough predictions {predictions.shape[0]} for test set {actual.shape[0]}'
+            )
 
         # Truncate and flatten predictions if needed
         if actual.shape[0] < predictions.shape[0]:
             try:
                 predictions = predictions.head(actual.shape[0])
             except:
-                predictions = predictions[:len(actual)]
+                predictions = predictions[: len(actual)]
         predictions = predictions.flatten()
 
         # Save regression scores and plots
-        scores = Utils.regression_scores(actual, predictions, y_train, results_subdir, forecaster_name,
-                                        duration=duration)
+        scores = Utils.regression_scores(
+            actual, predictions, y_train, results_subdir, forecaster_name, duration=duration
+        )
 
         preds_path = os.path.join(results_subdir, 'predictions.csv')
         try:
@@ -267,13 +301,15 @@ class Forecasting():
         except:
             np.savetxt(preds_path, predictions, fmt='%s', delimiter=',')
 
-        try: # If pandas Series
+        try:  # If pandas Series
             predictions = predictions.reset_index(drop=True)
         except:
             pass
 
         if results_subdir is not None:
-            Utils.plot_forecast(actual, predictions, results_subdir, f'{forecaster_name}_{round(scores["R2"], 2)}')
+            Utils.plot_forecast(
+                actual, predictions, results_subdir, f'{forecaster_name}_{round(scores["R2"], 2)}'
+            )
 
     def analyse_results(self, config, plots=True):
         """Analyse the overall results of running AutoML libraries on datasets
@@ -288,7 +324,9 @@ class Forecasting():
             logger.warning('No results directory specified. Skipping')
 
         elif not os.path.exists(config.results_dir):
-            logger.error(f'Results directory not found: {config.results_dir} ({type(config.results_dir)})')
+            logger.error(
+                f'Results directory not found: {config.results_dir} ({type(config.results_dir)})'
+            )
 
         else:
             Utils.summarize_overall_results(config.results_dir, config.task, plots=plots)
@@ -297,7 +335,11 @@ class Forecasting():
         """Delete old temporary files directory to ensure libraries start from scratch"""
         tmp_dir = os.path.join('tmp', self.dataset_name, self.forecaster_name)
         paths_to_delete = [
-            tmp_dir, 'checkpoints', 'catboost_info', 'time_series_forecaster', 'etna-auto.db'
+            tmp_dir,
+            'checkpoints',
+            'catboost_info',
+            'time_series_forecaster',
+            'etna-auto.db',
         ] + glob('.lr_find_*.ckpt')
 
         for folder in paths_to_delete:
@@ -323,33 +365,43 @@ class Forecasting():
             forecaster = Forecaster()
         elif forecaster_name == 'autogluon':
             from src.autogluon.models import AutoGluonForecaster
+
             forecaster = AutoGluonForecaster()
         elif forecaster_name == 'autokeras':
             from src.autokeras.models import AutoKerasForecaster
+
             forecaster = AutoKerasForecaster()
         elif forecaster_name == 'autots':
             from src.autots.models import AutoTSForecaster
+
             forecaster = AutoTSForecaster()
         elif forecaster_name == 'autopytorch':
             from src.autopytorch.models import AutoPyTorchForecaster
+
             forecaster = AutoPyTorchForecaster()
         elif forecaster_name == 'etna':
             from src.etna.models import ETNAForecaster
+
             forecaster = ETNAForecaster()
         elif forecaster_name == 'evalml':
             from src.evalml.models import EvalMLForecaster
+
             forecaster = EvalMLForecaster()
         elif forecaster_name == 'fedot':
             from src.fedot.models import FEDOTForecaster
+
             forecaster = FEDOTForecaster()
         elif forecaster_name == 'flaml':
             from src.flaml.models import FLAMLForecaster
+
             forecaster = FLAMLForecaster()
         elif forecaster_name == 'ludwig':
             from src.ludwig.models import LudwigForecaster
+
             forecaster = LudwigForecaster()
         elif forecaster_name == 'pycaret':
             from src.pycaret.models import PyCaretForecaster
+
             forecaster = PyCaretForecaster()
         else:
             raise ValueError(f'Unknown forecaster {forecaster_name}')

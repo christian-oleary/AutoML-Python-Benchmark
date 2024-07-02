@@ -19,10 +19,19 @@ class FLAMLForecaster(Forecaster):
 
     presets = ['auto']
 
-    def forecast(self, train_df, test_df, forecast_type, horizon, limit, frequency, tmp_dir,
-                 nproc=1,
-                 preset='auto',
-                 target_name=None):
+    def forecast(
+        self,
+        train_df,
+        test_df,
+        forecast_type,
+        horizon,
+        limit,
+        frequency,
+        tmp_dir,
+        nproc=1,
+        preset='auto',
+        target_name=None,
+    ):
         """Perform time series forecasting
 
         :param pd.DataFrame train_df: Dataframe of training data
@@ -38,19 +47,21 @@ class FLAMLForecaster(Forecaster):
         :return predictions: Numpy array of predictions
         """
 
-        if len(test_df) <= horizon + 1: # 4 = lags
+        if len(test_df) <= horizon + 1:  # 4 = lags
             raise DatasetTooSmallError('Dataset too small for FLAML', ValueError())
 
         os.makedirs(tmp_dir, exist_ok=True)
 
         if forecast_type == 'univariate':
             target_name = 'target'
-            train_df.columns = [ target_name ]
-            test_df.columns = [ target_name ]
+            train_df.columns = [target_name]
+            test_df.columns = [target_name]
 
             if 'ISEM_prices' in tmp_dir:
                 train_df.index = pd.to_datetime(train_df.index, format='%d/%m/%Y %H:%M')
-                train_df.index = pd.date_range(start=train_df.index.min(), freq='H', periods=len(train_df))
+                train_df.index = pd.date_range(
+                    start=train_df.index.min(), freq='H', periods=len(train_df)
+                )
                 test_df.index = pd.to_datetime(test_df.index, format='%d/%m/%Y %H:%M')
 
                 # Not required as FLAML is using timestamps as features
@@ -82,18 +93,19 @@ class FLAMLForecaster(Forecaster):
             n_jobs=nproc,
             period=horizon,
             task='ts_forecast',
-            time_budget=limit, # seconds
-            verbose=0, # Higher = more messages
+            time_budget=limit,  # seconds
+            verbose=0,  # Higher = more messages
         )
         logger.debug('Training finished.')
 
-        predictions = automl.predict(test_df.index.to_series(name='ds').values, period=horizon).values
+        predictions = automl.predict(
+            test_df.index.to_series(name='ds').values, period=horizon
+        ).values
 
         # predictions = self.rolling_origin_forecast(automl, train_df.index.to_series(name='ds').values,
         #                                            test_df.index.to_series().to_frame(), horizon)
         # predictions = predictions[:len(test_df)].values
         return predictions
-
 
     def estimate_initial_limit(self, time_limit, preset):
         """Estimate initial limit to use for training models
@@ -104,7 +116,6 @@ class FLAMLForecaster(Forecaster):
         """
 
         return int(time_limit * self.initial_training_fraction)
-
 
     def rolling_origin_forecast(self, model, X_train, X_test, horizon):
         """Iteratively forecast over increasing dataset
@@ -120,7 +131,7 @@ class FLAMLForecaster(Forecaster):
 
         # Make predictions
         preds = model.predict(X_train)[-horizon:]
-        predictions = [ preds ]
+        predictions = [preds]
 
         # predictions = []
         for s in test_splits:
@@ -132,8 +143,8 @@ class FLAMLForecaster(Forecaster):
 
         # Flatten predictions and truncate if needed
         try:
-            predictions = np.concatenate([ p.flatten() for p in predictions ])
+            predictions = np.concatenate([p.flatten() for p in predictions])
         except:
-            predictions = np.concatenate([ p.values.flatten() for p in predictions ])
-        predictions = predictions[:len(X_test)]
+            predictions = np.concatenate([p.values.flatten() for p in predictions])
+        predictions = predictions[: len(X_test)]
         return predictions

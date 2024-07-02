@@ -14,15 +14,24 @@ class PyCaretForecaster(Forecaster):
 
     name = 'PyCaret'
 
-    initial_training_fraction = 0.95 # Use 95% of max. time for trainig in initial experiment
-    tuning_fraction = 0.85 # Use 95% of max. time for trainig in initial experiment
+    initial_training_fraction = 0.95  # Use 95% of max. time for trainig in initial experiment
+    tuning_fraction = 0.85  # Use 95% of max. time for trainig in initial experiment
 
-    presets = [ '' ]
+    presets = ['']
 
-    def forecast(self, train_df, test_df, forecast_type, horizon, limit, frequency, tmp_dir,
-                 nproc=1,
-                 preset='',
-                 target_name=None):
+    def forecast(
+        self,
+        train_df,
+        test_df,
+        forecast_type,
+        horizon,
+        limit,
+        frequency,
+        tmp_dir,
+        nproc=1,
+        preset='',
+        target_name=None,
+    ):
         """Perform time series forecasting
 
         :param pd.DataFrame train_df: Dataframe of training data
@@ -46,11 +55,15 @@ class PyCaretForecaster(Forecaster):
             test_df.index = pd.to_datetime(test_df.index).to_period(freq)
         elif 'ISEM_prices' in tmp_dir:
             freq = 'H'
-            train_df.index = pd.to_datetime(train_df.index)#.to_period(freq)
-            train_df.index = pd.date_range(start=train_df.index.min(), freq='H', periods=len(train_df)).to_period(freq)
+            train_df.index = pd.to_datetime(train_df.index)  # .to_period(freq)
+            train_df.index = pd.date_range(
+                start=train_df.index.min(), freq='H', periods=len(train_df)
+            ).to_period(freq)
 
-            test_df.index = pd.to_datetime(test_df.index)#.to_period(freq)
-            test_df.index = pd.date_range(start=test_df.index.min(), freq='H', periods=len(test_df)).to_period(freq)
+            test_df.index = pd.to_datetime(test_df.index)  # .to_period(freq)
+            test_df.index = pd.date_range(
+                start=test_df.index.min(), freq='H', periods=len(test_df)
+            ).to_period(freq)
 
             # Drop irrelevant rows
             if forecast_type == 'univariate' and 'ISEM_prices' in tmp_dir:
@@ -60,15 +73,16 @@ class PyCaretForecaster(Forecaster):
                 test_df = test_df.drop('pycaret_datetime', axis=1)
 
         exp = TSForecastingExperiment()
-        exp.setup(train_df,
-                  target=target_name,
-                  fh=horizon,
-                  fold=2, # Lower folds prevents errors with short time series
-                  n_jobs=nproc,
-                  numeric_imputation_target='ffill',
-                  numeric_imputation_exogenous='ffill',
-                  use_gpu=True,
-                  )
+        exp.setup(
+            train_df,
+            target=target_name,
+            fh=horizon,
+            fold=2,  # Lower folds prevents errors with short time series
+            n_jobs=nproc,
+            numeric_imputation_target='ffill',
+            numeric_imputation_exogenous='ffill',
+            use_gpu=True,
+        )
 
         logger.debug('Training models...')
         model = exp.compare_models(budget_time=limit)
@@ -86,9 +100,10 @@ class PyCaretForecaster(Forecaster):
             predictions = exp.predict_model(model, X=test_df.drop(target_name, axis=1), fh=horizon)
             predictions = predictions['y_pred'].values
         else:
-            predictions = self.rolling_origin_forecast(exp, model, train_df, test_df, horizon, freq, column='y_pred')
+            predictions = self.rolling_origin_forecast(
+                exp, model, train_df, test_df, horizon, freq, column='y_pred'
+            )
         return predictions
-
 
     def estimate_initial_limit(self, time_limit, preset):
         """Estimate initial limit to use for training models
@@ -98,8 +113,7 @@ class PyCaretForecaster(Forecaster):
         :return: Time limit in minutes (int)
         """
 
-        return int((time_limit/60) * self.initial_training_fraction)
-
+        return int((time_limit / 60) * self.initial_training_fraction)
 
     def rolling_origin_forecast(self, exp, model, X_train, X_test, horizon, freq, column=None):
         """Iteratively forecast over increasing dataset
@@ -117,12 +131,14 @@ class PyCaretForecaster(Forecaster):
         if column != None:
             preds = preds[column].values[-horizon:]
         # print('0 preds.shape', preds.shape)
-        predictions = [ preds ]
+        predictions = [preds]
 
         data = X_train
         for s in X_test.iterrows():
             data.index = data.index.to_timestamp()
-            new_index = pd.date_range(start=data.index.min(), freq='H', periods=len(data)+1).to_period(freq)
+            new_index = pd.date_range(
+                start=data.index.min(), freq='H', periods=len(data) + 1
+            ).to_period(freq)
             data.loc[len(data.index)] = s[1].values
             # data = pd.concat([data, s])
             data.index = new_index
@@ -140,7 +156,7 @@ class PyCaretForecaster(Forecaster):
         # Flatten predictions and truncate if needed
         # print('len(predictions)', len(predictions))
         try:
-            predictions = np.concatenate([ p.flatten() for p in predictions ])
+            predictions = np.concatenate([p.flatten() for p in predictions])
         except:
-            predictions = np.concatenate([ p.values.flatten() for p in predictions ])
+            predictions = np.concatenate([p.values.flatten() for p in predictions])
         return predictions

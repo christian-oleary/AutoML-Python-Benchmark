@@ -2,6 +2,7 @@
 Definitions of sutom errors
 """
 
+
 class DatasetTooSmallError(Exception):
     """Should be called when a dataset is too small for a library to handle"""
 

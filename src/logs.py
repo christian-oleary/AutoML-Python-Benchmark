@@ -24,11 +24,12 @@ class BaseEnum(Enum):
     @classmethod
     def get_options(cls):
         """Get list of enum values"""
-        return [ e.__str__().lower() for e in list(cls) ]
+        return [e.__str__().lower() for e in list(cls)]
 
 
 class LogLevel(BaseEnum):
     """Log levels"""
+
     CRITICAL = 'CRITICAL'
     ERROR = 'ERROR'
     WARNING = 'WARNING'
@@ -62,7 +63,7 @@ class ColorFormatter(logging.Formatter):
         logging.INFO: green + log_format + reset,
         logging.WARNING: yellow + log_format + reset,
         logging.ERROR: red + log_format + reset,
-        logging.CRITICAL: bold_red + log_format + reset
+        logging.CRITICAL: bold_red + log_format + reset,
     }
 
     def format(self, record):
@@ -82,7 +83,8 @@ def set_log_dir(log_dir='logs'):
     if log_dir is not None:
         os.makedirs(log_dir, exist_ok=True)
         file_handler = TimedRotatingFileHandler(
-            os.path.join(log_dir, 'log'), when='H', backupCount=24, utc=True)
+            os.path.join(log_dir, 'log'), when='H', backupCount=24, utc=True
+        )
         file_handler.setFormatter(logging.Formatter(log_format, time_format))
         logger.addHandler(file_handler)
         logger.info(f'Logging to directory: {log_dir}')

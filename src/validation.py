@@ -65,7 +65,8 @@ class Validator:
         else:
             if not isinstance(args.libraries, list):
                 raise TypeError(
-                    f'libraries must be a list or string. Received: {type(args.libraries)}')
+                    f'libraries must be a list or string. Received: {type(args.libraries)}'
+                )
 
             for library in args.libraries:
                 if library not in ['none', 'test'] and library not in Library.get_options():
@@ -79,7 +80,8 @@ class Validator:
 
         if not isinstance(args.results_dir, str) and args.results_dir is not None:
             raise TypeError(
-                f'results_dir must be str/None. Received: {args.results_dir} ({type(args.results_dir)})')
+                f'results_dir must be str/None. Received: {args.results_dir} ({type(args.results_dir)})'
+            )
 
         if args.data_dir is None:
             raise TypeError('data_dir must not be None')
@@ -88,7 +90,8 @@ class Validator:
             os.listdir(args.data_dir)
         except NotADirectoryError as e:
             raise NotADirectoryError(
-                f'Unknown directory for data_dir. Received: {args.data_dir}') from e
+                f'Unknown directory for data_dir. Received: {args.data_dir}'
+            ) from e
 
         if not isinstance(args.time_limit, int):
             raise TypeError(f'time_limit must be an int. Received: {args.time_limit}')

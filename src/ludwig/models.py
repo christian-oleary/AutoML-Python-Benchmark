@@ -12,14 +12,23 @@ class LudwigForecaster(Forecaster):
 
     name = 'Ludwig'
 
-    initial_training_fraction = 0.95 # Use 95% of max. time for trainig in initial experiment
+    initial_training_fraction = 0.95  # Use 95% of max. time for trainig in initial experiment
 
-    presets = [ 10, 50, 100, 150, 200, 1000 ]
+    presets = [10, 50, 100, 150, 200, 1000]
 
-    def forecast(self, train_df, test_df, forecast_type, horizon, limit, frequency, tmp_dir,
-                 nproc=1,
-                 preset=10,
-                 target_name=None):
+    def forecast(
+        self,
+        train_df,
+        test_df,
+        forecast_type,
+        horizon,
+        limit,
+        frequency,
+        tmp_dir,
+        nproc=1,
+        preset=10,
+        target_name=None,
+    ):
         """Perform time series forecasting
 
         :param pd.DataFrame train_df: Dataframe of training data
@@ -55,21 +64,22 @@ class LudwigForecaster(Forecaster):
             train_df = pd.concat([train_df.drop(target_name, axis=1), train_features], axis=1)
 
             test_features = test_df[[target_name]]
-            test_features = pd.concat([train_features.tail(horizon), test_features], axis=0) # add training data for lags calculation
+            test_features = pd.concat(
+                [train_features.tail(horizon), test_features], axis=0
+            )  # add training data for lags calculation
             add_sequence_feature_column(test_features, target_name, self.get_default_lag(horizon))
-            test_features = test_features.tail(len(test_features) - horizon) # drop training data after lags calculation
+            test_features = test_features.tail(
+                len(test_features) - horizon
+            )  # drop training data after lags calculation
             test_df = pd.concat([test_df.drop(target_name, axis=1), test_features], axis=1)
         else:
             raise NotImplementedError()
 
         config = {
             'input_features': [{'name': f'{target_name}_feature', 'type': 'timeseries'}],
-            'output_features': [
-                { 'name': target_name, 'type': 'numerical' }
-                ] + [
-                { 'name': f'{target_name}+{i}', 'type': 'numerical' } for i in range(1, 24)
-            ],
-            'trainer': { 'epochs': int(preset) }
+            'output_features': [{'name': target_name, 'type': 'numerical'}]
+            + [{'name': f'{target_name}+{i}', 'type': 'numerical'} for i in range(1, 24)],
+            'trainer': {'epochs': int(preset)},
         }
 
         # Drop irrelevant rows
@@ -82,14 +92,16 @@ class LudwigForecaster(Forecaster):
         # Constructs Ludwig model from config dictionary
         model = LudwigModel(config, logging_level=logging.WARNING)
 
-        model.train(dataset=train_df, output_directory=tmp_dir,
-                    skip_save_training_description=True,
-                    skip_save_training_statistics=True,
-                    skip_save_model=True,
-                    skip_save_progress=True,
-                    skip_save_log=True,
-                    skip_save_processed_input=True,
-                    )
+        model.train(
+            dataset=train_df,
+            output_directory=tmp_dir,
+            skip_save_training_description=True,
+            skip_save_training_statistics=True,
+            skip_save_model=True,
+            skip_save_progress=True,
+            skip_save_log=True,
+            skip_save_processed_input=True,
+        )
 
         predictions, _ = model.predict(test_df)
         predictions = predictions.values.flatten()
@@ -109,7 +121,6 @@ class LudwigForecaster(Forecaster):
         #                                            column=f'{target_name}_predictions')
         return predictions
 
-
     def estimate_initial_limit(self, time_limit, preset):
         """Estimate initial limit to use for training models
 
@@ -119,7 +130,6 @@ class LudwigForecaster(Forecaster):
         """
 
         return int(time_limit * self.initial_training_fraction)
-
 
     def rolling_origin_forecast(self, model, X_train, X_test, horizon, column=None):
         """DEPRECATED Iteratively forecast over increasing dataset

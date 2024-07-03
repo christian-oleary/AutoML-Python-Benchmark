@@ -14,12 +14,21 @@ class AutoPyTorchForecaster(Forecaster):
     # Use 95% of maximum available time for model training in initial experiment
     initial_training_fraction = 0.95
 
-    presets = [ 20, 40, 60, 80, 100 ]
+    presets = [20, 40, 60, 80, 100]
 
-    def forecast(self, train_df, test_df, forecast_type, horizon, limit, frequency, tmp_dir,
-                 nproc=1,
-                 preset=20,
-                 target_name=None):
+    def forecast(
+        self,
+        train_df,
+        test_df,
+        forecast_type,
+        horizon,
+        limit,
+        frequency,
+        tmp_dir,
+        nproc=1,
+        preset=20,
+        target_name=None,
+    ):
         """Perform time series forecasting
 
         :param pd.DataFrame train_df: Dataframe of training data
@@ -37,11 +46,12 @@ class AutoPyTorchForecaster(Forecaster):
 
         if forecast_type == 'univariate':
             target_name = 'target'
-            train_df.columns = [ target_name ]
-            test_df.columns = [ target_name ]
+            train_df.columns = [target_name]
+            test_df.columns = [target_name]
             lag = 1
-            X_train, y_train, X_test, y_test = self.create_tabular_dataset(train_df, test_df, horizon, target_name,
-                                                                           tabular_y=False, lag=lag)
+            X_train, y_train, X_test, y_test = self.create_tabular_dataset(
+                train_df, test_df, horizon, target_name, tabular_y=False, lag=lag
+            )
 
             if 'ISEM_prices' in tmp_dir:
                 train_df.index = pd.to_datetime(train_df.index, format='%d/%m/%Y %H:%M')
@@ -59,7 +69,7 @@ class AutoPyTorchForecaster(Forecaster):
             y_test = y_test.reset_index(drop=True)
             X_test = X_test.reset_index(drop=True)
 
-        horizon = y_test.shape[0] # Limitation of AutoPyTorch
+        horizon = y_test.shape[0]  # Limitation of AutoPyTorch
 
         api = TimeSeriesForecastingTask(ensemble_size=preset)
 
@@ -71,7 +81,7 @@ class AutoPyTorchForecaster(Forecaster):
             freq=freq,
             n_prediction_steps=y_test.shape[0],
             n_jobs=nproc,
-            memory_limit=32*1024,
+            memory_limit=32 * 1024,
             total_walltime_limit=limit,
             # min_num_test_instances=100, # proxy validation sets for the tasks with more than 100 series
             optimize_metric='mean_MASE_forecasting',
@@ -81,7 +91,6 @@ class AutoPyTorchForecaster(Forecaster):
         test_sets = api.dataset.generate_test_seqs()
         predictions = api.predict(test_sets)[0]
         return predictions
-
 
     def estimate_initial_limit(self, time_limit, preset):
         """Estimate initial time limit to use for TimeSeriesPredictor fit()

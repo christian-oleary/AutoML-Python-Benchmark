@@ -1,3 +1,5 @@
+"""Logging"""
+
 from enum import Enum
 import logging
 from logging.handlers import TimedRotatingFileHandler
@@ -6,6 +8,7 @@ import sys
 
 
 class BaseEnum(Enum):
+    """Base class for enums"""
 
     def __str__(self):
         return self.value.lower()
@@ -20,10 +23,13 @@ class BaseEnum(Enum):
 
     @classmethod
     def get_options(cls):
-        return [ e.__str__().lower() for e in list(cls) ]
+        """Get list of enum values"""
+        return [e.__str__().lower() for e in list(cls)]
 
 
 class LogLevel(BaseEnum):
+    """Log levels"""
+
     CRITICAL = 'CRITICAL'
     ERROR = 'ERROR'
     WARNING = 'WARNING'
@@ -38,8 +44,9 @@ log_format = '|%(asctime)s|%(levelname)s|: %(message)s'
 
 time_format = '%Y-%m-%d %H:%M:%S'
 
-class ColourFormatter(logging.Formatter):
-    """Format logs to use colours for log levels"""
+
+class ColorFormatter(logging.Formatter):
+    """Format logs to use colors for log levels"""
 
     grey = "\x1b[30;20m"
     white = "\x1b[37;20m"
@@ -56,12 +63,11 @@ class ColourFormatter(logging.Formatter):
         logging.INFO: green + log_format + reset,
         logging.WARNING: yellow + log_format + reset,
         logging.ERROR: red + log_format + reset,
-        logging.CRITICAL: bold_red + log_format + reset
+        logging.CRITICAL: bold_red + log_format + reset,
     }
 
     def format(self, record):
-        log_format = self.FORMATS.get(record.levelno)
-        formatter = logging.Formatter(log_format, time_format)
+        formatter = logging.Formatter(self.FORMATS.get(record.levelno), time_format)
         return formatter.format(record)
 
 
@@ -71,23 +77,27 @@ logging.getLogger('matplotlib.font_manager').disabled = True
 # Set up logger to print to console
 logger = logging.getLogger('Benchmark')
 
-# Format logs for log files
+
 def set_log_dir(log_dir='logs'):
+    """Format logs for log files"""
     if log_dir is not None:
         os.makedirs(log_dir, exist_ok=True)
-        file_handler = TimedRotatingFileHandler(os.path.join(log_dir, 'log'),
-                                                when='H', backupCount=24, utc=True)
+        file_handler = TimedRotatingFileHandler(
+            os.path.join(log_dir, 'log'), when='H', backupCount=24, utc=True
+        )
         file_handler.setFormatter(logging.Formatter(log_format, time_format))
         logger.addHandler(file_handler)
         logger.info(f'Logging to directory: {log_dir}')
 
+
 # Format logs for stdout
 stream_handler = logging.StreamHandler(sys.stdout)
-stream_handler.setFormatter(ColourFormatter())
+stream_handler.setFormatter(ColorFormatter())
 logger.addHandler(stream_handler)
 
 # Set log level
 logger.setLevel(level=logging.DEBUG)
+logger.propagate = False
 
 # Reduce logs from matplotlib
 logging.getLogger('matplotlib').setLevel(logging.ERROR)

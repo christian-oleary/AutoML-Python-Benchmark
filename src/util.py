@@ -14,8 +14,13 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 from scipy.stats import ConstantInputWarning, gmean, pearsonr, spearmanr
-from sklearn.metrics import (mean_absolute_error, mean_absolute_percentage_error, median_absolute_error,
-                             mean_squared_error, r2_score)
+from sklearn.metrics import (
+    mean_absolute_error,
+    mean_absolute_percentage_error,
+    median_absolute_error,
+    mean_squared_error,
+    r2_score,
+)
 from sktime.performance_metrics.forecasting import MeanAbsoluteScaledError
 
 from src.logs import logger
@@ -47,15 +52,18 @@ class Utils:
         # 'preset-all__600_proc-10_limit-6.0', 'preset-all__900_proc-10_limit-4.0',
         # 'preset-default_300_proc-1_limit-12.0', 'preset-default_600_proc-1_limit-6.0',
         # 'preset-default_60_proc-1_limit-60.0', 'preset-all__60_proc-1_limit-60.0',
-        ]
-
+    ]
 
     @staticmethod
-    def regression_scores(actual, predicted, y_train,
-                          scores_dir=None,
-                          forecaster_name=None,
-                          multioutput='uniform_average',
-                          **kwargs):
+    def regression_scores(
+        actual,
+        predicted,
+        y_train,
+        scores_dir=None,
+        forecaster_name=None,
+        multioutput='uniform_average',
+        **kwargs,
+    ):
         """Calculate forecasting metrics and optionally save results.
 
         :param np.array actual: Original time series values
@@ -73,7 +81,9 @@ class Utils:
             predicted = predicted.flatten()
 
         if predicted.shape != actual.shape:
-            raise ValueError(f'Predicted ({predicted.shape}) and actual ({actual.shape}) shapes do not match!')
+            raise ValueError(
+                f'Predicted ({predicted.shape}) and actual ({actual.shape}) shapes do not match!'
+            )
 
         mase = MeanAbsoluteScaledError(multioutput='uniform_average')
 
@@ -104,7 +114,9 @@ class Utils:
         # This must be an error, as you cannot calculate geometric mean with negative numbers. This uses
         # geometric mean of MAE and (1-SRC) with the intention of minimizing the metric.
         results['GM-MAE-SR'] = Utils.geometric_mean(results['MAE'], results['Spearman Correlation'])
-        results['GM-MASE-SR'] = Utils.geometric_mean(results['MASE'], results['Spearman Correlation'])
+        results['GM-MASE-SR'] = Utils.geometric_mean(
+            results['MASE'], results['Spearman Correlation']
+        )
 
         if 'duration' in kwargs:
             results['duration'] = kwargs['duration']
@@ -124,7 +136,6 @@ class Utils:
 
         return results
 
-
     @staticmethod
     def geometric_mean(error_score, rank_correlation_score):
         """Calculates the geometric mean of some mean error score and a mean rank correlation score.
@@ -138,7 +149,6 @@ class Utils:
         # Therefore, this work uses geometric mean of MAE and (1-SRC) with the intention of minimizing the metric.
         return gmean([error_score, 1 - rank_correlation_score])
 
-
     @staticmethod
     def geometric_mean_MAE_SR(actual, predicted):
         """Calculates the geometric mean of MAE and a Spearman correlation score.
@@ -150,7 +160,6 @@ class Utils:
         MAE = mean_absolute_error(actual, predicted, multioutput='uniform_average')
         SRC = Utils.correlation(actual, predicted, method='spearman')[0]
         return Utils.geometric_mean(MAE, SRC)
-
 
     @staticmethod
     def correlation(actual, predicted, method='pearson'):
@@ -172,12 +181,11 @@ class Utils:
         try:
             correlation = result.correlation
             pvalue = result.pvalue
-        except AttributeError as _:
+        except AttributeError:
             correlation = result[0]
             pvalue = result[1]
 
         return correlation, pvalue
-
 
     @staticmethod
     def mae_over(actual, predicted):
@@ -186,7 +194,6 @@ class Utils:
         positive_errors = np.clip(errors, 0, errors.max())
         return np.mean(positive_errors)
 
-
     @staticmethod
     def mae_under(actual, predicted):
         """Underestimated predictions (from Grimes et al. 2014)"""
@@ -194,12 +201,14 @@ class Utils:
         negative_errors = np.clip(errors, errors.min(), 0)
         return np.absolute(np.mean(negative_errors))
 
-
     @staticmethod
     def smape(actual, predicted):
         """sMAPE"""
-        return 100/len(actual) * np.sum(2 * np.abs(predicted - actual) / (np.abs(actual) + np.abs(predicted)))
-
+        return (
+            100
+            / len(actual)
+            * np.sum(2 * np.abs(predicted - actual) / (np.abs(actual) + np.abs(predicted)))
+        )
 
     @staticmethod
     def write_to_csv(path, results):
@@ -223,17 +232,16 @@ class Utils:
                 HEADERS.insert(0, HEADERS.pop(HEADERS.index('model')))
 
             for key, value in results.items():
-                if value == None or value == '':
+                if value is None or value == '':
                     results[key] = 'None'
 
             try:
                 Utils._write_to_csv(path, results, HEADERS)
-            except OSError as _:
+            except OSError:
                 # try a second time: permission error can be due to Python not
                 # having closed the file fast enough after the previous write
-                time.sleep(1) # in seconds
+                time.sleep(1)  # in seconds
                 Utils._write_to_csv(path, results, HEADERS)
-
 
     @staticmethod
     def _write_to_csv(path, results, headers):
@@ -243,14 +251,12 @@ class Utils:
         :param dict results: Values to write
         :param list headers: A list of strings to order values by
         """
-
         is_new_file = not os.path.exists(path)
         with open(path, 'a+', newline='') as f:
             writer = csv.writer(f, delimiter=',')
             if is_new_file:
                 writer.writerow(headers)
             writer.writerow([results[header] for header in headers])
-
 
     @staticmethod
     def plot_forecast(actual, predicted, results_subdir, forecaster_name):
@@ -265,23 +271,24 @@ class Utils:
         pd.plotting.register_matplotlib_converters()
 
         # Create plot
-        plt.figure(0, figsize=(20, 3)) # Pass plot ID to prevent memory issues
+        plt.figure(0, figsize=(20, 3))  # Pass plot ID to prevent memory issues
         plt.plot(actual, label='actual')
         plt.plot(predicted, label='predicted')
         save_path = os.path.join(results_subdir, 'plots', f'{forecaster_name}.png')
         os.makedirs(os.path.join(results_subdir, 'plots'), exist_ok=True)
         Utils.save_plot(forecaster_name, save_path=save_path)
 
-
     @staticmethod
-    def save_plot(title,
-                  xlabel=None,
-                  ylabel=None,
-                  suptitle='',
-                  show=False,
-                  legend=None,
-                  save_path=None,
-                  yscale='linear'):
+    def save_plot(
+        title,
+        xlabel=None,
+        ylabel=None,
+        suptitle='',
+        show=False,
+        legend=None,
+        save_path=None,
+        yscale='linear',
+    ):
         """Apply title and axis labels to plot. Show and save to file. Clear plot.
 
         :param title: Title for plot
@@ -293,24 +300,22 @@ class Utils:
         :param save_path: Save plot to file if not None, defaults to None
         :param yscale: Y-Scale ('linear' or 'log'), defaults to 'linear'
         """
-
-        if xlabel != None:
+        if xlabel is not None:
             plt.xlabel(xlabel)
 
-        if ylabel != None:
+        if ylabel is not None:
             plt.ylabel(ylabel)
-
         plt.yscale(yscale)
 
         plt.title(title)
         plt.suptitle(suptitle)
-
         if legend != None:
             plt.legend(legend, loc='upper left')
 
         # Show plot
         if show:
             plt.show()
+
         # Show plot as file
         if save_path != None:
             plt.savefig(save_path, bbox_inches='tight')
@@ -319,7 +324,6 @@ class Utils:
         plt.cla()
         plt.clf()
         plt.close('all')
-
 
     @staticmethod
     def get_csv_datasets(datasets_directory):
@@ -332,18 +336,16 @@ class Utils:
         """
 
         if not os.path.exists(datasets_directory):
-            raise NotADirectoryError('Datasets direcotry path does not exist')
+            raise NotADirectoryError('Datasets directory path does not exist')
 
         csv_files = [
-            f for f in os.listdir(datasets_directory)
-            if f.endswith('csv') and '0_metadata' not in f
-            ]
+            f for f in os.listdir(datasets_directory) if f.endswith('csv') and '0_metadata' not in f
+        ]
 
         if len(csv_files) == 0:
             raise IOError('No CSV files found')
 
         return csv_files
-
 
     @staticmethod
     def split_test_set(test_df, horizon):
@@ -353,21 +355,19 @@ class Utils:
         :param int horizon: Forecasting horizon
         :return: List of DataFrame objects
         """
-
         test_splits = []
-        total = 0 # total length of test splits
-        for _ in range(0, len(test_df)-1, horizon): # The -1 is because the last split may be less than horizon
+        total = 0  # total length of test splits
+        for _ in range(0, len(test_df) - 1, horizon):  # -1 because last split may be < horizon
             try:
-                test_splits.append(test_df.iloc[total:total+horizon, :])
-            except: # If 1D (series)
-                test_splits.append(test_df.iloc[total:total+horizon])
+                test_splits.append(test_df.iloc[total : total + horizon, :])
+            except:  # If 1D (series)
+                test_splits.append(test_df.iloc[total : total + horizon])
             total += horizon
 
         # Leftover rows
         if total < len(test_df):
             test_splits.append(test_df.tail(len(test_df) - total))
         return test_splits
-
 
     @staticmethod
     def summarize_dataset_results(results_dir, plots=True):
@@ -392,15 +392,24 @@ class Utils:
                     continue
 
                 scores_path = os.path.join(preset_dir, f'{library}.csv')
-                failed_path = os.path.join(preset_dir, f'failed.txt')
+                failed_path = os.path.join(preset_dir, 'failed.txt')
 
                 if os.path.exists(scores_path):
                     df = pd.read_csv(scores_path, index_col=False)
-                    test_results.append({'library': library, 'preset': preset, 'file': dataset, 'failed': 0,
-                                         'num_iterations': len(df),
-                                         **df.mean(numeric_only=True).to_dict() })
+                    test_results.append(
+                        {
+                            'library': library,
+                            'preset': preset,
+                            'file': dataset,
+                            'failed': 0,
+                            'num_iterations': len(df),
+                            **df.mean(numeric_only=True).to_dict(),
+                        }
+                    )
                 elif os.path.exists(failed_path):
-                    failed.append({'library': library, 'preset': preset, 'file': dataset, 'failed': 1})
+                    failed.append(
+                        {'library': library, 'preset': preset, 'file': dataset, 'failed': 1}
+                    )
                 else:
                     raise FileNotFoundError(f'Results file(s) missing in {preset_dir}')
 
@@ -420,10 +429,12 @@ class Utils:
         if len(test_scores) > 0:
             summarized_scores = Utils.save_latex(test_scores, output_file.replace('csv', 'tex'))
             if plots and len(summarized_scores) > 2:
-                Utils.save_heatmap(summarized_scores, os.path.join(stats_dir, 'heatmap.csv'),
-                                   os.path.join(stats_dir, 'heatmap.png'))
+                Utils.save_heatmap(
+                    summarized_scores,
+                    os.path.join(stats_dir, 'heatmap.csv'),
+                    os.path.join(stats_dir, 'heatmap.png'),
+                )
                 # Utils.plot_test_scores(test_scores, stats_dir, plots)
-
 
     @staticmethod
     def save_latex(df, output_file):
@@ -435,31 +446,38 @@ class Utils:
         # Sort by GM-MAE-SR
         df = df.sort_values('GM-MAE-SR')
         # Filter columns
-        df = df[['library', 'preset', 'duration', 'GM-MAE-SR', 'MAE', 'MASE', 'MSE', 'RMSE', 'Spearman Correlation']]
+        df = df[[
+            'library', 'preset', 'duration', 'GM-MAE-SR', 'MAE',
+            'MASE', 'MSE', 'RMSE', 'Spearman Correlation'
+        ]]
         # Rename columns
-        df.columns = ['Library', 'Preset', 'Duration (sec.)', 'GM-MAE-SR', 'MAE', 'MASE', 'MSE', 'RMSE', 'SRC']
+        df.columns = [
+            'Library', 'Preset', 'Duration (sec.)', 'GM-MAE-SR', 'MAE', 'MASE', 'MSE', 'RMSE', 'SRC'
+        ]
         # Format library names
         df['Library'] = df['Library'].str.capitalize()
         # Format presets
-        df['Preset'] = df['Preset'] \
-            .str.replace('Fedot', 'FEDOT') \
-            .str.replace('Flaml', 'FLAML') \
-            .str.replace('Autokeras', 'AutoKeras') \
-            .str.replace('Autogluon', 'AutoGluon') \
-            .str.replace('preset-', '') \
-            .str.replace('proc-1', '') \
-            .str.replace('proc-10', '') \
-            .str.replace('-limit-3600', '') \
-            .str.replace('-limit-3240', '') \
-            .str.replace('-limit-3564', '') \
-            .str.replace('-limit-57', '') \
-            .str.replace('-limit-12', '') \
-            .str.replace('-limit-60', '') \
-            .str.replace('-limit-6', '') \
-            .str.replace('_', ' ') \
-            .str.capitalize() \
-            .str.replace(' ', '-') \
+        df['Preset'] = (
+            df['Preset']
+            .str.replace('Fedot', 'FEDOT')
+            .str.replace('Flaml', 'FLAML')
+            .str.replace('Autokeras', 'AutoKeras')
+            .str.replace('Autogluon', 'AutoGluon')
+            .str.replace('preset-', '')
+            .str.replace('proc-1', '')
+            .str.replace('proc-10', '')
+            .str.replace('-limit-3600', '')
+            .str.replace('-limit-3240', '')
+            .str.replace('-limit-3564', '')
+            .str.replace('-limit-57', '')
+            .str.replace('-limit-12', '')
+            .str.replace('-limit-60', '')
+            .str.replace('-limit-6', '')
+            .str.replace('_', ' ')
+            .str.capitalize()
+            .str.replace(' ', '-')
             .str.replace('--', '-')
+        )
 
         # Save all scores as TEX
         df.style.format(precision=2, thousands=',', decimal='.').to_latex(
@@ -470,9 +488,8 @@ class Utils:
             label='tab:summarized_scores',
             multirow_align='t',
             position='!htbp',
-            )
+        )
         return df
-
 
     @staticmethod
     def plot_test_scores(test_scores, stats_dir, plots):
@@ -501,7 +518,7 @@ class Utils:
                 ('RMSE', '6_RMSE_box.png', 'RMSE'),
                 ('Spearman Correlation', '6_Spearman_Correlation_box.png', 'Spearman Correlation'),
                 ('duration', '8_duration_box.png', 'Duration (sec)'),
-                ]:
+            ]:
                 test_scores.boxplot(col, by='library')
                 save_path = os.path.join(stats_dir, filename)
                 Utils.save_plot(title, save_path=save_path)
@@ -519,9 +536,9 @@ class Utils:
             df_min = df_grouped.min()
             df_mean = df_grouped.mean()
 
-            df_max.columns = [ f'{c}_max' for c in df_max.columns.tolist() ]
-            df_min.columns = [ f'{c}_min' for c in df_min.columns.tolist() ]
-            df_mean.columns = [ f'{c}_mean' for c in df_mean.columns.tolist() ]
+            df_max.columns = [f'{c}_max' for c in df_max.columns.tolist()]
+            df_min.columns = [f'{c}_min' for c in df_min.columns.tolist()]
+            df_mean.columns = [f'{c}_mean' for c in df_mean.columns.tolist()]
 
             mean_scores = pd.concat([df_failed, df_max, df_min, df_mean], axis=1)
 
@@ -532,7 +549,12 @@ class Utils:
                 # Bar plot of failed training attempts
                 mean_scores.plot.bar(y='failed', figsize=(fig_width, fig_height))
                 save_path = os.path.join(stats_dir, f'3_failed_counts_by_{group_col}.png')
-                Utils.save_plot(f'Failed Counts by {group_col}', save_path=save_path, legend=None, yscale='linear')
+                Utils.save_plot(
+                    f'Failed Counts by {group_col}',
+                    save_path=save_path,
+                    legend=None,
+                    yscale='linear',
+                )
 
                 # Box plots
                 for col, filename, title, yscale in [
@@ -540,13 +562,18 @@ class Utils:
                     ('MAE_mean', f'5_MAE_mean_by_{group_col}.png', 'Mean MAE', 'linear'),
                     ('MSE_mean', f'6_MSE_mean_by_{group_col}.png', 'Mean MSE', 'linear'),
                     ('duration_mean', f'7_duration_mean_by_{group_col}.png', 'Mean Duration', 'linear'),
-                    ]:
+                ]:
                     mean_scores.plot.bar(y=col, figsize=(fig_width, fig_height))
                     save_path = os.path.join(stats_dir, filename)
                     Utils.save_plot(title, save_path=save_path, legend=None, yscale=yscale)
 
         # Plot mean scores by library
-        plot_averages(group_col='library', cols_to_drop=['file', 'failed', 'preset'], fig_width=6, fig_height=3)
+        plot_averages(
+            group_col='library',
+            cols_to_drop=['file', 'failed', 'preset'],
+            fig_width=6,
+            fig_height=3,
+        )
 
         # # Plot mean scores by library/preset
         # test_scores['library-preset'] = test_scores['library'] + ': ' + test_scores['preset']
@@ -554,7 +581,6 @@ class Utils:
         #               cols_to_drop=['file', 'failed', 'preset', 'library'],
         #               fig_width=35,
         #               fig_height=10)
-
 
     @staticmethod
     def summarize_overall_results(results_dir, forecast_type, plots=True):
@@ -587,18 +613,21 @@ class Utils:
             overall_scores_path = os.path.join(stats_dir, '1_all_scores.csv')
             logger.debug(f'Compiling overall test scores in {overall_scores_path}')
             all_scores.to_csv(overall_scores_path, index=False)
-            summarized_scores = Utils.save_latex(all_scores, overall_scores_path.replace('csv', 'tex'))
-
+            summarized_scores = Utils.save_latex(
+                all_scores, overall_scores_path.replace('csv', 'tex')
+            )
 
             if plots and len(summarized_scores) > 2:
                 logger.debug('Generating plots')
-                Utils.save_heatmap(summarized_scores, os.path.join(stats_dir, 'metrics_corr_heatmap.csv'),
-                                   os.path.join(stats_dir, 'heatmap.png'))
+                Utils.save_heatmap(
+                    summarized_scores,
+                    os.path.join(stats_dir, 'metrics_corr_heatmap.csv'),
+                    os.path.join(stats_dir, 'heatmap.png'),
+                )
                 Utils.plot_test_scores(all_scores, stats_dir, plots)
 
-
     @staticmethod
-    def save_heatmap(df:pd.DataFrame, csv_path:str, png_path:str):
+    def save_heatmap(df: pd.DataFrame, csv_path: str, png_path: str):
         """Save Pearson Correlation Matrix of metrics
 
         :param pd.DataFrame df: Results
@@ -606,33 +635,36 @@ class Utils:
         :param str png_path: Path to PNG file
         """
         # Save Pearson correlation heatmap of metrics as an indication of agreement.
-        # columns = ['GM-MAE-SR', 'MAE', 'MASE', 'MSE', 'RMSE', 'SRC'] # SRC is not normally distributed
-        columns = ['GM-MAE-SR', 'MAE', 'MASE', 'MSE', 'RMSE'] # SRC removed
+        # columns = ['GM-MAE-SR', 'MAE', 'MASE', 'MSE', 'RMSE', 'SRC']  # SRC is not normally distributed
+        columns = ['GM-MAE-SR', 'MAE', 'MASE', 'MSE', 'RMSE']  # SRC removed
         df[columns].to_csv('variables.csv')
         heatmap = df[columns].corr(method='pearson')
 
         # Save correlations and corresponding p-values as CSV
-        heatmap.to_csv(csv_path) # Save correlations as CSV
+        heatmap.to_csv(csv_path)  # Save correlations as CSV
         # heatmap.to_latex(csv_path.replace('.csv', '.tex')) # Save correlations as .tex
-        heatmap.style.to_latex(csv_path.replace('.csv', '.tex')) # Save correlations as .tex
+        heatmap.style.to_latex(csv_path.replace('.csv', '.tex'))  # Save correlations as .tex
         try:
-            calculate_pvalues = lambda x, y: pearsonr(x, y).pvalue
-            df[columns].corr(method=calculate_pvalues).to_csv(csv_path.replace('.csv', '_pvalues.csv'))
+            df[columns].corr(method=lambda x, y: pearsonr(x, y)[1]).to_csv(
+                csv_path.replace('.csv', '_pvalues.csv')
+            )
         # older scipy versions return a tuple instead of an object
-        except AttributeError as _:
-            calculate_pvalues = lambda x, y: pearsonr(x, y)[1]
-            df[columns].corr(method=calculate_pvalues).to_csv(csv_path.replace('.csv', '_pvalues.csv'))
+        except AttributeError:
+            df[columns].corr(method=lambda x, y: pearsonr(x, y)[1]).to_csv(
+                csv_path.replace('.csv', '_pvalues.csv')
+            )
 
         # Save correlation heatmap as image
-        axes = sns.heatmap(heatmap,
-                            annot=True,
-                            cbar=False,
-                            cmap='viridis',
-                            fmt='.2f',
-                        #    xticklabels=columns,
-                        #    yticklabels=columns,
-                            annot_kws={ 'size': 11 }
-                            )
+        axes = sns.heatmap(
+            heatmap,
+            annot=True,
+            cbar=False,
+            cmap='viridis',
+            fmt='.2f',
+            #    xticklabels=columns,
+            #    yticklabels=columns,
+            annot_kws={'size': 11},
+        )
         axes.set_xticklabels(axes.get_xticklabels(), fontsize=11, rotation=45, ha='right')
         axes.set_yticklabels(axes.get_yticklabels(), fontsize=11, rotation=45, va='top')
         # axes.set_xticklabels(columns, fontsize=11, rotation=45, ha='right')

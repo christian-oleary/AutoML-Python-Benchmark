@@ -1,16 +1,34 @@
 # AutoML-Python-Benchmark
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellowgreen.svg)](https://opensource.org/licenses/MIT)
+[![testing: bandit](https://github.com/christian-oleary/AutoML-Python-Benchmark/actions/workflows/bandit.yml/badge.svg)](https://github.com/christian-oleary/AutoML-Python-Benchmark/actions/workflows/bandit.yml)
+[![linting: pylint](https://github.com/christian-oleary/AutoML-Python-Benchmark/actions/workflows/pylint.yml/badge.svg)](https://github.com/christian-oleary/AutoML-Python-Benchmark/actions/workflows/pylint.yml)
+[![testing: pytest](https://github.com/christian-oleary/AutoML-Python-Benchmark/actions/workflows/pytest.yml/badge.svg)](https://github.com/christian-oleary/AutoML-Python-Benchmark/actions/workflows/pytest.yml)
+
 Benchmarks of AutoML Frameworks for time series forecasting and anomaly detection.
+
+Python version: 3.10.14
+
+## Table of Contents
+
+1. [Publications](#publications)
+2. [Datasets](#datasets)
+3. [CUDA](#cuda)
+4. [Installation](#installation)
+5. [Experiments](#experiments)
+6. [Tests](#tests)
+7. [Contact](#contact)
+8. [Citation](#citation)
 
 ## Publications
 
-A Comparative Analysis of Automated Machine Learning Libraries for Electricity Price Forecasting
+A Comparative Analysis of Automated Machine Learning Libraries for Electricity Price Forecasting (2024)
 
 - [Tag](https://github.com/christian-oleary/AutoML-Python-Benchmark/releases/tag/electricity_price_forecasting)
 - [Code](https://github.com/christian-oleary/AutoML-Python-Benchmark/tree/c436f3f83e6872ab8a4bb430923fc5aaf64f5ade)
 - These experiments are run with Python 3.9 and CUDA versions 11.2 and 11.7.
 
-## Downloading Datasets
+## Datasets
 
 ```bash
 ./shell/download_univariate_forecasting_dataset.sh
@@ -18,7 +36,7 @@ A Comparative Analysis of Automated Machine Learning Libraries for Electricity P
 ./shell/download_anomaly_detection_dataset.sh
 ```
 
-## CUDA Setup
+## CUDA
 
 To run this code, you will need to install CUDA for TensorFlow and PyTorch.
 
@@ -30,7 +48,7 @@ CUDA compatibilities for PyTorch are listed [here](https://pytorch.org/blog/depr
 
 The experiment results are based on CUDA 11.2 for TensorFlow and CUDA 11.7 for PyTorch which are officially recommended versions as of the 10th of March 2023.
 
-## Full Installation
+## Installation
 
 The following installation commands support *each* of the tested libraries. If you know which libraries you want to run and are aware of the requirements, then feel free to customize.
 
@@ -42,7 +60,7 @@ Auto-PyTorch requires Linux. PyCaret and EvalML may conflict. Other conflicts ar
 
 ```bash
 # AutoML library-specific envs recommended
-conda create -y -n env python=3.9
+conda create -y -n ENV_NAME python=3.10
 ```
 
 Installation for AutoTS specifically:
@@ -117,7 +135,7 @@ pip install -r ./src/pycaret/requirements.txt
 
 If you have trouble installing PyTorch, you can try building from source: <https://github.com/pytorch/pytorch#from-source>
 
-## Run experiments
+## Experiments
 
 Before running the code, datasets and repositories must be downloaded
 
@@ -133,7 +151,7 @@ After downloading repositories and datasets, you can run experiments with the fo
 python run.py
 ```
 
-## Tests and Linting
+## Tests
 
 After installation and the download of repositories and datasets, you can run functional tests with:
 
@@ -178,13 +196,13 @@ Please feel free to get in touch at <christian.oleary@mtu.ie>
 
 ## Citation
 
-Christian O'Leary (2023) AutoML Python Benchmark.
+Christian O'Leary (2024) AutoML Python Benchmark.
 
 ```latex
 @Misc{AutoML-Python-Benchmark,
 author = {Christian O'Leary},
 title = {AutoML Python Benchmark},
 howpublished = {\url{https://github.com/christian-oleary/AutoML-Python-Benchmark}},
-year = {2023}
+year = {2024}
 }
 ```

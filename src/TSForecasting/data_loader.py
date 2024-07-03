@@ -21,10 +21,11 @@ FREQUENCY_MAP = {
     'weekly': '1W',
     'monthly': '1M',
     'quarterly': '1Q',
-    'yearly': '1Y'
+    'yearly': '1Y',
 }
 
-REVERSE_FREQUENCY_MAP = { v: k for k, v in FREQUENCY_MAP.items() }
+REVERSE_FREQUENCY_MAP = {v: k for k, v in FREQUENCY_MAP.items()}
+
 
 # Converts the contents in a .tsf file into a dataframe and returns it along with other meta-data of the dataset: frequency, horizon, whether the dataset contains missing values and whether the series have equal lengths
 #
@@ -32,7 +33,9 @@ REVERSE_FREQUENCY_MAP = { v: k for k, v in FREQUENCY_MAP.items() }
 # full_file_path_and_name - complete .tsf file path
 # replace_missing_vals_with - a term to indicate the missing values in series in the returning dataframe
 # value_column_name - Any name that is preferred to have as the name of the column containing series values in the returning dataframe
-def convert_tsf_to_dataframe(full_file_path_and_name, replace_missing_vals_with='NaN', value_column_name='series_value'):
+def convert_tsf_to_dataframe(
+    full_file_path_and_name, replace_missing_vals_with='NaN', value_column_name='series_value'
+):
     try:
         with open(full_file_path_and_name, 'r', encoding='utf-8') as file:
             return parse_file(file, replace_missing_vals_with, value_column_name)
@@ -64,17 +67,13 @@ def parse_file(file, replace_missing_vals_with, value_column_name):
                 if not line.startswith('@data'):
                     line_content = line.split(' ')
                     if line.startswith('@attribute'):
-                        if (
-                            len(line_content) != 3
-                        ):  # Attributes have both name and type
+                        if len(line_content) != 3:  # Attributes have both name and type
                             raise Exception('Invalid meta-data specification.')
 
                         col_names.append(line_content[1])
                         col_types.append(line_content[2])
                     else:
-                        if (
-                            len(line_content) != 2
-                        ):  # Other meta-data have only values
+                        if len(line_content) != 2:  # Other meta-data have only values
                             raise Exception('Invalid meta-data specification.')
 
                         if line.startswith('@frequency'):
@@ -82,9 +81,7 @@ def parse_file(file, replace_missing_vals_with, value_column_name):
                         elif line.startswith('@horizon'):
                             forecast_horizon = int(line_content[1])
                         elif line.startswith('@missing'):
-                            contain_missing_values = bool(
-                                strtobool(line_content[1])
-                            )
+                            contain_missing_values = bool(strtobool(line_content[1]))
                         elif line.startswith('@equallength'):
                             contain_equal_length = bool(strtobool(line_content[1]))
 
@@ -132,9 +129,7 @@ def parse_file(file, replace_missing_vals_with, value_column_name):
                         else:
                             numeric_series.append(float(val))
 
-                    if numeric_series.count(replace_missing_vals_with) == len(
-                        numeric_series
-                    ):
+                    if numeric_series.count(replace_missing_vals_with) == len(numeric_series):
                         raise Exception(
                             'All series values are missing. A given series should contains a set of comma separated numeric values. At least one numeric value should be there in a series.'
                         )
@@ -148,9 +143,7 @@ def parse_file(file, replace_missing_vals_with, value_column_name):
                         elif col_types[i] == 'string':
                             att_val = str(full_info[i])
                         elif col_types[i] == 'date':
-                            att_val = datetime.strptime(
-                                full_info[i], '%Y-%m-%d %H-%M-%S'
-                            )
+                            att_val = datetime.strptime(full_info[i], '%Y-%m-%d %H-%M-%S')
                         else:
                             raise Exception(
                                 'Invalid attribute type.'

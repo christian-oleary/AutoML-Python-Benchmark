@@ -14,16 +14,24 @@ class EvalMLForecaster(Forecaster):
 
     # Training configurations ordered from slowest to fastest
     # presets = [ 'default', 'iterative' ]
-    presets = [ 'default', ]
+    presets = ['default']
 
     # Use 95% of maximum available time for model training in initial experiment
     initial_training_fraction = 0.95
 
-
-    def forecast(self, train_df, test_df, forecast_type, horizon, limit, frequency, tmp_dir,
-                 nproc=1,
-                 preset='default',
-                 target_name=None):
+    def forecast(
+        self,
+        train_df,
+        test_df,
+        forecast_type,
+        horizon,
+        limit,
+        frequency,
+        tmp_dir,
+        nproc=1,
+        preset='default',
+        target_name=None,
+    ):
         """Perform time series forecasting
 
         :param pd.DataFrame train_df: Dataframe of training data
@@ -46,8 +54,9 @@ class EvalMLForecaster(Forecaster):
             train_df.columns = [target_name]
             test_df.columns = [target_name]
 
-        X_train, y_train, X_test, _ = self.create_tabular_dataset(train_df, test_df, horizon, target_name,
-                                                                  tabular_y=False)
+        X_train, y_train, X_test, _ = self.create_tabular_dataset(
+            train_df, test_df, horizon, target_name, tabular_y=False
+        )
 
         X_train = X_train.astype(float)
         X_test = X_test.astype(float)
@@ -66,12 +75,12 @@ class EvalMLForecaster(Forecaster):
 
         problem_config = {
             'gap': 0,
-            'max_delay': horizon, # for feature engineering
+            'max_delay': horizon,  # for feature engineering
             'forecast_horizon': horizon,
-            'time_index': 'time_index'
+            'time_index': 'time_index',
         }
 
-        eval_size = horizon * 3 # as n_splits=3
+        eval_size = horizon * 3  # as n_splits=3
         train_size = len(train_df) - eval_size
         window_size = problem_config['gap'] + problem_config['max_delay'] + horizon
         if train_size <= window_size:
@@ -80,7 +89,7 @@ class EvalMLForecaster(Forecaster):
         automl = AutoMLSearch(
             X_train,
             y_train,
-            allowed_model_families=[ 'regression' ],
+            allowed_model_families=['regression'],
             automl_algorithm=preset,
             problem_type='time series regression',
             problem_configuration=problem_config,
@@ -91,9 +100,10 @@ class EvalMLForecaster(Forecaster):
 
         automl.search()
         model = automl.best_pipeline
-        predictions = self.rolling_origin_forecast(model, X_train, X_test, y_train, horizon, forecast_type, tmp_dir)
+        predictions = self.rolling_origin_forecast(
+            model, X_train, X_test, y_train, horizon, forecast_type, tmp_dir
+        )
         return predictions
-
 
     def estimate_initial_limit(self, time_limit, preset):
         """Estimate initial limit to use for training models
@@ -105,8 +115,9 @@ class EvalMLForecaster(Forecaster):
 
         return int(time_limit * self.initial_training_fraction)
 
-
-    def rolling_origin_forecast(self, model, train_X, test_X, y_train, horizon, forecast_type, tmp_dir):
+    def rolling_origin_forecast(
+        self, model, train_X, test_X, y_train, horizon, forecast_type, tmp_dir
+    ):
         """Iteratively forecast over increasing dataset
 
         :param model: Forecasting model, must have predict()
@@ -129,7 +140,6 @@ class EvalMLForecaster(Forecaster):
         # #     print(s[1], type(s[1]))
         # #     exit()
         # #     s = s[1].values.flatten()
-
 
         # # for i in range(len(test_X)):
         # #     print(i)

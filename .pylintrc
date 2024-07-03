@@ -7,7 +7,7 @@ max-args=10
 max-attributes=10
 
 [MESSAGES CONTROL]
-disable=C0103,E0611,W0201,W1203
+disable=C0103,E0611,E0401,W0201,W1203
 
 [SIMILARITIES]
 ignore-comments=yes

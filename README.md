@@ -7,7 +7,7 @@
 
 Benchmarks of AutoML Frameworks for time series forecasting and anomaly detection.
 
-Python version 3.9.
+Python version: 3.10.14
 
 ## Table of Contents
 
@@ -60,7 +60,7 @@ Auto-PyTorch requires Linux. PyCaret and EvalML may conflict. Other conflicts ar
 
 ```bash
 # AutoML library-specific envs recommended
-conda create -y -n env python=3.9
+conda create -y -n ENV_NAME python=3.10
 ```
 
 Installation for AutoTS specifically:

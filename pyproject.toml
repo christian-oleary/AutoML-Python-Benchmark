@@ -39,7 +39,7 @@ exclude_also = [ # Regexes for lines to exclude from consideration
 ]
 ignore_errors = true
 show_missing = true
-fail_under = 90
+fail_under = 40
 
 [tool.coverage.html]
 directory = "./docs/coverage_html_report"

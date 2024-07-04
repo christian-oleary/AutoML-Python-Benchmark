@@ -177,7 +177,7 @@ class LudwigForecaster(Forecaster):
         # import numpy as np
         # try:
         #     predictions = np.concatenate([ p.flatten() for p in predictions ])
-        # except:
+        # except AttributeError:
         #     predictions = np.concatenate([ p.values.flatten() for p in predictions ])
         # print('predictions.shape', predictions.shape)
         # predictions = predictions[:len(X_test)]

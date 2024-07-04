@@ -39,7 +39,7 @@ def convert_tsf_to_dataframe(
     try:
         with open(full_file_path_and_name, 'r', encoding='utf-8') as file:
             return parse_file(file, replace_missing_vals_with, value_column_name)
-    except:
+    except UnicodeDecodeError:
         with open(full_file_path_and_name, 'r', encoding='cp1252') as file:
             return parse_file(file, replace_missing_vals_with, value_column_name)
 

@@ -182,7 +182,7 @@ class FEDOTForecaster(Forecaster):
         # Flatten predictions and truncate if needed
         try:
             predictions = np.concatenate([p.flatten() for p in predictions])
-        except:
+        except AttributeError:
             predictions = np.concatenate([p.values.flatten() for p in predictions])
         # print(predictions.shape)
         # predictions = predictions[:len(X_test)]

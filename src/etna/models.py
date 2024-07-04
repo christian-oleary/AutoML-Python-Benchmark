@@ -194,7 +194,7 @@ class ETNAForecaster(Forecaster):
         # print('-> len(predictions)', len(predictions))
         try:
             predictions = np.concatenate([p.flatten() for p in predictions])
-        except:
+        except AttributeError:
             predictions = np.concatenate([p.values.flatten() for p in predictions])
         assert len(predictions) == len(X_test)
         # print('-> predictions.shape', predictions.shape)

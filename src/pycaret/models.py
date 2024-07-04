@@ -157,6 +157,6 @@ class PyCaretForecaster(Forecaster):
         # print('len(predictions)', len(predictions))
         try:
             predictions = np.concatenate([p.flatten() for p in predictions])
-        except:
+        except AttributeError:
             predictions = np.concatenate([p.values.flatten() for p in predictions])
         return predictions

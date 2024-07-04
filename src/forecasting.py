@@ -286,7 +286,7 @@ class Forecasting:
         if actual.shape[0] < predictions.shape[0]:
             try:
                 predictions = predictions.head(actual.shape[0])
-            except:
+            except AttributeError:
                 predictions = predictions[: len(actual)]
         predictions = predictions.flatten()
 
@@ -298,12 +298,12 @@ class Forecasting:
         preds_path = os.path.join(results_subdir, 'predictions.csv')
         try:
             predictions.to_csv(preds_path)
-        except:
+        except AttributeError:
             np.savetxt(preds_path, predictions, fmt='%s', delimiter=',')
 
         try:  # If pandas Series
             predictions = predictions.reset_index(drop=True)
-        except:
+        except AttributeError:
             pass
 
         if results_subdir is not None:

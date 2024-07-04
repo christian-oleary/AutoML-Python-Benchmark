@@ -71,4 +71,7 @@ testpaths = [ "tests" ]
 [tool.ruff]
 exclude = ["docs"]
 
+[tool.ruff.format]
+quote-style = "single"
+
 ################################################################################

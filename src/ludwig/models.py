@@ -1,4 +1,5 @@
-import os
+"""Ludwig models"""
+
 import logging
 
 import pandas as pd
@@ -12,22 +13,23 @@ class LudwigForecaster(Forecaster):
 
     name = 'Ludwig'
 
-    initial_training_fraction = 0.95  # Use 95% of max. time for trainig in initial experiment
+    initial_training_fraction = 0.95  # Use 95% of max. time for training in initial experiment
 
     presets = [10, 50, 100, 150, 200, 1000]
 
     def forecast(
         self,
         train_df,
-        test_df,
-        forecast_type,
-        horizon,
-        limit,
-        frequency,
-        tmp_dir,
-        nproc=1,
-        preset=10,
-        target_name=None,
+        test_df: pd.DataFrame,
+        forecast_type: str,
+        horizon: int,
+        limit: int,
+        frequency: str | int,
+        tmp_dir: str,
+        nproc: int = 1,
+        preset: int = 10,
+        target_name: str | None = None,
+        verbose: int = 1,
     ):
         """Perform time series forecasting
 
@@ -41,6 +43,7 @@ class LudwigForecaster(Forecaster):
         :param int nproc: Number of threads/processes allowed, defaults to 1
         :param int preset: Number of epochs, defaults to 10
         :param str target_name: Name of target variable for multivariate forecasting, defaults to None
+        :param int verbose: Verbosity, defaults to 1
         :return predictions: Numpy array of predictions
         """
 
@@ -117,8 +120,8 @@ class LudwigForecaster(Forecaster):
         #     def predict(self, df):
         #         predictions, _ = self.ludwig_model.predict(df)
         #         return predictions
-        # predictions = self.rolling_origin_forecast(Model(model), train_df, test_df, horizon,
-        #                                            column=f'{target_name}_predictions')
+        # predictions = self.rolling_origin_forecast(
+        #     Model(model), train_df, test_df, horizon, column=f'{target_name}_predictions')
         return predictions
 
     def estimate_initial_limit(self, time_limit, preset):

@@ -1,3 +1,5 @@
+"""ETNA models"""
+
 import os
 import itertools
 
@@ -26,22 +28,23 @@ class ETNAForecaster(Forecaster):
 
     name = 'ETNA'
 
-    initial_training_fraction = 0.95  # Use 95% of max. time for trainig in initial experiment
+    initial_training_fraction = 0.95  # Use 95% of max. time for training in initial experiment
 
     presets = presets
 
     def forecast(
         self,
-        train_df,
-        test_df,
-        forecast_type,
-        horizon,
-        limit,
-        frequency,
-        tmp_dir,
-        nproc=1,
-        preset=presets[0],
-        target_name=None,
+        train_df: pd.DataFrame,
+        test_df: pd.DataFrame,
+        forecast_type: str,
+        horizon: int,
+        limit: int,
+        frequency: str | int,
+        tmp_dir: str,
+        nproc: int = 1,
+        preset: str = presets[0],
+        target_name: str | None = None,
+        verbose: int = 1,
     ):
         """Perform time series forecasting
 
@@ -55,6 +58,7 @@ class ETNAForecaster(Forecaster):
         :param int nproc: Number of threads/processes allowed, defaults to 1
         :param str preset: Unused. Included for API compatibility
         :param str target_name: Name of target variable for multivariate forecasting, defaults to None
+        :param int verbose: Verbosity, defaults to 1
         :return predictions: Numpy array of predictions
         """
 
@@ -142,7 +146,7 @@ class ETNAForecaster(Forecaster):
                 logger.debug('Rolling origin forecasting...')
                 try:
                     predictions = self.rolling_origin_forecast(best_pipeline, X_test, horizon, freq)
-                except Exception as e1:
+                except Exception:
                     logger.error('Rolling origin forecasting failed. Re-attempting..')
                     best_pipeline.fit(ts)
                     predictions = self.rolling_origin_forecast(best_pipeline, X_test, horizon, freq)
@@ -150,7 +154,7 @@ class ETNAForecaster(Forecaster):
                 assert predictions is not None
                 logger.warning('SUCCESS. FINISHING')
                 break
-            except Exception as e2:
+            except Exception:
                 logger.debug('ETNA failed. Re-attempting training...')
 
         if predictions is None:
@@ -161,7 +165,7 @@ class ETNAForecaster(Forecaster):
         """Estimate initial limit to use for training models
 
         :param time_limit: Maximum amount of time allowed for forecast() (int)
-        :param str preset: Unused. Included for API compatability
+        :param str preset: Unused. Included for API compatibility
         :return: Time limit in seconds (int)
         """
 

@@ -1,16 +1,16 @@
-import math
+"""AutoTS models"""
+
 import itertools
 import logging
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
 from autots import AutoTS, create_regressor
 
 from src.base import Forecaster
-from src.errors import AutomlLibraryError, DatasetTooSmallError
+from src.errors import DatasetTooSmallError
 from src.logs import logger
-from src.TSForecasting.data_loader import FREQUENCY_MAP
-from src.util import Utils
 
 cmdstanpy_logger = logging.getLogger('cmdstanpy')
 cmdstanpy_logger.addHandler(logging.NullHandler())
@@ -33,16 +33,17 @@ class AutoTSForecaster(Forecaster):
 
     def forecast(
         self,
-        train_df,
-        test_df,
-        forecast_type,
-        horizon,
-        limit,
-        frequency,
-        tmp_dir,
-        nproc=1,
-        preset='superfast__60',
-        target_name=None,
+        train_df: pd.DataFrame,
+        test_df: pd.DataFrame,
+        forecast_type: str,
+        horizon: int,
+        limit: int,
+        frequency: str | int,
+        tmp_dir: str | Path,
+        nproc: int = 1,
+        preset: str = 'superfast__60',
+        target_name: str | None = None,
+        verbose: int = 1,
     ):
         """Perform time series forecasting
 
@@ -56,13 +57,14 @@ class AutoTSForecaster(Forecaster):
         :param int nproc: Number of threads/processes allowed, defaults to 1
         :param str preset: Model configuration to use, defaults to 'superfast'
         :param str target_name: Name of target variable for multivariate forecasting, defaults to None
-        :return predictions: Numpy array of predictions
+        :param int verbose: Verbosity, defaults to 1
+        :return np.ndarray predictions: Model predictions
         """
 
         logger.debug('Preparing data...')
         if forecast_type == 'global':
             raise NotImplementedError()
-            freq = FREQUENCY_MAP[frequency].replace('1', '').replace('min', 'T')
+            # freq = FREQUENCY_MAP[frequency].replace('1', '').replace('min', 'T')
             train_regressors, regressor_forecast = create_regressor(
                 train_df,
                 forecast_length=horizon,
@@ -200,7 +202,7 @@ class AutoTSForecaster(Forecaster):
         # # Split test set
         # test_splits = Utils.split_test_set(test_X, horizon)
         # regressor_splits = Utils.split_test_set(test_regressors, horizon)
-        # print('\n\n\n\n\n\n\n\n\n')
+        # print('\n\n\n\n')
         # print('test_X', test_X)
         # print('test_regressors', test_regressors)
         # print('test_splits', test_splits)

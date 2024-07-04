@@ -1,3 +1,5 @@
+"""FLAML models"""
+
 import os
 
 from flaml import AutoML

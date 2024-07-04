@@ -1,3 +1,5 @@
+"""FEDOT models"""
+
 from fedot.api.main import Fedot
 from fedot.core.pipelines.node import PrimaryNode, SecondaryNode
 from fedot.core.pipelines.pipeline import Pipeline
@@ -8,7 +10,6 @@ import pandas as pd
 
 from src.base import Forecaster
 from src.logs import logger
-from src.util import Utils
 
 
 class FEDOTForecaster(Forecaster):

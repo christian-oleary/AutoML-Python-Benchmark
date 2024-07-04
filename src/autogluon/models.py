@@ -1,3 +1,7 @@
+"""AutoGluon models"""
+
+from pathlib import Path
+
 from autogluon.timeseries import TimeSeriesDataFrame, TimeSeriesPredictor
 import numpy as np
 import pandas as pd
@@ -7,7 +11,6 @@ from src.base import Forecaster
 from src.errors import AutomlLibraryError
 from src.logs import logger
 from src.TSForecasting.data_loader import FREQUENCY_MAP
-from src.util import Utils
 
 
 class AutoGluonForecaster(Forecaster):
@@ -27,16 +30,17 @@ class AutoGluonForecaster(Forecaster):
 
     def forecast(
         self,
-        train_df,
-        test_df,
-        forecast_type,
-        horizon,
-        limit,
-        frequency,
-        tmp_dir,
-        nproc=1,
-        preset='fast_training',
-        target_name=None,
+        train_df: pd.DataFrame,
+        test_df: pd.DataFrame,
+        forecast_type: str,
+        horizon: int,
+        limit: int,
+        frequency: str | int,
+        tmp_dir: str | Path,
+        nproc: int = 1,
+        preset: str = 'fast_training',
+        target_name: str | None = None,
+        verbose: int = 1,
     ):
         """Perform time series forecasting using AutoGluon TimeSeriesPredictor
 
@@ -67,7 +71,7 @@ class AutoGluonForecaster(Forecaster):
         try:
             train_df = train_df.reset_index(names=[timestamp_column])
             test_df = test_df.reset_index(names=[timestamp_column])
-        except TypeError as e:  # Pandas < 1.5.0
+        except TypeError:  # Pandas < 1.5.0
             train_df = train_df.rename_axis(timestamp_column).reset_index()
             test_df = test_df.rename_axis(timestamp_column).reset_index()
 
@@ -101,11 +105,6 @@ class AutoGluonForecaster(Forecaster):
         test_data = TimeSeriesDataFrame.from_data_frame(
             test_df, id_column='ID', timestamp_column=timestamp_column
         )
-        # print('test_df.shape', test_df.shape)
-        # print('test_data.shape', test_data.shape)
-        # test_df.to_csv('test_df.csv')
-        # test_data.to_csv('test_data.csv')
-        # train_data.to_csv('train_data.csv')
 
         # Drop irrelevant rows. This happens after the from_data_frame() calls as AutoGluon tries to (badly) impute
         # the missing values otherwise.
@@ -159,7 +158,7 @@ class AutoGluonForecaster(Forecaster):
         )
 
         # For debugging only, i.e. all except Naive model
-        excluded_model_types = [
+        self.excluded_model_types = [
             'RecursiveTabular',
             'SeasonalNaive',
             'Theta',
@@ -179,7 +178,7 @@ class AutoGluonForecaster(Forecaster):
                 presets=preset,
                 random_seed=limit,
                 time_limit=limit,
-                #   time_limit=100, excluded_model_types=excluded_model_types, # For debugging only
+                #   time_limit=100, excluded_model_types=self.excluded_model_types, # debugging
             )
             # Get predictions
             logger.debug('Making predictions...')

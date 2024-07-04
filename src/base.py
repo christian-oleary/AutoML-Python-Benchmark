@@ -30,7 +30,6 @@ from sklearn.svm import LinearSVR, NuSVR, SVR
 from sklearn.tree import DecisionTreeRegressor, ExtraTreeRegressor
 from xgboost import XGBRegressor
 
-from src.util import Utils
 from src.logs import logger
 
 
@@ -240,17 +239,17 @@ class Forecaster:
 
     def forecast(
         self,
-        train_df,
-        test_df,
-        forecast_type,
-        horizon,
-        limit,
-        frequency,
-        tmp_dir,
-        nproc=1,
-        preset='LinearRegression',
-        target=None,
-        verbose=1,
+        train_df: pd.DataFrame,
+        test_df: pd.DataFrame,
+        forecast_type: str,
+        horizon: int,
+        limit: int,
+        frequency: int | str,
+        tmp_dir: str | Path,
+        nproc: int = 1,
+        preset: str = 'LinearRegression',
+        target: str |None = None,
+        verbose: int = 1,
     ):
         """Perform time series forecasting
 
@@ -264,6 +263,7 @@ class Forecaster:
         :param int nproc: Number of threads/processes allowed, defaults to 1
         :param str preset: Modelling presets
         :param str target_name: Name of target variable for multivariate forecasting, defaults to None
+        :param int verbose: Verbosity
         """
         self.verbose = verbose
 
@@ -331,6 +331,7 @@ class Forecaster:
             n_jobs=nproc,
             verbose=self.verbose,
             cv=10,
+            random_state=1,
             scoring='neg_mean_absolute_error',
         )
         model.fit(X_train, y_train)
@@ -371,7 +372,7 @@ class Forecaster:
         horizon: int,
         target_cols: list,
         tabular_y: bool = True,
-        lag: int = None,
+        lag: int | None = None,
     ):
         """Prepare training and test sets for tabular regression
 
@@ -393,7 +394,7 @@ class Forecaster:
         test_df, X_test, y_test = self.create_tabular_data(test_df, lag, horizon, target_cols, tabular_y)
 
         # Impute resulting missing values
-        imputer = IterativeImputer(n_nearest_features=3, max_iter=5)
+        imputer = IterativeImputer(n_nearest_features=3, max_iter=5, random_state=1)
         y_train = imputer.fit_transform(y_train)
         y_test = imputer.transform(y_test)
         if not tabular_y:
@@ -406,14 +407,14 @@ class Forecaster:
         return X_train, y_train, X_test, y_test
 
     def create_tabular_data(
-        self, df: pd.DataFrame, lag: int, horizon: int, targets: list, tabular_y: bool
+        self, df: pd.DataFrame, lag: int, horizon: int, targets: list | str, tabular_y: bool
     ):
         """Prepare time series data for tabular regression
 
         :param pd.DataFrame df: Time series data
         :param int lag: Lag/window size
         :param int horizon: Forecast horizon
-        :param str or list targets: Name of target column(s) to forecast
+        :param str | list targets: Name of target column(s) to forecast
         :return pd.DataFrame(s): Dataframe, features and targets
         """
         if isinstance(targets, str):
@@ -477,7 +478,6 @@ class Forecaster:
 
             for i in range(1, horizon):
                 col_name = f'{target}+{i}'
-                # df[col_name] = df[target].shift(-i)
                 target_cols.append(col_name)
                 future_cols[col_name] = df[target].shift(i)
 

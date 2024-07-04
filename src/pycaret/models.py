@@ -1,4 +1,6 @@
-import time
+"""PyCaret models"""
+
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
@@ -7,7 +9,6 @@ from pycaret.time_series import TSForecastingExperiment
 from src.base import Forecaster
 from src.logs import logger
 from src.TSForecasting.data_loader import FREQUENCY_MAP
-from src.util import Utils
 
 
 class PyCaretForecaster(Forecaster):
@@ -21,16 +22,17 @@ class PyCaretForecaster(Forecaster):
 
     def forecast(
         self,
-        train_df,
-        test_df,
-        forecast_type,
-        horizon,
-        limit,
-        frequency,
-        tmp_dir,
-        nproc=1,
-        preset='',
-        target_name=None,
+        train_df: pd.DataFrame,
+        test_df: pd.DataFrame,
+        forecast_type: str,
+        horizon: int,
+        limit: int,
+        frequency: str | int,
+        tmp_dir: str | Path,
+        nproc: int = 1,
+        preset: str = '',
+        target_name: str | None = None,
+        verbose: int = 1,
     ):
         """Perform time series forecasting
 
@@ -46,8 +48,6 @@ class PyCaretForecaster(Forecaster):
         :param str target_name: Name of target variable for multivariate forecasting, defaults to None
         :return predictions: Numpy array of predictions
         """
-
-        # start_time = time.time()
 
         if forecast_type == 'global':
             freq = FREQUENCY_MAP[frequency].replace('1', '')
@@ -87,7 +87,7 @@ class PyCaretForecaster(Forecaster):
         logger.debug('Training models...')
         model = exp.compare_models(budget_time=limit)
 
-        # Produces worse results
+        # Produces worse results:
         # logger.debug('Tuning...')
         # time_remaining = time.time() - start_time
         # if time_remaining < (limit * self.tuning_fraction * 60):

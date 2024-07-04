@@ -47,6 +47,9 @@ Anaconda3*.sh
 
 # --- GENERAL --- #
 
+# ruff
+.ruff_cache
+
 # Generated
 bin
 *.dll

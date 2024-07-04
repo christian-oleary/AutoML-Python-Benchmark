@@ -1,6 +1,8 @@
-# Found using code in findFrequencies.R
-# Credit to Mitchell O'Hara-Wild and Rob J Hyndman for the R code
-# Link: https://github.com/robjhyndman/forecast
+"""
+Found using code in findFrequencies.R
+Credit to Mitchell O'Hara-Wild and Rob J Hyndman for the R code
+Link: https://github.com/robjhyndman/forecast
+"""
 
 frequencies = {
     'economics_1.csv': 7,

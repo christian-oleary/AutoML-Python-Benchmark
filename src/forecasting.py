@@ -95,25 +95,23 @@ class Forecasting:
                 self.test_df = self.df.tail(int(len(self.df) * 0.2))
 
             # Get dataset metadata
+            if self.forecast_type == Task.MULTIVARIATE_FORECASTING.value:
+                raise NotImplementedError()
+
             if self.forecast_type == Task.GLOBAL_FORECASTING.value:
                 raise NotImplementedError()
-                self.data = metadata[metadata['file'] == csv_file.replace('csv', 'tsf')]
+                # self.data = metadata[metadata['file'] == csv_file.replace('csv', 'tsf')]
+                # self.frequency = self.data['frequency'].iloc[0]
+                # self.horizon = self.data['horizon'].iloc[0]
+                # if pd.isna(self.horizon):
+                #     raise ValueError(f'Missing horizon in 0_metadata.csv for {csv_file}')
+                # self.horizon = int(self.horizon)
+                # # TODO: revise frequencies, determine and data formatting stage
+                # if pd.isna(self.frequency) and 'm3_other_dataset.csv' in csv_file:
+                #     self.frequency = 'yearly'
+                # self.actual = self.test_df.values
 
-                self.frequency = self.data['frequency'].iloc[0]
-                self.horizon = self.data['horizon'].iloc[0]
-                if pd.isna(self.horizon):
-                    raise ValueError(f'Missing horizon in 0_metadata.csv for {csv_file}')
-                self.horizon = int(self.horizon)
-
-                # TODO: revise frequencies, determine and data formatting stage
-                if pd.isna(self.frequency) and 'm3_other_dataset.csv' in csv_file:
-                    self.frequency = 'yearly'
-                self.actual = self.test_df.values
-
-            elif self.forecast_type == Task.MULTIVARIATE_FORECASTING.value:
-                raise NotImplementedError()
-
-            elif self.forecast_type == Task.UNIVARIATE_FORECASTING.value:
+            if self.forecast_type == Task.UNIVARIATE_FORECASTING.value:
                 self.data = metadata[metadata['file'] == csv_file]
                 self.frequency = int(self.data['frequency'].iloc[0])
                 self.horizon = int(self.data['horizon'].iloc[0])

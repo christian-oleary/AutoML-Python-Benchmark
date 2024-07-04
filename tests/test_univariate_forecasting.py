@@ -9,7 +9,6 @@ from sklearn.experimental import enable_iterative_imputer # pylint: disable=W061
 
 from src.dataset_formatting import DatasetFormatter
 from src.forecasting import Forecasting
-from src.util import Utils
 from src.validation import Library, Task
 
 

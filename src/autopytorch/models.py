@@ -1,4 +1,7 @@
+"""AutoPyTorch models"""
+
 import copy
+from pathlib import Path
 
 from autoPyTorch.api.time_series_forecasting import TimeSeriesForecastingTask
 import pandas as pd
@@ -14,20 +17,21 @@ class AutoPyTorchForecaster(Forecaster):
     # Use 95% of maximum available time for model training in initial experiment
     initial_training_fraction = 0.95
 
-    presets = [20, 40, 60, 80, 100]
+    presets = ['20', '40', '60', '80', '100']
 
     def forecast(
         self,
-        train_df,
-        test_df,
-        forecast_type,
-        horizon,
-        limit,
-        frequency,
-        tmp_dir,
-        nproc=1,
-        preset=20,
-        target_name=None,
+        train_df: pd.DataFrame,
+        test_df: pd.DataFrame,
+        forecast_type: str,
+        horizon: int,
+        limit: int,
+        frequency: str | int,
+        tmp_dir: str | Path,
+        nproc: int = 1,
+        preset: str = '20',
+        target_name: str = None,
+        verbose: int = 1,
     ):
         """Perform time series forecasting
 
@@ -41,10 +45,12 @@ class AutoPyTorchForecaster(Forecaster):
         :param int nproc: Number of threads/processes allowed, defaults to 1
         :param str preset: Ensemble size, defaults to 20
         :param str target_name: Name of target variable for multivariate forecasting, defaults to None
+        :param int verbose: Verbosity, defaults to 1
         :return predictions: Numpy array of predictions
         """
 
         if forecast_type == 'univariate':
+            freq = FREQUENCY_MAP[frequency].replace('1', '').replace('min', 'T')
             target_name = 'target'
             train_df.columns = [target_name]
             test_df.columns = [target_name]
@@ -62,8 +68,7 @@ class AutoPyTorchForecaster(Forecaster):
             y_train = pd.Series(y_train, index=X_train.index)
             y_test = pd.Series(y_test, index=X_test.index)
         else:
-            raise NotImplementedError()
-            # freq = FREQUENCY_MAP[frequency].replace('1', '').replace('min', 'T')
+            freq = FREQUENCY_MAP[frequency].replace('1', '').replace('min', 'T')
             y_train = y_train.reset_index(drop=True)
             X_train = X_train.reset_index(drop=True)
             y_test = y_test.reset_index(drop=True)
@@ -71,7 +76,7 @@ class AutoPyTorchForecaster(Forecaster):
 
         horizon = y_test.shape[0]  # Limitation of AutoPyTorch
 
-        api = TimeSeriesForecastingTask(ensemble_size=preset)
+        api = TimeSeriesForecastingTask(ensemble_size=int(preset))
 
         api.search(
             X_train=[X_train],

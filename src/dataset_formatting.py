@@ -117,7 +117,7 @@ class DatasetFormatter:
         :param bool gather_metadata: Store datasets metadata in a CSV file, defaults to False
         """
 
-        tsf_files = DatasetFormatter.extract_forecasting_data(data_dir)
+        tsf_files = self.extract_forecasting_data(data_dir)
 
         if gather_metadata:
             meta_data = {
@@ -142,7 +142,7 @@ class DatasetFormatter:
                 )
 
                 if horizon is None:
-                    horizon = DatasetFormatter.select_horizon(freq, csv_path)
+                    horizon = self.select_horizon(freq, csv_path)
 
                 if gather_metadata:
                     meta_data['file'].append(tsf_file)
@@ -163,7 +163,7 @@ class DatasetFormatter:
                 columns = []
                 for row_index in range(len(data)):
                     # Convert TSF row to CSV column
-                    column = DatasetFormatter.process_row(data, row_index, freq)
+                    column = self.process_row(data, row_index, freq)
                     columns.append(column)
 
                     if row_index % 1000 == 0:
@@ -308,12 +308,12 @@ class DatasetFormatter:
         :param data_dir: Path to directory of datasets
         """
 
-        DatasetFormatter.format_3W_data(data_dir)
-        DatasetFormatter.format_falling_data(data_dir)
-        DatasetFormatter.format_BETH_data(data_dir)
-        DatasetFormatter.format_HAI_data(data_dir)
-        DatasetFormatter.format_NAB_data(data_dir)
-        DatasetFormatter.format_SKAB_data(data_dir)
+        self.format_3W_data(data_dir)
+        self.format_falling_data(data_dir)
+        self.format_beth_data(data_dir)
+        self.format_hai_data(data_dir)
+        self.format_nab_data(data_dir)
+        self.format_skab_data(data_dir)
 
     def format_3W_data(self, data_dir):
         """Format 3W data
@@ -328,25 +328,25 @@ class DatasetFormatter:
         :param data_dir: Path to directory of datasets
         """
 
-    def format_BETH_data(self, data_dir):
+    def format_beth_data(self, data_dir):
         """Format 3W data
 
         :param data_dir: Path to directory of datasets
         """
 
-    def format_HAI_data(self, data_dir):
+    def format_hai_data(self, data_dir):
         """Format HAI Security Dataset data
 
         :param data_dir: Path to directory of datasets
         """
 
-    def format_NAB_data(self, data_dir):
+    def format_nab_data(self, data_dir):
         """Format Numenta Anomaly detection Benchmark data
 
         :param data_dir: Path to directory of datasets
         """
 
-    def format_SKAB_data(self, data_dir):
+    def format_skab_data(self, data_dir):
         """Format Skoltech Anomaly Benchmark data
 
         :param data_dir: Path to directory of datasets

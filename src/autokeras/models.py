@@ -1,5 +1,8 @@
+"""AutoKeras models"""
+
 import itertools
 import os
+from pathlib import Path
 import shutil
 
 import autokeras as ak
@@ -32,16 +35,17 @@ class AutoKerasForecaster(Forecaster):
 
     def forecast(
         self,
-        train_df,
-        test_df,
-        forecast_type,
-        horizon,
-        limit,
-        frequency,
-        tmp_dir,
-        nproc=1,
-        preset='greedy_32_60',
-        target_name=None,
+        train_df: pd.DataFrame,
+        test_df: pd.DataFrame,
+        forecast_type: str,
+        horizon: int,
+        limit: int,
+        frequency: str | int,
+        tmp_dir: str | Path,
+        nproc: int = 1,
+        preset: str = 'greedy_32_60',
+        target_name: str = None,
+        verbose: int = 1,
     ):
         """Perform time series forecasting
 
@@ -55,6 +59,7 @@ class AutoKerasForecaster(Forecaster):
         :param int nproc: Number of threads/processes allowed, defaults to 1
         :param str preset: Model configuration to use
         :param str target_name: Name of target variable for multivariate forecasting, defaults to None
+        :param int verbose: Verbosity, defaults to 1
         :return predictions: Numpy array of predictions
         """
 

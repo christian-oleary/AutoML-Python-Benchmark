@@ -58,14 +58,13 @@ class AutoKerasForecaster(Forecaster):
         :return predictions: Numpy array of predictions
         """
 
-        self.forecast_type = forecast_type
-
         # Cannot use tmp_dir due to internal bugs with AutoKeras
         original_tmp_dir = tmp_dir
         tmp_dir = 'time_series_forecaster'
         shutil.rmtree(tmp_dir, ignore_errors=True)
 
-        if forecast_type == Task.UNIVARIATE_FORECASTING:
+        self.forecast_type = forecast_type
+        if self.forecast_type == Task.UNIVARIATE_FORECASTING.value:
             target_name = 'target'
             train_df.columns = [target_name]
             test_df.columns = [target_name]
@@ -107,7 +106,7 @@ class AutoKerasForecaster(Forecaster):
         # Counting down prevents unnecessarily small batch sizes being selected
         batch_size = None
         size = 1024  # Prospective batch size
-        while batch_size == None:
+        while batch_size is None:
             if (lookback / size).is_integer():  # i.e. is a factor
                 batch_size = size
             else:
@@ -120,18 +119,16 @@ class AutoKerasForecaster(Forecaster):
         )
 
         # Callbacks
+        callbacks = []
         if min_delta > 0:
-            callbacks = [
-                EarlyStopping(
-                    monitor='val_mean_squared_error',
-                    patience=3,
-                    min_delta=min_delta,
-                    verbose=1,
-                    mode='auto',
-                )
-            ]
-        else:
-            callbacks = []
+            early_stopping = EarlyStopping(
+                monitor='val_mean_squared_error',
+                patience=3,
+                min_delta=min_delta,
+                verbose=1,
+                mode='auto',
+            )
+            callbacks.append(early_stopping)
 
         # Train models
         logger.info(f'Fitting AutoKeras with preset {preset}...')
@@ -155,7 +152,7 @@ class AutoKerasForecaster(Forecaster):
         return predictions
 
     def estimate_initial_limit(self, time_limit, preset):
-        """Included for API compatability
+        """Included for API compatibility
 
         :param time_limit: Maximum amount of time allowed for forecast() (int)
         :param str preset: Model configuration to use
@@ -208,7 +205,7 @@ class AutoKerasForecaster(Forecaster):
         # Flatten predictions and truncate if needed
         try:
             predictions = np.concatenate([p.flatten() for p in predictions])
-        except:
+        except AttributeError:
             predictions = np.concatenate([p.values.flatten() for p in predictions])
         predictions = predictions[: len(X_test)]
         return predictions

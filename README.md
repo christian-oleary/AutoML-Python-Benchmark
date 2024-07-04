@@ -174,6 +174,16 @@ Check if TensorFlow/PyTorch can access GPUs:
 python ./tests/gpu_test.py
 ```
 
+SonarQube:
+
+```bash
+# 1. Run server
+docker run -d --name sonarqube -e SONAR_ES_BOOTSTRAP_CHECKS_DISABLE=true -p 9000:9000 sonarqube:latest
+# 2. (Create a project and token on the server at http://localhost:9000)
+# 3. Run scanner
+sonar-scanner -D"sonar.projectKey=PROJECT_NAME" -D"sonar.sources=." -D"sonar.host.url=http://localhost:9000" -D"sonar.token=GENERATED_TOKEN"
+```
+
 Profiling:
 
 ```bash

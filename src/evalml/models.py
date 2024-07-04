@@ -49,7 +49,7 @@ class EvalMLForecaster(Forecaster):
         raise NotImplementedError()
 
         # Prepare data
-        if target_name == None:
+        if target_name is None:
             target_name = 'target'
             train_df.columns = [target_name]
             test_df.columns = [target_name]

@@ -124,10 +124,10 @@ class AutoGluonForecaster(Forecaster):
                 freq = 'H'  # I-SEM
 
         logger.debug('Index processing and imputation...')
-        if train_data.freq == None:
+        if train_data.freq is None:
             train_data = train_data.to_regular_index(freq=freq)
 
-        if test_data.freq == None:
+        if test_data.freq is None:
             test_data = test_data.to_regular_index(freq=freq)
 
         # Attempt to fill missing values
@@ -245,7 +245,7 @@ class AutoGluonForecaster(Forecaster):
         # Make predictions
         data = X_train[-horizon:]
         preds = model.predict(data)
-        if column != None:
+        if column is not None:
             preds = preds[column].values[-horizon:]
         assert len(preds) == horizon
         predictions = [preds]
@@ -268,7 +268,7 @@ class AutoGluonForecaster(Forecaster):
             data = df.tail(len(df) - i)
 
             preds = model.predict(data[-horizon:])
-            if column != None:
+            if column is not None:
                 preds = preds[column].values[-horizon:]
 
             assert len(preds) == horizon

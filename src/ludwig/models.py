@@ -153,7 +153,7 @@ class LudwigForecaster(Forecaster):
         # print(data[0])
         # exit()
         # preds = model.predict(data[0])
-        # if column != None:
+        # if column is not None:
         #     preds = preds[column].values
 
         # print('0 preds', preds.shape, len(preds), len(preds) > horizon)
@@ -168,7 +168,7 @@ class LudwigForecaster(Forecaster):
 
         #     preds = model.predict(data)
         #     print('preds.shape', preds.shape)
-        #     if column != None:
+        #     if column is not None:
         #         preds = preds[column].values
 
         #     predictions.append(preds)

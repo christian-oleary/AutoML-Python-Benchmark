@@ -29,30 +29,7 @@ from src.logs import logger
 class Utils:
     """Utility functions"""
 
-    ignored_presets = [
-        # 'preset-superfast__60_proc-1_limit-60.0', 'preset-superfast__1200_proc-1_limit-3.0',
-        # 'preset-superfast__900_proc-1_limit-4.0', 'preset-superfast__600_proc-1_limit-6.0',
-        # 'preset-superfast__600_proc-10_limit-6.0', 'preset-superfast__900_proc-10_limit-4.0',
-        # 'preset-superfast__300_proc-1_limit-12.0', 'preset-superfast__300_proc-10_limit-12.0',
-        # 'preset-fast__900_proc-1_limit-4.0', 'preset-fast__1200_proc-1_limit-3.0', 'preset-fast__600_proc-1_limit-6.0',
-        # 'preset-fast__900_proc-10_limit-4.0', 'preset-fast__300_proc-1_limit-12.0',
-        # 'preset-fast__600_proc-10_limit-6.0', 'preset-fast__60_proc-1_limit-60.0',
-        # 'preset-fast__300_proc-10_limit-12.0', 'preset-fast_parallel__1200_proc-1_limit-3.0',
-        # 'preset-default__900_proc-10_limit-4.0', 'preset-default__900_proc-1_limit-4.0',
-        # 'preset-fast_parallel__600_proc-10_limit-6.0', 'preset-fast_parallel__900_proc-10_limit-4.0',
-        # 'preset-default__1200_proc-1_limit-3.0', 'preset-default__600_proc-10_limit-6.0',
-        # 'preset-fast_parallel__900_proc-1_limit-4.0', 'preset-fast_parallel__300_proc-10_limit-12.0',
-        # 'preset-fast_parallel__600_proc-1_limit-6.0', 'preset-default__600_proc-1_limit-6.0',
-        # 'preset-default__300_proc-10_limit-12.0', 'preset-fast_parallel__300_proc-1_limit-12.0',
-        # 'preset-default__300_proc-1_limit-12.0', 'preset-fast_parallel__60_proc-1_limit-60.0',
-        # 'preset-default__60_proc-1_limit-60.0', 'preset-all__600_proc-1_limit-6.0',
-        # 'preset-all__900_proc-1_limit-4.0','preset-all__1200_proc-1_limit-3.0',
-        # 'preset-all__300_proc-1_limit-12.0','preset-all__300_proc-10_limit-12.0',
-        # 'preset-all_300_proc-1_limit-12.0', 'preset-all_600_proc-1_limit-6.0', 'preset-all_60_proc-1_limit-60.0',
-        # 'preset-all__600_proc-10_limit-6.0', 'preset-all__900_proc-10_limit-4.0',
-        # 'preset-default_300_proc-1_limit-12.0', 'preset-default_600_proc-1_limit-6.0',
-        # 'preset-default_60_proc-1_limit-60.0', 'preset-all__60_proc-1_limit-60.0',
-    ]
+    ignored_presets = []
 
     @staticmethod
     def regression_scores(
@@ -252,7 +229,7 @@ class Utils:
         :param list headers: A list of strings to order values by
         """
         is_new_file = not os.path.exists(path)
-        with open(path, 'a+', newline='') as f:
+        with open(path, 'a+', newline='', encoding='utf-8') as f:
             writer = csv.writer(f, delimiter=',')
             if is_new_file:
                 writer.writerow(headers)
@@ -309,7 +286,7 @@ class Utils:
 
         plt.title(title)
         plt.suptitle(suptitle)
-        if legend != None:
+        if legend is not None:
             plt.legend(legend, loc='upper left')
 
         # Show plot
@@ -317,7 +294,7 @@ class Utils:
             plt.show()
 
         # Show plot as file
-        if save_path != None:
+        if save_path is not None:
             plt.savefig(save_path, bbox_inches='tight')
 
         # Clear for next plot
@@ -360,7 +337,7 @@ class Utils:
         for _ in range(0, len(test_df) - 1, horizon):  # -1 because last split may be < horizon
             try:
                 test_splits.append(test_df.iloc[total : total + horizon, :])
-            except:  # If 1D (series)
+            except pd.errors.IndexingError:  # If 1D (series)
                 test_splits.append(test_df.iloc[total : total + horizon])
             total += horizon
 
@@ -445,17 +422,24 @@ class Utils:
         """
         # Sort by GM-MAE-SR
         df = df.sort_values('GM-MAE-SR')
-        # Filter columns
-        df = df[[
-            'library', 'preset', 'duration', 'GM-MAE-SR', 'MAE',
-            'MASE', 'MSE', 'RMSE', 'Spearman Correlation'
-        ]]
-        # Rename columns
-        df.columns = [
-            'Library', 'Preset', 'Duration (sec.)', 'GM-MAE-SR', 'MAE', 'MASE', 'MSE', 'RMSE', 'SRC'
-        ]
+
+        # Filter columns and rename
+        column_names = {
+            'library': 'Library',
+            'preset': 'Preset',
+            'duration': 'Duration (sec.)',
+            'GM-MAE-SR': 'GM-MAE-SRC',
+            'MAE': 'MAE',
+            'MASE': 'MASE',
+            'MSE': 'MSE',
+            'RMSE': 'RMSE',
+            'Spearman Correlation': 'SRC',
+        }
+        df = df[column_names.keys()].rename(columns=column_names)
+
         # Format library names
         df['Library'] = df['Library'].str.capitalize()
+
         # Format presets
         df['Preset'] = (
             df['Preset']
@@ -557,15 +541,15 @@ class Utils:
                 )
 
                 # Box plots
-                for col, filename, title, yscale in [
-                    ('R2_mean', f'4_R2_mean_by_{group_col}.png', 'Mean R2', 'linear'),
-                    ('MAE_mean', f'5_MAE_mean_by_{group_col}.png', 'Mean MAE', 'linear'),
-                    ('MSE_mean', f'6_MSE_mean_by_{group_col}.png', 'Mean MSE', 'linear'),
-                    ('duration_mean', f'7_duration_mean_by_{group_col}.png', 'Mean Duration', 'linear'),
+                for col, filename, title in [
+                    ('R2_mean', f'4_R2_mean_by_{group_col}.png', 'Mean R2'),
+                    ('MAE_mean', f'5_MAE_mean_by_{group_col}.png', 'Mean MAE'),
+                    ('MSE_mean', f'6_MSE_mean_by_{group_col}.png', 'Mean MSE'),
+                    ('duration_mean', f'7_duration_mean_by_{group_col}.png', 'Mean Duration'),
                 ]:
                     mean_scores.plot.bar(y=col, figsize=(fig_width, fig_height))
                     save_path = os.path.join(stats_dir, filename)
-                    Utils.save_plot(title, save_path=save_path, legend=None, yscale=yscale)
+                    Utils.save_plot(title, save_path=save_path, legend=None, yscale='linear')
 
         # Plot mean scores by library
         plot_averages(

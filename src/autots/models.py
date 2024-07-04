@@ -73,7 +73,7 @@ class AutoTSForecaster(Forecaster):
                 fill_na='spline',
             )
         else:
-            if target_name == None:
+            if target_name is None:
                 target_name = 'target'
 
             if 'ISEM_prices' in tmp_dir:

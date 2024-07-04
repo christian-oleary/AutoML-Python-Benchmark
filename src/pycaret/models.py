@@ -128,7 +128,7 @@ class PyCaretForecaster(Forecaster):
 
         # Make predictions
         preds = exp.predict_model(model, X=X_train, fh=horizon)
-        if column != None:
+        if column is not None:
             preds = preds[column].values[-horizon:]
         # print('0 preds.shape', preds.shape)
         predictions = [preds]
@@ -148,7 +148,7 @@ class PyCaretForecaster(Forecaster):
 
             # print('data', data, type(data), data.shape)
             preds = exp.predict_model(model, X=data, fh=horizon)
-            if column != None:
+            if column is not None:
                 preds = preds[column].values[-horizon:]
 
             predictions.append(preds)

@@ -16,8 +16,8 @@ repos:
         rev: v1.8.0
         hooks:
         -   id: mypy
-            args: [ "--install-types", "--non-interactive" ]
-            exclude: ^(docs/|example-plugin/)
+            args: ["--config-file=./pyproject.toml"]
+            exclude: ^(docs/|repositories/)
 
     -   repo: https://github.com/pre-commit/pre-commit-hooks
         rev: v3.2.0

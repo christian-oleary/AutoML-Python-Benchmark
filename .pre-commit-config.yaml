@@ -4,7 +4,7 @@ repos:
         rev: stable
         hooks:
         -   id: black
-            args: ["--skip-string-normalization", "--line-length=100"]
+            args: ["--config=./pyproject.toml"]
 
     -   repo: https://github.com/PyCQA/flake8
         rev: 7.0.0

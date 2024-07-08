@@ -195,7 +195,7 @@ class Forecaster:
         tmp_dir: str | Path,
         nproc: int = 1,
         preset: str = 'LinearRegression',
-        target: str |None = None,
+        target: str | None = None,
         verbose: int = 1,
     ):
         """Perform time series forecasting
@@ -337,8 +337,9 @@ class Forecaster:
         if lag is None:
             lag = self.get_default_lag(horizon)
 
-        train_df, X_train, y_train = self.create_tabular_data(train_df, lag, horizon, target_cols, tabular_y)
-        test_df, X_test, y_test = self.create_tabular_data(test_df, lag, horizon, target_cols, tabular_y)
+        args = [lag, horizon, target_cols, tabular_y]
+        train_df, X_train, y_train = self.create_tabular_data(train_df, *args)
+        test_df, X_test, y_test = self.create_tabular_data(test_df, *args)
 
         # Impute resulting missing values
         imputer = IterativeImputer(n_nearest_features=3, max_iter=5, random_state=1)

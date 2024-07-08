@@ -47,6 +47,9 @@ Anaconda3*.sh
 
 # --- GENERAL --- #
 
+# Sonarqube
+.scannerwork
+
 # ruff
 .ruff_cache
 

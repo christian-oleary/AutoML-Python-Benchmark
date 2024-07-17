@@ -1,42 +1,15 @@
-# --- PROJECT SPECIFIC --- #
-*.txt
-*.csv
-*.ignore
-*_ignore.ipynb
-
-env*/
-data/
-ignore/
-logs/
-papers/
-repositories/
-results/
-SCAIT-Python/
-tmp/
+###########################
+# General
+###########################
 
 !requirements.txt
 
-catboost_info
-.lock_preprocessing
-checkpoints
-
-# AutoKeras
-time_series_forecaster
-
-# PyTorch (building from source)
-pytorch
-
-# WSL and CUDA
-cuda_12.2.1_535.86.10_linux.run
-
-# Anaconda installation scripts
-Anaconda3*.sh
-
-# Ludwig
-*.meta.json
-
-# AutoTS
-.lr_find_*
+# Data/Backups
+*.backup
+*.csv
+*.ignore
+*.txt
+*_ignore.ipynb
 
 # Images
 *.png
@@ -44,14 +17,28 @@ Anaconda3*.sh
 *.jpeg
 *.gif
 
+# Project-specific directories
+checkpoints/
+env*/
+data/
+ignore/
+logs/
+papers/
+repositories/
+results/
 
-# --- GENERAL --- #
+# Models
+*.h5
+*.hdf5
+*.pkl
+*.joblib
+*.pb
+*.index
+*variables.data-*
 
-# Sonarqube
-.scannerwork
-
-# ruff
-.ruff_cache
+###########################
+# Other
+###########################
 
 # Generated
 bin
@@ -59,24 +46,28 @@ bin
 *.exe
 *.dot
 
+# Sonarqube
+.scannerwork
+
 # SQLite
 *.db
 *.db-journal
 
-# Models
-*.h5
-*.hdf5
-*.pkl
-*.joblib
-
-# Distribution / packaging
-
 # Visual Studio Code
 .vscode
 
-# PyCharm
-.idea
+###########################
+# Python
+###########################
 
+# Anaconda installation scripts
+Anaconda3*.sh
+
+# AutoKeras
+time_series_forecaster
+
+# AutoTS
+.lr_find_*
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
@@ -85,6 +76,22 @@ __pycache__/
 
 # C extensions
 *.so
+
+# CatBoost
+catboost_info
+
+# Celery stuff
+celerybeat-schedule
+celerybeat.pid
+
+# CUDA
+cuda_*_linux.run
+*.i
+*.ii
+*.gpu
+*.ptx
+*.cubin
+*.fatbin
 
 # Distribution / packaging
 .Python
@@ -107,15 +114,105 @@ share/python-wheels/
 *.egg
 MANIFEST
 
+# Environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Django stuff:
+*.log
+local_settings.py
+db.sqlite3
+db.sqlite3-journal
+*.db
+
+# Flask stuff:
+instance/
+.webassets-cache
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# IPython
+profile_default/
+ipython_config.py
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# Ludwig
+*.meta.json
+.lock_preprocessing
+
+# mkdocs documentation
+/site
+
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# PEP 582
+__pypackages__/
+
+# pipenv
+#   According to pypa/pipenv#598, it is recommended to include Pipfile.lock in version control.
+#   However, in case of collaboration, if having platform-specific dependencies or dependencies
+#   having no cross-platform support, pipenv may install dependencies that don't work, or not
+#   install all needed dependencies.
+#Pipfile.lock
+
+# PyBuilder
+target/
+
+# PyCharm
+.idea
+
+# pyenv
+.python-version
+
 # PyInstaller
 #  Usually these files are written by a python script from a template
 #  before PyInstaller builds the exe, so as to inject date/other infos into it.
 *.manifest
 *.spec
 
-# Installer logs
-pip-log.txt
-pip-delete-this-directory.txt
+# Pyre type checker
+.pyre/
+
+# PyTorch (building from source)
+pytorch
+
+# ruff
+.ruff_cache
+
+# Rope project settings
+.ropeproject
+
+# SageMath parsed files
+*.sage.py
+
+# Scrapy stuff:
+.scrapy
+
+# Sphinx documentation
+docs/_build/
+docs/sphinx/_build/
+docs/sphinx/source/
+docs/sphinx/tests/
+
+# Spyder project settings
+.spyderproject
+.spyproject
+
+# Translations
+*.mo
+*.pot
 
 # Unit test / coverage reports
 htmlcov/
@@ -130,83 +227,3 @@ coverage.xml
 *.py,cover
 .hypothesis/
 .pytest_cache/
-
-# Translations
-*.mo
-*.pot
-
-# Django stuff:
-*.log
-local_settings.py
-db.sqlite3
-db.sqlite3-journal
-
-# Flask stuff:
-instance/
-.webassets-cache
-
-# Scrapy stuff:
-.scrapy
-
-# Sphinx documentation
-docs/_build/
-docs/sphinx/_build/
-docs/sphinx/source/
-docs/sphinx/tests/
-
-# PyBuilder
-target/
-
-# Jupyter Notebook
-.ipynb_checkpoints
-
-# IPython
-profile_default/
-ipython_config.py
-
-# pyenv
-.python-version
-
-# pipenv
-#   According to pypa/pipenv#598, it is recommended to include Pipfile.lock in version control.
-#   However, in case of collaboration, if having platform-specific dependencies or dependencies
-#   having no cross-platform support, pipenv may install dependencies that don't work, or not
-#   install all needed dependencies.
-#Pipfile.lock
-
-# PEP 582; used by e.g. github.com/David-OConnor/pyflow
-__pypackages__/
-
-# Celery stuff
-celerybeat-schedule
-celerybeat.pid
-
-# SageMath parsed files
-*.sage.py
-
-# Environments
-.env
-.venv
-env/
-venv/
-ENV/
-env.bak/
-venv.bak/
-
-# Spyder project settings
-.spyderproject
-.spyproject
-
-# Rope project settings
-.ropeproject
-
-# mkdocs documentation
-/site
-
-# mypy
-.mypy_cache/
-.dmypy.json
-dmypy.json
-
-# Pyre type checker
-.pyre/

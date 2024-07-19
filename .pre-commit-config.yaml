@@ -1,17 +1,10 @@
 # See https://pre-commit.com/hooks.html for more hooks
 repos:
-    -   repo: https://github.com/PyCQA/flake8
-        rev: 7.0.0
+    -   repo: https://github.com/psf/black
+        rev: stable
         hooks:
-        -   id: flake8
-            args: ["--jobs=1"]
-
-    -   repo: https://github.com/pre-commit/mirrors-mypy
-        rev: v1.8.0
-        hooks:
-        -   id: mypy
-            args: [ "--install-types", "--non-interactive" ]
-            exclude: ^(docs/|example-plugin/)
+        -   id: black
+            args: ["--config=./pyproject.toml"]
 
     -   repo: https://github.com/pre-commit/pre-commit-hooks
         rev: v3.2.0
@@ -39,6 +32,24 @@ repos:
         hooks:
         -   id: ruff
             args: ["--no-fix", "--output-format=full"]
+
+    -   repo: https://github.com/pre-commit/mirrors-mypy
+        rev: v1.8.0
+        hooks:
+        -   id: mypy
+            args: [ "--install-types", "--non-interactive" ]
+            exclude: ^(docs/|example-plugin/)
+
+    -   repo: https://github.com/PyCQA/pydocstyle
+        rev: 6.1.1
+        hooks:
+        -   id: pydocstyle
+
+    -   repo: https://github.com/PyCQA/flake8
+        rev: 7.0.0
+        hooks:
+        -   id: flake8
+            args: ["--jobs=1"]
 
     -   repo: https://github.com/PyCQA/pylint
         rev: v2.17.5

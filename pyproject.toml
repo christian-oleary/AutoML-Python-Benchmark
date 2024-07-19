@@ -26,6 +26,13 @@ Issues = "https://github.com/christian-oleary/AutoML-Python-Benchmark/issues"
 
 
 ################################################################################
+# BLACK
+[tool.black]
+skip-string-normalization = true
+line-length = 100
+target-version = ['py39', 'py310']
+
+################################################################################
 # COVERAGE
 [tool.coverage.run]
 branch = true
@@ -48,6 +55,14 @@ directory = "./docs/coverage_html_report"
 # MYPY
 [tool.mypy]
 ignore_missing_imports = true
+exclude = "tests"
+
+################################################################################
+# PYDOCSTYLE
+[tool.pydocstyle]
+inherit = false
+# ignore = ["D100", "D203", "D405"]
+match = ".*\\.py"
 
 ################################################################################
 # PYLINT

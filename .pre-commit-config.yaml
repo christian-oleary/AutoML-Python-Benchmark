@@ -40,10 +40,11 @@ repos:
             args: [ "--install-types", "--non-interactive" ]
             exclude: ^(docs/|example-plugin/)
 
-    -   repo: https://github.com/PyCQA/pydocstyle
-        rev: 6.1.1
+    -   repo: https://github.com/PyCQA/flake8
+        rev: 7.0.0
         hooks:
-        -   id: pydocstyle
+        -   id: flake8
+            args: ["--jobs=1"]
 
     -   repo: https://github.com/PyCQA/flake8
         rev: 7.0.0

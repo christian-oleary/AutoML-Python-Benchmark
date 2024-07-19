@@ -38,7 +38,7 @@ repos:
         hooks:
         -   id: mypy
             args: [ "--install-types", "--non-interactive" ]
-            exclude: ^(docs/|example-plugin/)
+            exclude: ^(docs/|repositories/)
 
     -   repo: https://github.com/PyCQA/pydocstyle
         rev: 6.1.1

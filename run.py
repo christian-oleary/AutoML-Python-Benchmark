@@ -10,7 +10,7 @@ import warnings
 from sklearn.exceptions import ConvergenceWarning
 
 # import needed for IterativeImputer
-from sklearn.experimental import enable_iterative_imputer  # pylint: disable=W0611  # noqa
+from sklearn.experimental import enable_iterative_imputer  # pylint: disable=W0611  # noqa: F401
 
 from src.dataset_formatting import DatasetFormatter
 from src.forecasting import Forecasting
@@ -30,8 +30,7 @@ if __name__ == '__main__':  # Needed for any multiprocessing
 
     # Configuration is set up first
     parser = argparse.ArgumentParser(
-        description='AutoML Python Benchmark',
-        formatter_class=argparse.RawTextHelpFormatter
+        description='AutoML Python Benchmark', formatter_class=argparse.RawTextHelpFormatter
     )
 
     # CPU Only

@@ -24,11 +24,6 @@ classifiers = [
 Homepage = "https://github.com/christian-oleary/AutoML-Python-Benchmark"
 Issues = "https://github.com/christian-oleary/AutoML-Python-Benchmark/issues"
 
-################################################################################
-# BLACK
-[tool.black]
-skip-string-normalization = true
-line-length = 100
 
 ################################################################################
 # BLACK

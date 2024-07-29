@@ -199,7 +199,7 @@ Please feel free to get in touch at <christian.oleary@mtu.ie>
 Christian O'Leary (2024) AutoML Python Benchmark.
 
 ```latex
-@Misc{AutoML-Python-Benchmark,
+@software{AutoML-Python-Benchmark,
 author = {Christian O'Leary},
 title = {AutoML Python Benchmark},
 howpublished = {\url{https://github.com/christian-oleary/AutoML-Python-Benchmark}},

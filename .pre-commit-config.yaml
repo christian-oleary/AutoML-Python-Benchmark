@@ -6,12 +6,6 @@ repos:
         -   id: black
             args: ["--config=./pyproject.toml"]
 
-    -   repo: https://github.com/PyCQA/flake8
-        rev: 7.0.0
-        hooks:
-        -   id: flake8
-            args: ["--jobs=1"]
-
     -   repo: https://github.com/pre-commit/mirrors-mypy
         rev: v1.8.0
         hooks:
@@ -28,10 +22,13 @@ repos:
         -   id: check-executables-have-shebangs
         -   id: check-merge-conflict
         -   id: check-toml
+        -   id: check-xml
         -   id: check-yaml
         -   id: debug-statements
         -   id: detect-private-key
         -   id: end-of-file-fixer
+        -   id: mixed-line-ending
+        -   id: requirements-txt-fixer
         -   id: trailing-whitespace
 
     -   repo: https://github.com/pre-commit/pygrep-hooks
@@ -46,8 +43,24 @@ repos:
         -   id: ruff
             args: ["--no-fix", "--output-format=full"]
 
+    -   repo: https://github.com/PyCQA/pydocstyle
+        rev: 6.1.1
+        hooks:
+        -   id: pydocstyle
+            additional_dependencies: ['toml']
+
+    -   repo: https://github.com/PyCQA/flake8
+        rev: 7.0.0
+        hooks:
+        -   id: flake8
+            args: ["--jobs=1"]
+
     -   repo: https://github.com/PyCQA/pylint
         rev: v2.17.5
         hooks:
         -   id: pylint
-            args: ["--rcfile=.pylintrc", "--disable=import-error"]
+            args: [
+                "--rcfile=.pylintrc",
+                "--disable=import-error",
+                "--ignore=tests"
+            ]

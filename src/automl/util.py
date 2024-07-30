@@ -23,7 +23,7 @@ from sklearn.metrics import (
 )
 from sktime.performance_metrics.forecasting import MeanAbsoluteScaledError
 
-from src.logs import logger
+from src.automl.logs import logger
 
 
 class Utils:

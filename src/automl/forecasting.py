@@ -10,11 +10,11 @@ import time
 import numpy as np
 import pandas as pd
 
-from src.base import Forecaster
-from src.errors import AutomlLibraryError, DatasetTooSmallError
-from src.logs import logger
-from src.util import Utils
-from src.validation import Task
+from src.automl.base import Forecaster
+from src.automl.errors import AutomlLibraryError, DatasetTooSmallError
+from src.automl.logs import logger
+from src.automl.util import Utils
+from src.automl.validation import Task
 
 
 class Forecasting:

@@ -30,7 +30,7 @@ from sklearn.svm import LinearSVR, NuSVR, SVR
 from sklearn.tree import DecisionTreeRegressor, ExtraTreeRegressor
 from xgboost import XGBRegressor
 
-from src.logs import logger
+from src.automl.logs import logger
 
 
 class Forecaster:

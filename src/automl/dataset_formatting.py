@@ -11,10 +11,10 @@ import zipfile
 
 import pandas as pd
 
-from src.frequencies import frequencies
-from src.logs import logger
-from src.TSForecasting.data_loader import convert_tsf_to_dataframe, FREQUENCY_MAP
-from src.validation import Task
+from src.automl.frequencies import frequencies
+from src.automl.logs import logger
+from src.automl.TSForecasting.data_loader import convert_tsf_to_dataframe, FREQUENCY_MAP
+from src.automl.validation import Task
 
 
 class DatasetFormatter:

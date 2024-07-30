@@ -121,6 +121,7 @@ Christian O'Leary (2024) AutoML Python Benchmark.
 @Misc{AutoML-Python-Benchmark,
 author = {Christian O'Leary},
 title = {AutoML Python Benchmark},
+doi = {10.5281/zenodo.13133203},
 howpublished = {\url{https://github.com/christian-oleary/AutoML-Python-Benchmark}},
 year = {2024}
 }

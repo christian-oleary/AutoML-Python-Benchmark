@@ -1,42 +1,24 @@
-# --- PROJECT SPECIFIC --- #
-*.txt
-*.csv
-*.ignore
-*_ignore.ipynb
+# Layout:
+# 1. General (project-specific)
+# 2. Other (tools with only a few rules)
+# 3. Python
+# 4. Java
+# 5. JavaScript/TypeScript
 
-env*/
-data/
-ignore/
-logs/
-papers/
-repositories/
-results/
-SCAIT-Python/
-tmp/
+###########################
+# General
+###########################
 
 !requirements.txt
 
-catboost_info
-.lock_preprocessing
-checkpoints
-
-# AutoKeras
-time_series_forecaster
-
-# PyTorch (building from source)
-pytorch
-
-# WSL and CUDA
-cuda_12.2.1_535.86.10_linux.run
-
-# Anaconda installation scripts
-Anaconda3*.sh
-
-# Ludwig
-*.meta.json
-
-# AutoTS
-.lr_find_*
+# Data/Backups
+*.backup
+*.csv
+*.ignore
+*.svg
+*.txt
+*.wav
+*_ignore.ipynb
 
 # Images
 *.png
@@ -44,33 +26,89 @@ Anaconda3*.sh
 *.jpeg
 *.gif
 
-
-# --- GENERAL --- #
-
-# Generated
-bin
-*.dll
-*.exe
-*.dot
-
-# SQLite
-*.db
-*.db-journal
+# Project-specific directories
+checkpoints/
+env*/
+data/
+ignore/
+logs/
+papers/
+repositories/
+results/
 
 # Models
 *.h5
 *.hdf5
 *.pkl
 *.joblib
+*.pb
+*.index
+*variables.data-*
 
-# Distribution / packaging
+###########################
+# Other
+###########################
+
+# AWS
+*.pem
+
+# Generated
+bin
+cache/
+share
+*.dll
+*.exe
+*.dot
+
+# LaTeX
+*.aux
+*.bbg
+*.bbl
+*.blg
+*.fdb_latexmk
+*.fls
+*.gz
+*.lof
+*.log
+*.lot
+*.out
+*.pdf
+*.toc
+
+# MacOS
+.DS_Store
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Sonarqube
+.scannerwork
+
+# SQLite
+*.db
+*.db-journal
 
 # Visual Studio Code
-.vscode
+.vscode/**/*
+!.vscode/extensions.json
 
-# PyCharm
-.idea
+###########################
+# Python
+###########################
 
+# Anaconda installation scripts
+Anaconda3*.sh
+# Conda general
+.conda
+
+# AutoKeras
+time_series_forecaster
+
+# AutoTS
+.lr_find_*
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
@@ -79,6 +117,25 @@ __pycache__/
 
 # C extensions
 *.so
+
+# CatBoost
+catboost_info
+
+# Celery stuff
+celerybeat-schedule
+celerybeat.pid
+
+# CUDA
+cuda_*_linux.run
+*.i
+*.ii
+*.gpu
+*.ptx
+*.cubin
+*.fatbin
+
+# Cython debug symbols
+cython_debug/
 
 # Distribution / packaging
 .Python
@@ -101,33 +158,15 @@ share/python-wheels/
 *.egg
 MANIFEST
 
-# PyInstaller
-#  Usually these files are written by a python script from a template
-#  before PyInstaller builds the exe, so as to inject date/other infos into it.
-*.manifest
-*.spec
-
-# Installer logs
-pip-log.txt
-pip-delete-this-directory.txt
-
-# Unit test / coverage reports
-htmlcov/
-.tox/
-.nox/
-.coverage
-.coverage.*
-.cache
-nosetests.xml
-coverage.xml
-*.cover
-*.py,cover
-.hypothesis/
-.pytest_cache/
-
-# Translations
-*.mo
-*.pot
+# Environments
+.env
+.venv
+ENV/
+env/
+env.bak/
+pyvenv.cfg
+venv/
+venv.bak/
 
 # Django stuff:
 *.log
@@ -139,60 +178,20 @@ db.sqlite3-journal
 instance/
 .webassets-cache
 
-# Scrapy stuff:
-.scrapy
-
-# Sphinx documentation
-docs/_build/
-docs/sphinx/_build/
-docs/sphinx/source/
-docs/sphinx/tests/
-
-# PyBuilder
-target/
-
-# Jupyter Notebook
-.ipynb_checkpoints
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
 
 # IPython
 profile_default/
 ipython_config.py
 
-# pyenv
-.python-version
+# Jupyter Notebook
+.ipynb_checkpoints
 
-# pipenv
-#   According to pypa/pipenv#598, it is recommended to include Pipfile.lock in version control.
-#   However, in case of collaboration, if having platform-specific dependencies or dependencies
-#   having no cross-platform support, pipenv may install dependencies that don't work, or not
-#   install all needed dependencies.
-#Pipfile.lock
-
-# PEP 582; used by e.g. github.com/David-OConnor/pyflow
-__pypackages__/
-
-# Celery stuff
-celerybeat-schedule
-celerybeat.pid
-
-# SageMath parsed files
-*.sage.py
-
-# Environments
-.env
-.venv
-env/
-venv/
-ENV/
-env.bak/
-venv.bak/
-
-# Spyder project settings
-.spyderproject
-.spyproject
-
-# Rope project settings
-.ropeproject
+# Ludwig
+*.meta.json
+.lock_preprocessing
 
 # mkdocs documentation
 /site
@@ -202,5 +201,190 @@ venv.bak/
 .dmypy.json
 dmypy.json
 
+# pdm
+#   Similar to Pipfile.lock, it is generally recommended to include pdm.lock in version control.
+#pdm.lock
+#   pdm stores project-wide configurations in .pdm.toml, but it is recommended to not include it
+#   in version control.
+#   https://pdm.fming.dev/latest/usage/project/#working-with-version-control
+.pdm.toml
+.pdm-python
+.pdm-build/
+
+
+# PEP 582
+__pypackages__/
+
+# pipenv
+#   According to pypa/pipenv#598, it is recommended to include Pipfile.lock in version control.
+#   However, in case of collaboration, if having platform-specific dependencies or dependencies
+#   having no cross-platform support, pipenv may install dependencies that don't work, or not
+#   install all needed dependencies.
+#Pipfile.lock
+
+# poetry
+#   Similar to Pipfile.lock, it is generally recommended to include poetry.lock in version control.
+#   This is especially recommended for binary packages to ensure reproducibility, and is more
+#   commonly ignored for libraries.
+#   https://python-poetry.org/docs/basic-usage/#commit-your-poetrylock-file-to-version-control
+#poetry.lock
+
+# PyBuilder
+.pybuilder/
+target/
+
+# PyCharm
+.idea
+
+# pyenv
+.python-version
+
+# PyInstaller
+#  Usually these files are written by a python script from a template
+#  before PyInstaller builds the exe, so as to inject date/other infos into it.
+*.manifest
+*.spec
+
 # Pyre type checker
 .pyre/
+
+# PyTorch (building from source)
+pytorch
+
+# ruff
+.ruff_cache
+
+# Rope project settings
+.ropeproject
+
+# SageMath parsed files
+*.sage.py
+
+# Scrapy stuff:
+.scrapy
+
+# Sphinx documentation
+docs/*.svg
+docs/*.md
+docs/*.html
+docs/_build/
+docs/sphinx/_build/
+docs/sphinx/source/
+docs/sphinx/tests/
+
+# Spyder project settings
+.spyderproject
+.spyproject
+
+# Translations
+*.mo
+*.pot
+
+# Unit test / coverage reports / profiling
+.cache
+*.cover
+.coverage
+.coverage.*
+.nox/
+.tox/
+*.py,cover
+cover/
+coverage.xml
+htmlcov/
+nosetests.xml
+.hypothesis/
+.pytest_cache/
+prof/
+
+# pytype static type analyzer
+.pytype/
+
+###########################
+# Java
+###########################
+
+pom.xml.tag
+pom.xml.releaseBackup
+pom.xml.versionsBackup
+pom.xml.next
+release.properties
+dependency-reduced-pom.xml
+buildNumber.properties
+.mvn/timing.properties
+
+# https://github.com/takari/maven-wrapper#usage-without-binary-jar
+.mvn/wrapper/maven-wrapper.jar
+
+# BlueJ files
+*.ctxt
+
+# Compiled class file
+*.class
+
+# Eclipse Core
+.project
+
+# JDT-specific (Eclipse Java Development Tools)
+.classpath
+
+# Mobile Tools for Java (J2ME)
+.mtj.tmp/
+
+# Package Files
+*.jar
+*.war
+*.nar
+*.ear
+*.zip
+*.tar.gz
+*.rar
+
+# virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
+hs_err_pid*
+replay_pid*
+
+###########################
+# JavaScript/TypeScript
+###########################
+
+# Bower dependency directory (https://bower.io/)
+bower_components
+
+# DynamoDB Local files
+.dynamodb/
+
+# Node.js
+node_modules
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+.pnpm-debug.log*
+report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
+.lock-wscript
+build/Release
+node_modules/
+jspm_packages/
+web_modules/
+*.tsbuildinfo
+.npm
+.eslintcache
+.stylelintcache
+.node_repl_history
+
+# Output of 'npm pack'
+*.tgz
+
+# vuepress
+.vuepress/dist
+.temp
+
+# Yarn Integrity file
+.yarn-integrity
+
+# yarn v2
+.yarn/cache
+.yarn/unplugged
+.yarn/build-state.yml
+.yarn/install-state.gz
+.pnp.*

@@ -1,10 +1,17 @@
 # See https://pre-commit.com/hooks.html for more hooks
 repos:
     -   repo: https://github.com/psf/black
-        rev: stable
+        rev: 24.4.2
         hooks:
         -   id: black
             args: ["--config=./pyproject.toml"]
+
+    -   repo: https://github.com/pre-commit/mirrors-mypy
+        rev: v1.8.0
+        hooks:
+        -   id: mypy
+            args: ["--config-file=./pyproject.toml"]
+            exclude: ^(docs/|repositories/)
 
     -   repo: https://github.com/pre-commit/pre-commit-hooks
         rev: v3.2.0
@@ -15,10 +22,13 @@ repos:
         -   id: check-executables-have-shebangs
         -   id: check-merge-conflict
         -   id: check-toml
+        -   id: check-xml
         -   id: check-yaml
         -   id: debug-statements
         -   id: detect-private-key
         -   id: end-of-file-fixer
+        -   id: mixed-line-ending
+        -   id: requirements-txt-fixer
         -   id: trailing-whitespace
 
     -   repo: https://github.com/pre-commit/pygrep-hooks
@@ -33,17 +43,11 @@ repos:
         -   id: ruff
             args: ["--no-fix", "--output-format=full"]
 
-    -   repo: https://github.com/pre-commit/mirrors-mypy
-        rev: v1.8.0
-        hooks:
-        -   id: mypy
-            args: [ "--install-types", "--non-interactive" ]
-            exclude: ^(docs/|example-plugin/)
-
     -   repo: https://github.com/PyCQA/pydocstyle
         rev: 6.1.1
         hooks:
         -   id: pydocstyle
+            additional_dependencies: ['toml']
 
     -   repo: https://github.com/PyCQA/flake8
         rev: 7.0.0
@@ -55,4 +59,8 @@ repos:
         rev: v2.17.5
         hooks:
         -   id: pylint
-            args: ["--rcfile=.pylintrc", "--disable=import-error"]
+            args: [
+                "--rcfile=.pylintrc",
+                "--disable=import-error",
+                "--ignore=tests"
+            ]

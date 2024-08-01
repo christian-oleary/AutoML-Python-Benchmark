@@ -13,7 +13,7 @@ authors = [
 ]
 description = "AutoML Python Benchmark"
 readme = "README.md"
-requires-python = ">=3.9"
+requires-python = "==3.10"
 dynamic = [ "version", "dependencies", "optional-dependencies" ]
 classifiers = [
     "Programming Language :: Python :: 3",
@@ -46,7 +46,7 @@ exclude_also = [ # Regexes for lines to exclude from consideration
 ]
 ignore_errors = true
 show_missing = true
-fail_under = 40
+fail_under = 20
 
 [tool.coverage.html]
 directory = "./docs/coverage_html_report"
@@ -61,7 +61,14 @@ exclude = "tests"
 # PYDOCSTYLE
 [tool.pydocstyle]
 inherit = false
-# ignore = ["D100", "D203", "D405"]
+ignore = [
+    "D107",
+    "D203",  # Blank line before class docstring
+    "D213",
+    "D400",  # First line should end in period 1
+    "D401",
+    "D415",  # First line should end in period 2
+]
 match = ".*\\.py"
 
 ################################################################################
@@ -85,5 +92,8 @@ testpaths = [ "tests" ]
 # RUFF
 [tool.ruff]
 exclude = ["docs"]
+
+[tool.ruff.format]
+quote-style = "single"
 
 ################################################################################

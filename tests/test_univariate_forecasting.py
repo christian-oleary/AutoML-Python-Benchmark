@@ -5,12 +5,11 @@ import os
 import pandas as pd
 import pytest
 from sklearn.datasets import fetch_openml
-from sklearn.experimental import enable_iterative_imputer # pylint: disable=W0611  # noqa
+from sklearn.experimental import enable_iterative_imputer  # pylint: disable=W0611  # noqa
 
-from src.dataset_formatting import DatasetFormatter
-from src.forecasting import Forecasting
-from src.util import Utils
-from src.validation import Library, Task
+from src.automl.dataset_formatting import DatasetFormatter
+from src.automl.forecasting import Forecasting
+from src.automl.validation import Library, Task
 
 
 def setup(overwrite=True):
@@ -18,6 +17,7 @@ def setup(overwrite=True):
 
     class Config:  # pylint: disable=R0903
         """Default testing configuration"""
+
         data_dir = os.path.join('tests', 'data', 'univariate')
         libraries = ['test']
         nproc = 1
@@ -34,7 +34,9 @@ def setup(overwrite=True):
 
     if overwrite or not os.path.exists(forecasting_test_path):
         try:
-            bike_sharing = fetch_openml('Bike_Sharing_Demand', version=2, as_frame=True, parser='auto')
+            bike_sharing = fetch_openml(
+                'Bike_Sharing_Demand', version=2, as_frame=True, parser='auto'
+            )
         except TypeError:  # Newer versions
             bike_sharing = fetch_openml('Bike_Sharing_Demand', version=2, as_frame=True)
 

@@ -1,8 +1,25 @@
-tensorflow==2.10.1
-protobuf==3.19.5
+# Data
+numpy
 pandas==1.4.1
 sktime==0.18.0
+
+# Models
 lightgbm
+protobuf==3.19.5
+tensorflow==2.10.1
+torch==2.3.1
+xgboost
+
+# Plotting
 matplotlib
 seaborn
-xgboost
+
+# Dev tools
+coverage==7.4.4
+flake8==7.1.0
+mypy==1.10.1
+pre-commit==3.7.1
+pylint==2.17.7
+pytest==8.2.2
+pytest-cov==5.0.0
+setuptools

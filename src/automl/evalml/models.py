@@ -1,10 +1,10 @@
 """EvalML models"""
 
-import pandas as pd
 from evalml.automl import AutoMLSearch
+import pandas as pd
 
-from src.base import Forecaster
-from src.errors import DatasetTooSmallError
+from src.automl.base import Forecaster
+from src.automl.errors import DatasetTooSmallError
 
 
 class EvalMLForecaster(Forecaster):

@@ -50,7 +50,6 @@ class Validator:
 
         :param argparse.Namespace args: arguments from command line
         """
-
         # Task
         if args.task in ['multivariate', 'global']:
             raise NotImplementedError('multivariate forecasting not implemented')
@@ -115,7 +114,7 @@ class Validator:
         args.libraries = []
         for library in [lib.value for lib in Library]:
             try:
-                importlib.import_module(f'src.{library}.models', __name__)
+                importlib.import_module(f'src.automl.{library}.models', __name__)
                 args.libraries.append(library)
                 logger.debug(f'Imported {library}')
             except ModuleNotFoundError:

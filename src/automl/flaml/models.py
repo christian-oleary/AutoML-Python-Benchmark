@@ -6,13 +6,14 @@ from flaml import AutoML
 import numpy as np
 import pandas as pd
 
-from src.base import Forecaster
-from src.errors import DatasetTooSmallError
-from src.logs import logger
-from src.util import Utils
+from src.automl.base import Forecaster
+from src.automl.errors import DatasetTooSmallError
+from src.automl.logs import logger
+from src.automl.util import Utils
 
 
 class FLAMLForecaster(Forecaster):
+    """Class for Forecasting using FLAML"""
 
     name = 'FLAML'
 
@@ -116,7 +117,6 @@ class FLAMLForecaster(Forecaster):
         :param str preset: Model configuration to use
         :return: Time limit in seconds (int)
         """
-
         return int(time_limit * self.initial_training_fraction)
 
     def rolling_origin_forecast(self, model, X_train, X_test, horizon):

@@ -2,6 +2,8 @@
 Base Classes
 """
 
+from __future__ import annotations
+
 from pathlib import Path
 
 from lightgbm import LGBMRegressor
@@ -245,18 +247,27 @@ class Forecaster:
             )
         return predictions
 
-    def train_model(self, X_train, y_train, X_test, forecast_type, nproc, tmp_dir, model_name):
+    def train_model(
+        self,
+        X_train: pd.DataFrame,
+        y_train: np.ndarray,
+        X_test: pd.DataFrame,
+        forecast_type: str,
+        nproc: int,
+        tmp_dir: str | Path,
+        model_name: str,
+    ) -> np.ndarray:
         """Train machine learning model
 
         :param pd.DataFrame X_train: Training features
-        :param np.array y_train: Training target values
+        :param np.ndarray y_train: Training target values
         :param pd.DataFrame X_test: Test features
         :param str forecast_type: Type of forecasting (univariate, multivariate or global)
         :param int nproc: Number of processes
         :param str tmp_dir: Dir to store any temporary files
         :param str model_name: Name of model
         :raises NotImplementedError: Unsupported forecasting methods
-        :return np.array: Forecast predictions
+        :return np.ndarray: Forecast predictions
         """
         # Scale data
         scaler = MinMaxScaler()

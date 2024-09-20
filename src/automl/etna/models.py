@@ -9,10 +9,10 @@ from etna.metrics import SMAPE
 import numpy as np
 import pandas as pd
 
-from src.base import Forecaster
-from src.errors import AutomlLibraryError
-from src.logs import logger
-from src.TSForecasting.data_loader import FREQUENCY_MAP
+from src.automl.base import Forecaster
+from src.automl.errors import AutomlLibraryError
+from src.automl.logs import logger
+from src.automl.TSForecasting.data_loader import FREQUENCY_MAP
 
 # Presets are every combination of the following:
 # tune_size = ['1', '2', '3', '4', '5', '10', '20', '30', '40', '50', '100', '200', '300', '400', '500']

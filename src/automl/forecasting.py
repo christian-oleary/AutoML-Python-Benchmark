@@ -362,43 +362,43 @@ class Forecasting:
         if forecaster_name == 'test':
             forecaster = Forecaster()
         elif forecaster_name == 'autogluon':
-            from src.autogluon.models import AutoGluonForecaster
+            from src.automl.autogluon.models import AutoGluonForecaster
 
             forecaster = AutoGluonForecaster()
         elif forecaster_name == 'autokeras':
-            from src.autokeras.models import AutoKerasForecaster
+            from src.automl.autokeras.models import AutoKerasForecaster
 
             forecaster = AutoKerasForecaster()
         elif forecaster_name == 'autots':
-            from src.autots.models import AutoTSForecaster
+            from src.automl.autots.models import AutoTSForecaster
 
             forecaster = AutoTSForecaster()
         elif forecaster_name == 'autopytorch':
-            from src.autopytorch.models import AutoPyTorchForecaster
+            from src.automl.autopytorch.models import AutoPyTorchForecaster
 
             forecaster = AutoPyTorchForecaster()
         elif forecaster_name == 'etna':
-            from src.etna.models import ETNAForecaster
+            from src.automl.etna.models import ETNAForecaster
 
             forecaster = ETNAForecaster()
         elif forecaster_name == 'evalml':
-            from src.evalml.models import EvalMLForecaster
+            from src.automl.evalml.models import EvalMLForecaster
 
             forecaster = EvalMLForecaster()
         elif forecaster_name == 'fedot':
-            from src.fedot.models import FEDOTForecaster
+            from src.automl.fedot.models import FEDOTForecaster
 
             forecaster = FEDOTForecaster()
         elif forecaster_name == 'flaml':
-            from src.flaml.models import FLAMLForecaster
+            from src.automl.flaml.models import FLAMLForecaster
 
             forecaster = FLAMLForecaster()
         elif forecaster_name == 'ludwig':
-            from src.ludwig.models import LudwigForecaster
+            from src.automl.ludwig.models import LudwigForecaster
 
             forecaster = LudwigForecaster()
         elif forecaster_name == 'pycaret':
-            from src.pycaret.models import PyCaretForecaster
+            from src.automl.pycaret.models import PyCaretForecaster
 
             forecaster = PyCaretForecaster()
         else:

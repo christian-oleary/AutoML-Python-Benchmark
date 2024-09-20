@@ -2,18 +2,24 @@
 
 from pathlib import Path
 
-from autogluon.timeseries import TimeSeriesDataFrame, TimeSeriesPredictor
 import numpy as np
 import pandas as pd
-from networkx.exception import NetworkXError
 
-from src.base import Forecaster
-from src.errors import AutomlLibraryError
-from src.logs import logger
-from src.TSForecasting.data_loader import FREQUENCY_MAP
+from src.automl.base import Forecaster
+from src.automl.errors import AutomlLibraryError
+from src.automl.logs import logger
+from src.automl.TSForecasting.data_loader import FREQUENCY_MAP
+
+try:
+    from autogluon.timeseries import TimeSeriesDataFrame, TimeSeriesPredictor
+    from networkx.exception import NetworkXError
+except ModuleNotFoundError as e:
+    logger.error('AutoGluon not found!')
+    raise e
 
 
 class AutoGluonForecaster(Forecaster):
+    """Forecasting using AutoGluon"""
 
     name = 'AutoGluon'
 
@@ -56,7 +62,6 @@ class AutoGluonForecaster(Forecaster):
         :param str target_name: Name of target variable for multivariate forecasting, defaults to None
         :return np.array: Predictions
         """
-
         logger.debug('Formatting indices...')
 
         # Done after from_data_frame() calls instead (below)
@@ -227,7 +232,6 @@ class AutoGluonForecaster(Forecaster):
         :param str preset: Model configuration to use
         :return: Estimated time limit (int)
         """
-
         return int(time_limit * self.initial_training_fraction)
 
     def rolling_origin_forecast(self, model, X_train, X_test, horizon, tmp_dir, column=None):
@@ -240,7 +244,6 @@ class AutoGluonForecaster(Forecaster):
         :param column: Specifies forecast column if dataframe outputted, defaults to None
         :return: Predictions (numpy array)
         """
-
         # Make predictions
         data = X_train[-horizon:]
         preds = model.predict(data)

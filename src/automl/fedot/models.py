@@ -8,8 +8,8 @@ from fedot.utilities.ts_gapfilling import ModelGapFiller
 import numpy as np
 import pandas as pd
 
-from src.base import Forecaster
-from src.logs import logger
+from src.automl.base import Forecaster
+from src.automl.logs import logger
 
 
 class FEDOTForecaster(Forecaster):

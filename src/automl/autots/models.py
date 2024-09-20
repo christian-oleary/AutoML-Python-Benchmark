@@ -8,9 +8,9 @@ import numpy as np
 import pandas as pd
 from autots import AutoTS, create_regressor
 
-from src.base import Forecaster
-from src.errors import DatasetTooSmallError
-from src.logs import logger
+from src.automl.base import Forecaster
+from src.automl.errors import DatasetTooSmallError
+from src.automl.logs import logger
 
 cmdstanpy_logger = logging.getLogger('cmdstanpy')
 cmdstanpy_logger.addHandler(logging.NullHandler())

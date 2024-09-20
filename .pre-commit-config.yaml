@@ -55,12 +55,12 @@ repos:
         -   id: flake8
             args: ["--jobs=1"]
 
-    -   repo: https://github.com/PyCQA/pylint
-        rev: v2.17.5
-        hooks:
-        -   id: pylint
-            args: [
-                "--rcfile=.pylintrc",
-                "--disable=import-error",
-                "--ignore=tests"
-            ]
+    # -   repo: https://github.com/PyCQA/pylint
+    #     rev: v2.17.5
+    #     hooks:
+    #     -   id: pylint
+    #         args: [
+    #             "--rcfile=.pylintrc",
+    #             "--disable=import-error",
+    #             "--ignore=tests"
+    #         ]

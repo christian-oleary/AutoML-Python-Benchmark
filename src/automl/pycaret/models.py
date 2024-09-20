@@ -6,9 +6,9 @@ import numpy as np
 import pandas as pd
 from pycaret.time_series import TSForecastingExperiment
 
-from src.base import Forecaster
-from src.logs import logger
-from src.TSForecasting.data_loader import FREQUENCY_MAP
+from src.automl.base import Forecaster
+from src.automl.logs import logger
+from src.automl.TSForecasting.data_loader import FREQUENCY_MAP
 
 
 class PyCaretForecaster(Forecaster):

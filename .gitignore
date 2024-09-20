@@ -9,14 +9,18 @@
 # General
 ###########################
 
-!requirements.txt
 
 # Data/Backups
+data/
+!data/*.dvc
+
+*.txt
+!requirements.txt
+
 *.backup
 *.csv
 *.ignore
 *.svg
-*.txt
 *.wav
 *_ignore.ipynb
 
@@ -29,7 +33,6 @@
 # Project-specific directories
 checkpoints/
 env*/
-data/
 ignore/
 logs/
 papers/

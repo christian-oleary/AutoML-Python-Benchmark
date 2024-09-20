@@ -11,20 +11,26 @@ class BaseEnum(Enum):
     """Base class for enums"""
 
     def __str__(self):
+        """Return string representation of enum"""
         return self.value.lower()
 
     @classmethod
     def _missing_(cls, value):
+        """Return enum member from string value
+
+        :param str value: string value of enum
+        :return Enum: enum member
+        """
         value = value.lower()
         for member in cls:
-            if member.__str__().lower() == value:
+            if member.__str__().lower() == value:  # pylint: disable=unnecessary-dunder-call
                 return member
         return None
 
     @classmethod
     def get_options(cls):
         """Get list of enum values"""
-        return [e.__str__().lower() for e in list(cls)]
+        return [e.__str__().lower() for e in list(cls)]  # pylint: disable=unnecessary-dunder-call
 
 
 class LogLevel(BaseEnum):
@@ -66,7 +72,12 @@ class ColorFormatter(logging.Formatter):
         logging.CRITICAL: bold_red + log_format + reset,
     }
 
-    def format(self, record):
+    def format(self, record) -> str:
+        """Format log record.
+
+        :param record: log record
+        :return str: formatted log record
+        """
         formatter = logging.Formatter(self.FORMATS.get(record.levelno), time_format)
         return formatter.format(record)
 
@@ -75,7 +86,7 @@ logging.getLogger('matplotlib').setLevel(logging.ERROR)
 logging.getLogger('matplotlib.font_manager').disabled = True
 
 # Set up logger to print to console
-logger = logging.getLogger('Benchmark')
+logger = logging.getLogger(__name__)
 
 
 def set_log_dir(log_dir='logs'):

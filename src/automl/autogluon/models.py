@@ -1,19 +1,23 @@
-"""AutoGluon models"""
+"""AutoGluon models."""
 
 from pathlib import Path
 
-from autogluon.timeseries import TimeSeriesDataFrame, TimeSeriesPredictor
+try:
+    from autogluon.timeseries import TimeSeriesDataFrame, TimeSeriesPredictor
+except ModuleNotFoundError as error:
+    raise ModuleNotFoundError('AutoGluon not installed') from error
 import numpy as np
 import pandas as pd
 from networkx.exception import NetworkXError
 
-from src.base import Forecaster
-from src.errors import AutomlLibraryError
-from src.logs import logger
-from src.TSForecasting.data_loader import FREQUENCY_MAP
+from src.automl.base import Forecaster
+from src.automl.errors import AutomlLibraryError
+from src.automl.logs import logger
+from src.automl.TSForecasting.data_loader import FREQUENCY_MAP
 
 
 class AutoGluonForecaster(Forecaster):
+    """Forecasting using AutoGluon."""
 
     name = 'AutoGluon'
 
@@ -80,7 +84,7 @@ class AutoGluonForecaster(Forecaster):
             target_name = 'target'
             train_df.columns = [timestamp_column, target_name]
             test_df.columns = [timestamp_column, target_name]
-            if 'ISEM_prices' in tmp_dir:
+            if 'ISEM_prices' in str(tmp_dir):
                 ignore_time_index = False
             else:
                 ignore_time_index = True
@@ -108,7 +112,7 @@ class AutoGluonForecaster(Forecaster):
 
         # Drop irrelevant rows. This happens after the from_data_frame() calls as AutoGluon tries to (badly) impute
         # the missing values otherwise.
-        if forecast_type == 'univariate' and 'ISEM_prices' in tmp_dir:
+        if forecast_type == 'univariate' and 'ISEM_prices' in str(tmp_dir):
             test_df[timestamp_column] = pd.to_datetime(test_df[timestamp_column], errors='coerce')
             test_df = test_df[test_df[timestamp_column].dt.hour == 0]
 

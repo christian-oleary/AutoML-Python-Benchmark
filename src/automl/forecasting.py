@@ -1,8 +1,8 @@
-"""
-Code for initiating forecasting experiments
-"""
+"""Code for initiating forecasting experiments."""
 
+from argparse import Namespace
 import os
+from pathlib import Path
 from glob import glob
 import shutil
 import time
@@ -11,6 +11,7 @@ import numpy as np
 import pandas as pd
 
 from src.automl.base import Forecaster
+from src.automl.datasets import DatasetFormatter
 from src.automl.errors import AutomlLibraryError, DatasetTooSmallError
 from src.automl.logs import logger
 from src.automl.util import Utils
@@ -18,7 +19,7 @@ from src.automl.validation import Task
 
 
 class Forecasting:
-    """Functionality for applying forecasting libraries to existing datasets"""
+    """Functionality for applying forecasting libraries to existing datasets."""
 
     # Filter datasets based on "Monash Time Series Forecasting Archive" by Godahewa et al. (2021):
     # "we do not consider the London smart meters, wind farms, solar power, and wind power datasets
@@ -39,12 +40,14 @@ class Forecasting:
         'wind_4_seconds_dataset',
     ]
 
-    def run_forecasting_libraries(self, config):
-        """Entrypoint to run forecasting libraries on available datasets
+    def __init__(self):
+        self.dataset_formatter = DatasetFormatter()
+
+    def run_forecasting_libraries(self, config: Namespace):
+        """Entrypoint to run forecasting libraries on available datasets.
 
         :param argparse.Namespace config: arguments from command line
         """
-
         self.config = config
         self.data_dir = config.data_dir
         self.forecast_type = config.task
@@ -53,46 +56,8 @@ class Forecasting:
         metadata = pd.read_csv(os.path.join(self.data_dir, '0_metadata.csv'))
 
         for csv_file in csv_files:
-            self.dataset_name = csv_file.split('.')[0]
-
-            # Filter datasets based on "Monash Time Series Forecasting Archive" by Godahewa et al. (2021)
-            # we do not consider the London smart meters, wind farms, solar power, and wind power datasets
-            # for both univariate and global model evaluations, the Kaggle web traffic daily dataset for
-            # the global model evaluations and the solar 10 minutely dataset for the WaveNet evaluation
-            filter_forecast_datasets = True  # TODO: make an env variable
-            if filter_forecast_datasets and self.dataset_name in self.omitted_datasets:
-                logger.debug(f'Skipping dataset {self.dataset_name}')
-                continue
-
-            # Read dataset
-            self.dataset_path = os.path.join(self.data_dir, csv_file)
-            logger.info(f'Reading dataset {self.dataset_path}')
-
-            if self.forecast_type == Task.GLOBAL_FORECASTING.value:
-                self.df = pd.read_csv(self.dataset_path, index_col=0)
-
-            elif self.forecast_type == Task.UNIVARIATE_FORECASTING.value:
-                if 'libra' in self.dataset_path:
-                    self.df = pd.read_csv(self.dataset_path, header=None)
-                else:
-                    self.df = pd.read_csv(self.dataset_path)
-                    self.df = self.df.set_index('applicable_date')
-                self.df.columns = ['target']
-            else:
-                raise NotImplementedError()
-
-            # I-SEM dataset
-            if 'ISEM_prices' in self.dataset_name:
-                self.train_df = self.df.loc[:'19/10/2020 23:00', :]  # 293 days or ~80% of 2020
-                self.test_df = self.df.loc['20/10/2020 00:00':, :]  # 73 days or ~20% of 2020
-
-            # Holdout for model testing (80% training, 20% testing).
-            # This seems to be used by Godahewa et al. for global forecasting:
-            # https://github.com/rakshitha123/TSForecasting/blob/master/experiments/rolling_origin.R#L10
-            # Also used by Bauer 2021 for univariate forecasting
-            else:
-                self.train_df = self.df.head(int(len(self.df) * 0.8))
-                self.test_df = self.df.tail(int(len(self.df) * 0.2))
+            dataset = self.dataset_formatter.load_dataset(csv_file)
+            self.df, self.train_df, self.test_df, metadata = dataset.get_data()
 
             # Get dataset metadata
             if self.forecast_type == Task.MULTIVARIATE_FORECASTING.value:
@@ -134,7 +99,7 @@ class Forecasting:
                     self.limit = self.forecaster.estimate_initial_limit(config.time_limit, preset)
                     self.evaluate_library_preset(preset, csv_file)
 
-    def evaluate_library_preset(self, preset, csv_file):
+    def evaluate_library_preset(self, preset: str, csv_file: str | Path):
         """Evaluate a specific library on a specific preset
 
         :param str preset: Library specific preset
@@ -349,58 +314,59 @@ class Forecasting:
         os.makedirs(tmp_dir)
         return tmp_dir
 
-    def _init_forecaster(self, forecaster_name):
-        """Create forecaster object from name (see Forecasting.forecaster_names)
+    def _init_forecaster(self, forecaster_name: str):  # noqa: C901  # pylint: disable=R0912
+        """Create forecaster object from name (see Forecasting.forecaster_names).
 
-        :param forecaster_name: Name of forecaster (str)
+        :param str forecaster_name: Name of forecaster
         :raises ValueError: Raised for unknown forecaster name
         :return: Forecaster object
         """
-
         # Import statements included here to accommodate different/conflicting setups
         # pylint: disable=C0415:import-outside-toplevel
+        # fmt: off
         if forecaster_name == 'test':
             forecaster = Forecaster()
+
         elif forecaster_name == 'autogluon':
-            from src.autogluon.models import AutoGluonForecaster
-
+            from src.automl.autogluon.models import AutoGluonForecaster
             forecaster = AutoGluonForecaster()
+
         elif forecaster_name == 'autokeras':
-            from src.autokeras.models import AutoKerasForecaster
-
+            from src.automl.autokeras.models import AutoKerasForecaster
             forecaster = AutoKerasForecaster()
+
         elif forecaster_name == 'autots':
-            from src.autots.models import AutoTSForecaster
-
+            from src.automl.autots.models import AutoTSForecaster
             forecaster = AutoTSForecaster()
+
         elif forecaster_name == 'autopytorch':
-            from src.autopytorch.models import AutoPyTorchForecaster
-
+            from src.automl.autopytorch.models import AutoPyTorchForecaster
             forecaster = AutoPyTorchForecaster()
+
         elif forecaster_name == 'etna':
-            from src.etna.models import ETNAForecaster
-
+            from src.automl.etna.models import ETNAForecaster
             forecaster = ETNAForecaster()
+
         elif forecaster_name == 'evalml':
-            from src.evalml.models import EvalMLForecaster
-
+            from src.automl.evalml.models import EvalMLForecaster
             forecaster = EvalMLForecaster()
+
         elif forecaster_name == 'fedot':
-            from src.fedot.models import FEDOTForecaster
-
+            from src.automl.fedot.models import FEDOTForecaster
             forecaster = FEDOTForecaster()
+
         elif forecaster_name == 'flaml':
-            from src.flaml.models import FLAMLForecaster
-
+            from src.automl.flaml.models import FLAMLForecaster
             forecaster = FLAMLForecaster()
+
         elif forecaster_name == 'ludwig':
-            from src.ludwig.models import LudwigForecaster
-
+            from src.automl.ludwig.models import LudwigForecaster
             forecaster = LudwigForecaster()
-        elif forecaster_name == 'pycaret':
-            from src.pycaret.models import PyCaretForecaster
 
+        elif forecaster_name == 'pycaret':
+            from src.automl.pycaret.models import PyCaretForecaster
             forecaster = PyCaretForecaster()
         else:
             raise ValueError(f'Unknown forecaster {forecaster_name}')
+        # fmt: on
         return forecaster

@@ -11,11 +11,11 @@ import pandas as pd
 from sklearn.model_selection import train_test_split
 from tensorflow.keras.callbacks import EarlyStopping
 
-from src.base import Forecaster
-from src.errors import AutomlLibraryError
-from src.logs import logger
-from src.util import Utils
-from src.validation import Task
+from src.automl.base import Forecaster
+from src.automl.errors import AutomlLibraryError
+from src.automl.logs import logger
+from src.automl.util import Utils
+from src.automl.validation import Task
 
 # Presets are every combination of the following:
 optimizers = ['hyperband', 'greedy', 'bayesian', 'random']

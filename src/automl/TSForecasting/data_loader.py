@@ -1,8 +1,11 @@
-"""
-Credit to Rakshitha Godahewa et al.
+"""Credit to Rakshitha Godahewa et al.
 
 Adapted from: https://github.com/rakshitha123/TSForecasting/blob/master/utils/data_loader.py
 """
+
+# cspell: ignore file
+# flake8: noqa
+# pylint: skip-file
 
 from datetime import datetime
 from distutils.util import strtobool
@@ -36,6 +39,7 @@ REVERSE_FREQUENCY_MAP = {v: k for k, v in FREQUENCY_MAP.items()}
 def convert_tsf_to_dataframe(
     full_file_path_and_name, replace_missing_vals_with='NaN', value_column_name='series_value'
 ):
+    """Converts .tsf file into a dataframe"""
     try:
         with open(full_file_path_and_name, 'r', encoding='utf-8') as file:
             return parse_file(file, replace_missing_vals_with, value_column_name)
@@ -45,7 +49,7 @@ def convert_tsf_to_dataframe(
 
 
 def parse_file(file, replace_missing_vals_with, value_column_name):
-
+    """From Rakshitha Godahewa et al."""
     col_names = []
     col_types = []
     all_data = {}

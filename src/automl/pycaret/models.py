@@ -4,19 +4,24 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
-from pycaret.time_series import TSForecastingExperiment
 
-from src.base import Forecaster
-from src.logs import logger
-from src.TSForecasting.data_loader import FREQUENCY_MAP
+try:
+    from pycaret.time_series import TSForecastingExperiment
+except ModuleNotFoundError as error:
+    raise ModuleNotFoundError('PyCaret not installed') from error
+
+from src.automl.base import Forecaster
+from src.automl.logs import logger
+from src.automl.TSForecasting.data_loader import FREQUENCY_MAP
 
 
 class PyCaretForecaster(Forecaster):
+    """Forecasting using PyCaret"""
 
     name = 'PyCaret'
 
-    initial_training_fraction = 0.95  # Use 95% of max. time for trainig in initial experiment
-    tuning_fraction = 0.85  # Use 95% of max. time for trainig in initial experiment
+    initial_training_fraction = 0.95  # Use 95% of max. time for training in initial experiment
+    tuning_fraction = 0.85  # Use 95% of max. time for training in initial experiment
 
     presets = ['']
 
@@ -53,7 +58,7 @@ class PyCaretForecaster(Forecaster):
             freq = FREQUENCY_MAP[frequency].replace('1', '')
             train_df.index = pd.to_datetime(train_df.index).to_period(freq)
             test_df.index = pd.to_datetime(test_df.index).to_period(freq)
-        elif 'ISEM_prices' in tmp_dir:
+        elif 'ISEM_prices' in str(tmp_dir):
             freq = 'H'
             train_df.index = pd.to_datetime(train_df.index)  # .to_period(freq)
             train_df.index = pd.date_range(
@@ -66,7 +71,7 @@ class PyCaretForecaster(Forecaster):
             ).to_period(freq)
 
             # Drop irrelevant rows
-            if forecast_type == 'univariate' and 'ISEM_prices' in tmp_dir:
+            if forecast_type == 'univariate' and 'ISEM_prices' in str(tmp_dir):
                 test_df['pycaret_datetime'] = test_df.index
                 # test_df['pycaret_datetime'] = pd.to_datetime(test_df['pycaret_datetime'], errors='coerce')
                 test_df = test_df[test_df['pycaret_datetime'].dt.hour == 0]

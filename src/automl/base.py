@@ -1,6 +1,4 @@
-"""
-Base Classes
-"""
+"""Base Classes."""
 
 from pathlib import Path
 
@@ -34,7 +32,7 @@ from src.automl.logs import logger
 
 
 class Forecaster:
-    """Base Forecaster"""
+    """Base Forecaster."""
 
     # fmt: off
     regression_models = {
@@ -190,8 +188,7 @@ class Forecaster:
         test_df: pd.DataFrame,
         forecast_type: str,
         horizon: int,
-        limit: int,
-        frequency: int | str,
+        frequency: int | str,  # pylint: disable=unused-argument
         tmp_dir: str | Path,
         nproc: int = 1,
         preset: str = 'LinearRegression',
@@ -204,12 +201,11 @@ class Forecaster:
         :param pd.DataFrame test_df: DataFrame of test data
         :param str forecast_type: Type of forecasting, 'global', 'univariate' or 'multivariate'
         :param int horizon: Forecast horizon (how far ahead to predict)
-        :param int limit: Iterations limit (included for API compatibility)
         :param int frequency: Data frequency (included for API compatibility)
         :param str tmp_dir: Path to directory to store temporary files
         :param int nproc: Number of threads/processes allowed, defaults to 1
-        :param str preset: Modelling presets
-        :param str target_name: Name of target variable for multivariate forecasting, defaults to None
+        :param str preset: Modelling presets, defaults to 'LinearRegression'
+        :param str | None target: Name of target variable for multivariate forecasting, defaults to None
         :param int verbose: Verbosity
         """
         self.verbose = verbose
@@ -222,9 +218,12 @@ class Forecaster:
             test_df.columns = [target]
 
             logger.debug('Formatting into tabular dataset...')
-            lag = self.get_default_lag(horizon)
             X_train, y_train, X_test, y_test = self.create_tabular_dataset(
-                train_df, test_df, horizon, target, lag=lag
+                train_df=train_df,
+                test_df=test_df,
+                horizon=horizon,
+                target_cols=[target],
+                lag=self.get_default_lag(horizon),
             )
 
             # Fit model
@@ -234,10 +233,14 @@ class Forecaster:
             elif preset == 'Constant':
                 predictions = np.full(len(y_test), np.mean(y_train))
             else:
-                X_train = X_train.tail(10000)
-                y_train = y_train[-10000:]
                 predictions = self.train_model(
-                    X_train, y_train, X_test, forecast_type, nproc, tmp_dir, model_name=preset
+                    X_train=X_train.tail(10000),
+                    y_train=y_train[-10000:],
+                    X_test=X_test,
+                    forecast_type=forecast_type,
+                    nproc=nproc,
+                    tmp_dir=tmp_dir,
+                    model_name=preset,
                 )
         else:
             raise NotImplementedError(
@@ -337,9 +340,12 @@ class Forecaster:
         if lag is None:
             lag = self.get_default_lag(horizon)
 
-        args = [lag, horizon, target_cols, tabular_y]
-        train_df, X_train, y_train = self.create_tabular_data(train_df, *args)
-        test_df, X_test, y_test = self.create_tabular_data(test_df, *args)
+        train_df, X_train, y_train = self.create_tabular_data(
+            train_df, lag, horizon, target_cols, tabular_y
+        )
+        test_df, X_test, y_test = self.create_tabular_data(
+            test_df, lag, horizon, target_cols, tabular_y
+        )
 
         # Impute resulting missing values
         imputer = IterativeImputer(n_nearest_features=3, max_iter=5, random_state=1)
@@ -391,14 +397,14 @@ class Forecaster:
         targets: list,
         target_cols: list,
         window_size: int,
-        ignored: bool = None,
+        ignored: list | None = None,
     ) -> pd.DataFrame:
         """Create features based on historical feature values
 
         :param pd.DataFrame df: Input DataFrame
         :param list targets: List of names of target columns
         :param int window_size: Window/lag size
-        :param list ignored: List of column names to ignore
+        :param list | None ignored: List of column names to ignore, defaults to None
         :return pd.DataFrame: DataFrame with columns replaced with lagged versions
         """
         if ignored is None:
@@ -418,17 +424,21 @@ class Forecaster:
         return df
 
     def create_future_values(self, df: pd.DataFrame, horizon: int, targets: list):
-        """Create a window of future values for multioutput forecasting"""
-        all_target_cols = []
+        """Create a window of future values for multioutput forecasting
+
+        :param pd.DataFrame df: Input DataFrame
+        :param int horizon: Forecast horizon
+        :param list targets: List of target column names
+        :return pd.DataFrame: DataFrame with future values appended
+        """
+        all_target_cols: list[str] = []
         future_cols = {}
         for target in targets:
             target_cols = [target]
-
             for i in range(1, horizon):
                 col_name = f'{target}+{i}'
                 target_cols.append(col_name)
                 future_cols[col_name] = df[target].shift(i)
-
             all_target_cols = all_target_cols + target_cols
 
         new_cols = pd.concat(future_cols, axis=1, ignore_index=False)
@@ -443,6 +453,7 @@ class Forecaster:
         :param str preset: Library preset (unused in Forecaster class)
         :return int: Estimated time limit
         """
+        logger.debug(f'Estimating initial time limit for {preset}...')
         return time_limit
 
     def estimate_new_limit(self, time_limit, current_limit, duration, limit_type='time'):
@@ -465,9 +476,8 @@ class Forecaster:
             )
 
         if limit_type == 'time':
-            new_limit = int(
-                current_limit - (duration - current_limit)
-            )  # Subtract overtime from training time
+            # Subtract overtime from training time
+            new_limit = int(current_limit - (duration - current_limit))
         else:
             raise NotImplementedError()
 

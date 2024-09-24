@@ -3,8 +3,10 @@ ignore=src/R, src/TSForecasting
 
 [FORMAT]
 max-line-length=120
-max-args=10
+max-locals=16
+max-args=12
 max-attributes=10
+
 
 [MESSAGES CONTROL]
 disable=C0103,E0611,E0401,W0201,W1203

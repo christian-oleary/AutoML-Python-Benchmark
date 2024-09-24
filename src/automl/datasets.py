@@ -2,10 +2,12 @@
 Data formatting functions
 """
 
+from abc import ABC
 import argparse
 from datetime import datetime
 import logging
 import os
+from pathlib import Path
 import math
 import zipfile
 
@@ -15,6 +17,54 @@ from src.automl.frequencies import frequencies
 from src.automl.logs import logger
 from src.automl.TSForecasting.data_loader import convert_tsf_to_dataframe, FREQUENCY_MAP
 from src.automl.validation import Task
+
+
+class Dataset(ABC):
+    """Base class for datasets"""
+
+    def get_data(self, **kwargs) -> tuple:
+        """Get data relating to dataset"""
+        self.data_dir = kwargs.get('data_dir', 'data')
+        self.df = None  # TODO
+        self.train_df = None  # TODO
+        self.test_df = None  # TODO
+        self.meta_data = {}  # TODO
+        return self.df, self.train_df, self.test_df, self.meta_data
+
+
+class ISEMDataset(Dataset):
+    """I-SEM dataset"""
+
+    frequency: str = '24H'
+    horizon: int = 24
+    has_nans: bool = False
+
+    def get_data(self, **kwargs):
+        self.data_dir = kwargs.get('data_dir', 'data')
+        raise NotImplementedError()
+
+
+class ISEM2020Dataset(ISEMDataset):
+    """I-SEM 2020 dataset"""
+
+    train_set_start_time = '31/12/2019 23:00'
+    train_set_end_time = '19/10/2020 23:00'
+    test_set_start_time = '20/10/2020 23:00'
+    test_set_end_time = '31/12/2020 22:00'
+
+    def get_data(self, **kwargs):
+        # Load I-SEM data
+        logger.debug('Loading I-SEM 2020 dataset')
+        self.data_dir = kwargs.get('data_dir', 'data')
+        super().get_data(data_dir=self.data_dir)
+
+        # Ensure only 2020 data is used
+        logger.debug(f'Training data: {self.train_set_start_time} - {self.train_set_end_time}')
+        logger.debug(f'Test data: {self.test_set_start_time} - {self.test_set_end_time}')
+        self.train_df = self.df.loc[self.train_set_start_time : self.train_set_end_time, :]
+        logger.debug(f'Training shape: {self.train_df.shape}')
+        self.test_df = self.df.loc[self.test_set_start_time : self.test_set_end_time, :]
+        logger.debug(f'Test shape: {self.test_df.shape}')
 
 
 class DatasetFormatter:
@@ -184,13 +234,13 @@ class DatasetFormatter:
 
         logger.info('Global forecasting data ready.')
 
-    def select_horizon(self, freq, csv_path):
+    def select_horizon(self, freq: str, csv_path: str | Path):
         """Select horizon for forecasters for a given dataset
 
-        :param freq: Time series frequency (str)
-        :param csv_path: Path to dataset (str)
+        :param  str freq: Time series frequency
+        :param str | Path csv_path: Path to CSV file
         :raises ValueError: If freq is None or not supported
-        :return: Forecasting horizon (int)
+        :return: Forecasting horizon
         """
         if '4_seconds' in csv_path:
             horizon = 15  # i.e. 1 minute
@@ -302,52 +352,55 @@ class DatasetFormatter:
         tsf_files = [f for f in os.listdir(data_dir) if f.endswith('tsf')]
         return tsf_files
 
-    def format_anomaly_data(self, data_dir):
-        """Format anomaly detection datasets
+    def load_dataset(self, dataset: str | Path) -> Dataset:
+        """Load a dataset by name or file path
 
-        :param data_dir: Path to directory of datasets
+        :param str | Path dataset: Name of dataset or file path to dataset
         """
+        logger.debug(f'Loading dataset: {dataset}')
+        raise NotImplementedError()
+        return Dataset()
+        # self.dataset_name = csv_file.split('.')[0]
 
-        self.format_3W_data(data_dir)
-        self.format_falling_data(data_dir)
-        self.format_beth_data(data_dir)
-        self.format_hai_data(data_dir)
-        self.format_nab_data(data_dir)
-        self.format_skab_data(data_dir)
+        # # TODO: Implement dataset loading
 
-    def format_3W_data(self, data_dir):
-        """Format 3W data
+        # # Filter datasets based on "Monash Time Series Forecasting Archive" by Godahewa et al. (2021)
+        # # we do not consider the London smart meters, wind farms, solar power, and wind power datasets
+        # # for both univariate and global model evaluations, the Kaggle web traffic daily dataset for
+        # # the global model evaluations and the solar 10 minutely dataset for the WaveNet evaluation
+        # filter_forecast_datasets = True  # TODO: make an env variable
+        # if filter_forecast_datasets and self.dataset_name in self.omitted_datasets:
+        #     logger.debug(f'Skipping dataset {self.dataset_name}')
+        #     continue
 
-        :param data_dir: Path to directory of datasets
-        """
-        # subdir = os.path.join(data_dir, '3W')
+        # # Read dataset
+        # self.dataset_path = os.path.join(self.data_dir, csv_file)
+        # logger.info(f'Reading dataset {self.dataset_path}')
 
-    def format_falling_data(self, data_dir):
-        """Format falling data
+        # if self.forecast_type == Task.GLOBAL_FORECASTING.value:
+        #     self.df = pd.read_csv(self.dataset_path, index_col=0)
 
-        :param data_dir: Path to directory of datasets
-        """
+        # elif self.forecast_type == Task.UNIVARIATE_FORECASTING.value:
+        #     if 'libra' in self.dataset_path:
+        #         self.df = pd.read_csv(self.dataset_path, header=None)
+        #     else:
+        #         self.df = pd.read_csv(self.dataset_path)
+        #         self.df = self.df.set_index('applicable_date')
+        #     self.df.columns = ['target']
+        # else:
+        #     raise NotImplementedError()
 
-    def format_beth_data(self, data_dir):
-        """Format 3W data
+        # # I-SEM dataset
+        # if 'ISEM_prices' in dataset_name:
+        #     self.train_df = df.loc[:'19/10/2020 23:00', :]  # 293 days or ~80% of 2020
+        #     self.test_df = df.loc['20/10/2020 00:00':, :]  # 73 days or ~20% of 2020
 
-        :param data_dir: Path to directory of datasets
-        """
+        # # Holdout for model testing (80% training, 20% testing).
+        # # This seems to be used by Godahewa et al. for global forecasting:
+        # # https://github.com/rakshitha123/TSForecasting/blob/master/experiments/rolling_origin.R#L10
+        # # Also used by Bauer 2021 for univariate forecasting
+        # else:
+        #     self.train_df = df.head(int(len(self.df) * 0.8))
+        #     self.test_df = df.tail(int(len(self.df) * 0.2))
 
-    def format_hai_data(self, data_dir):
-        """Format HAI Security Dataset data
-
-        :param data_dir: Path to directory of datasets
-        """
-
-    def format_nab_data(self, data_dir):
-        """Format Numenta Anomaly detection Benchmark data
-
-        :param data_dir: Path to directory of datasets
-        """
-
-    def format_skab_data(self, data_dir):
-        """Format Skoltech Anomaly Benchmark data
-
-        :param data_dir: Path to directory of datasets
-        """
+        # return train_df, test_df

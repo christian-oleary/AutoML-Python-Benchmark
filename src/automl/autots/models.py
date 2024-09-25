@@ -187,8 +187,8 @@ class AutoTSForecaster(Forecaster):
         # }
         # return math.ceil(int(time_limit / divisors[preset]))
 
-        # print('preset', preset)
-        # print('preset.split("__")', preset.split('__'))
+        # logger.debug('preset', preset)
+        # logger.debug('preset.split("__")', preset.split('__'))
         # return round((time_limit / int(preset.split('__')[1])) * 0.95, 2)
 
         # Calculated in forecasting function
@@ -206,10 +206,10 @@ class AutoTSForecaster(Forecaster):
         # # Split test set
         # test_splits = Utils.split_test_set(test_X, horizon)
         # regressor_splits = Utils.split_test_set(test_regressors, horizon)
-        # print('\n\n\n\n')
-        # print('test_X', test_X)
-        # print('test_regressors', test_regressors)
-        # print('test_splits', test_splits)
+        # logger.debug('\n\n\n\n')
+        # logger.debug('test_X', test_X)
+        # logger.debug('test_regressors', test_regressors)
+        # logger.debug('test_splits', test_splits)
 
         # # Make predictions
         # predictions = []
@@ -217,9 +217,9 @@ class AutoTSForecaster(Forecaster):
         #     # train_X = pd.concat([train_X, s])
         #     if len(s) < horizon:
         #         horizon = len(s)
-        #     print('\n\n')
-        #     print(s, s.shape, horizon)
-        #     print('\n\n')
+        #     logger.debug('\n\n')
+        #     logger.debug(s, s.shape, horizon)
+        #     logger.debug('\n\n')
         #     preds = model.predict(future_regressor=s, forecast_length=horizon).forecast.values
         #     predictions.append(preds)
 

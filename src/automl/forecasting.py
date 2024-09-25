@@ -50,45 +50,16 @@ class Forecasting:
         """
         self.config = config
         self.data_dir = config.data_dir
-        self.forecast_type = config.task
+        self.task: Task = Task[config.task.upper()]
 
         csv_files = Utils.get_csv_datasets(self.data_dir)
         metadata = pd.read_csv(os.path.join(self.data_dir, '0_metadata.csv'))
 
         for csv_file in csv_files:
-            dataset = self.dataset_formatter.load_dataset(csv_file)
+            self.dataset_name = csv_file.replace('.csv', '')
+            raise NotImplementedError('Forecasting awaiting re-implementation')
+            dataset = self.dataset_formatter.load_dataset(csv_file, self.task)
             self.df, self.train_df, self.test_df, metadata = dataset.get_data()
-
-            # Get dataset metadata
-            if self.forecast_type == Task.MULTIVARIATE_FORECASTING.value:
-                raise NotImplementedError()
-
-            if self.forecast_type == Task.GLOBAL_FORECASTING.value:
-                raise NotImplementedError()
-                # self.data = metadata[metadata['file'] == csv_file.replace('csv', 'tsf')]
-                # self.frequency = self.data['frequency'].iloc[0]
-                # self.horizon = self.data['horizon'].iloc[0]
-                # if pd.isna(self.horizon):
-                #     raise ValueError(f'Missing horizon in 0_metadata.csv for {csv_file}')
-                # self.horizon = int(self.horizon)
-                # # TODO: revise frequencies, determine and data formatting stage
-                # if pd.isna(self.frequency) and 'm3_other_dataset.csv' in csv_file:
-                #     self.frequency = 'yearly'
-                # self.actual = self.test_df.values
-
-            if self.forecast_type == Task.UNIVARIATE_FORECASTING.value:
-                self.data = metadata[metadata['file'] == csv_file]
-                self.frequency = int(self.data['frequency'].iloc[0])
-                self.horizon = int(self.data['horizon'].iloc[0])
-                self.actual = self.test_df.copy().values.flatten()
-                self.y_train = self.train_df.copy().values.flatten()  # Required for MASE
-                # Libra's custom rolling origin forecast:
-                # kwargs = {
-                #     'origin_index': int(self.data['origin_index'].iloc[0]),
-                #     'step_size': int(self.data['step_size'].iloc[0])
-                #     }
-            else:
-                raise ValueError(f'Unknown forecast_type: {self.forecast_type}')
 
             # Run each forecaster on the dataset
             for self.forecaster_name in config.libraries:
@@ -105,20 +76,7 @@ class Forecasting:
         :param str preset: Library specific preset
         :param str csv_file: Name of dataset CSV file
         """
-        if self.config.results_dir is not None:
-            results_subdir = os.path.join(
-                self.config.results_dir,
-                f'{self.forecast_type}_forecasting',
-                self.dataset_name,
-                self.forecaster_name,
-                f'preset-{preset}_proc-{self.config.nproc}_limit-{self.limit}',
-            )
-            # If results are invalid and need to be removed:
-            # if 'forecaster_name' in results_subdir and os.path.exists(results_subdir):
-            #     shutil.rmtree(results_subdir)
-            #     return
-        else:
-            results_subdir = None
+        results_subdir = self.create_results_subdir(csv_file, preset)
 
         max_trials = self.determine_num_trials(results_subdir)
         # Option to skip training if completed previously
@@ -130,7 +88,7 @@ class Forecasting:
                 Utils.summarize_dataset_results(
                     os.path.join(
                         self.config.results_dir,
-                        f'{self.forecast_type}_forecasting',
+                        f'{self.task}_forecasting',
                         self.dataset_name,
                     ),
                     plots=False,
@@ -152,7 +110,7 @@ class Forecasting:
                 predictions = self.forecaster.forecast(
                     self.train_df.copy(),
                     self.test_df.copy(),
-                    self.forecast_type,
+                    self.task,
                     self.horizon,
                     self.limit,
                     self.frequency,
@@ -193,11 +151,27 @@ class Forecasting:
                 Utils.summarize_dataset_results(
                     os.path.join(
                         self.config.results_dir,
-                        f'{self.forecast_type}_forecasting',
+                        f'{self.task}_forecasting',
                         self.dataset_name,
                     ),
                     plots=True,
                 )
+
+    def create_results_subdir(self, csv_file, preset):
+        results_subdir = self.config.results_dir
+        if results_subdir is not None:
+            results_subdir = os.path.join(
+                results_subdir,
+                f'{self.task}_forecasting',
+                self.dataset_name,
+                self.forecaster_name,
+                f'preset-{preset}_proc-{self.config.nproc}_limit-{self.limit}',
+            )
+            # If results are invalid and need to be removed:
+            # if 'forecaster_name' in results_subdir and os.path.exists(results_subdir):
+            #     shutil.rmtree(results_subdir)
+            #     return
+        return results_subdir
 
     def determine_num_trials(self, results_subdir):
         """Determine how many experiments to run"""

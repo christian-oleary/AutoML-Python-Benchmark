@@ -18,18 +18,17 @@ data/
 
 *.backup
 *.csv
-*.ignore
-*.svg
+*.xml
 *.wav
-*_ignore.ipynb
 
 # Images
-*.png
-*.jpg
-*.jpeg
 *.gif
+*.jpeg
+*.jpg
+*.png
+*.svg
 
-# Project-specific directories
+# Project-specific
 checkpoints/
 env*/
 ignore/
@@ -37,6 +36,9 @@ logs/
 papers/
 repositories/
 results/
+
+*_ignore.ipynb
+*.ignore
 
 # Models
 *.h5

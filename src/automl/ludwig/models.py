@@ -151,7 +151,7 @@ class LudwigForecaster(Forecaster):
 
         # # Make predictions
         # data = X_train[-horizon:]
-        # print('data.shape', data.shape)
+        # logger.debug('data.shape', data.shape)
         # print(data)
         # print(data[0])
         # exit()
@@ -159,10 +159,10 @@ class LudwigForecaster(Forecaster):
         # if column is not None:
         #     preds = preds[column].values
 
-        # print('0 preds', preds.shape, len(preds), len(preds) > horizon)
+        # logger.debug('0 preds', preds.shape, len(preds), len(preds) > horizon)
         # if len(preds) > horizon:
         #     preds = preds[-horizon:]
-        # print('0 preds.shape', preds.shape)
+        # logger.debug('0 preds.shape', preds.shape)
 
         # predictions = [ preds ]
 
@@ -170,7 +170,7 @@ class LudwigForecaster(Forecaster):
         #     data = pd.concat([data, s])
 
         #     preds = model.predict(data)
-        #     print('preds.shape', preds.shape)
+        #     logger.debug('preds.shape', preds.shape)
         #     if column is not None:
         #         preds = preds[column].values
 
@@ -182,7 +182,7 @@ class LudwigForecaster(Forecaster):
         #     predictions = np.concatenate([ p.flatten() for p in predictions ])
         # except AttributeError:
         #     predictions = np.concatenate([ p.values.flatten() for p in predictions ])
-        # print('predictions.shape', predictions.shape)
+        # logger.debug('predictions.shape', predictions.shape)
         # predictions = predictions[:len(X_test)]
-        # print('predictions.shape', predictions.shape)
+        # logger.debug('predictions.shape', predictions.shape)
         # return predictions

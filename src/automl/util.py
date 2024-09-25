@@ -13,7 +13,6 @@ import warnings
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from pandas.errors import IndexingError
 import seaborn as sns
 from scipy.stats import ConstantInputWarning, gmean, pearsonr, spearmanr
 from sklearn.metrics import (
@@ -24,6 +23,10 @@ from sklearn.metrics import (
     r2_score,
 )
 from sktime.performance_metrics.forecasting import MeanAbsoluteScaledError
+try:
+    from pandas.errors import IndexingError
+except ImportError:  # Older pandas
+    from pandas.core.indexing import IndexingError
 
 from src.automl.logs import logger
 

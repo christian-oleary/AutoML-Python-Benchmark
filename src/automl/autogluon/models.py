@@ -209,16 +209,16 @@ class AutoGluonForecaster(Forecaster):
 
         # Drop irrelevant rows
         if forecast_type == 'univariate':
-            # print('0 test_df.shape', test_df.shape)
-            # print('1 test_data.shape', test_data.shape)
-            # print('2 len(predictions)', len(predictions))
-            # print('3 predictions[0].shape', predictions[0].shape)
-            # print('4 flatten', np.concatenate([ p.flatten() for p in predictions ]).shape)
+            # logger.debug('0 test_df.shape', test_df.shape)
+            # logger.debug('1 test_data.shape', test_data.shape)
+            # logger.debug('2 len(predictions)', len(predictions))
+            # logger.debug('3 predictions[0].shape', predictions[0].shape)
+            # logger.debug('4 flatten', np.concatenate([ p.flatten() for p in predictions ]).shape)
             predictions = np.concatenate([p.flatten() for p in predictions])
             # predictions = np.concatenate([ p.flatten() for p in predictions ][::horizon])
-            # print('6 predictions.shape', predictions.shape)
+            # logger.debug('6 predictions.shape', predictions.shape)
             # predictions = predictions[:len(test_df)]
-            # print('7 predictions.shape', predictions.shape)
+            # logger.debug('7 predictions.shape', predictions.shape)
         else:
             raise NotImplementedError()
 

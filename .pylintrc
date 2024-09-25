@@ -9,7 +9,13 @@ max-attributes=10
 
 
 [MESSAGES CONTROL]
-disable=C0103,E0611,E0401,W0201,W1203
+disable=
+    C0103, # invalid-name
+    E0110, # abstract-class-instantiated
+    E0611, # no-name-in-module
+    E0401, # import-error
+    W0201, # attribute-defined-outside-init
+    W1203, # logging-fstring-interpolation
 
 [SIMILARITIES]
 ignore-comments=yes

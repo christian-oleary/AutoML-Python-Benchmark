@@ -66,13 +66,13 @@ class FEDOTForecaster(Forecaster):
             train_df, test_df, horizon, target_name, tabular_y=False, lag=None
         )
 
-        # print('X_test.shape', X_test.shape)
+        # logger.debug('X_test.shape', X_test.shape)
         if forecast_type == 'univariate' and 'ISEM_prices' in tmp_dir:
             X_test['fedot_datetime'] = X_test.index
             X_test['fedot_datetime'] = pd.to_datetime(X_test['fedot_datetime'], errors='coerce')
             X_test = X_test[X_test['fedot_datetime'].dt.hour == 0]
             X_test = X_test.drop('fedot_datetime', axis=1)
-        # print('X_test.shape', X_test.shape)
+        # logger.debug('X_test.shape', X_test.shape)
         task = Task(TaskTypesEnum.ts_forecasting, TsForecastingParams(forecast_length=horizon))
 
         # Fill in missing gaps in data. Adapted from:
@@ -113,7 +113,7 @@ class FEDOTForecaster(Forecaster):
 
         logger.info('Rolling origin forecast...')
         predictions = self.rolling_origin_forecast(model, X_train, X_test, horizon)
-        # print('predictions', predictions.shape)
+        # logger.debug('predictions', predictions.shape)
         return predictions
 
     def estimate_initial_limit(self, time_limit, preset):
@@ -157,12 +157,12 @@ class FEDOTForecaster(Forecaster):
         #     data = pd.concat([data, s])
 
         #     preds = model.predict(data, in_sample=False)
-        #     # print('1 preds.shape', preds.shape)
+        #     # logger.debug('1 preds.shape', preds.shape)
 
         #     if len(preds.flatten()) > 0:
         #         preds = preds[-horizon:]
 
-        #     # print('1 preds.shape', preds.shape)
+        #     # logger.debug('1 preds.shape', preds.shape)
         #     assert len(preds) == horizon
         #     predictions.append(preds)
 
@@ -178,14 +178,14 @@ class FEDOTForecaster(Forecaster):
             # predictions.append(preds)
             predictions.insert(0, preds)
 
-        # print('len(predictions)', len(predictions))
-        # print('predictions[0].shape', predictions[0].shape)
+        # logger.debug('len(predictions)', len(predictions))
+        # logger.debug('predictions[0].shape', predictions[0].shape)
         # Flatten predictions and truncate if needed
         try:
             predictions = np.concatenate([p.flatten() for p in predictions])
         except AttributeError:
             predictions = np.concatenate([p.values.flatten() for p in predictions])
-        # print(predictions.shape)
+        # logger.debug(predictions.shape)
         # predictions = predictions[:len(X_test)]
-        # print(predictions.shape)
+        # logger.debug(predictions.shape)
         return predictions

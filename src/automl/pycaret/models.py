@@ -135,7 +135,7 @@ class PyCaretForecaster(Forecaster):
         preds = exp.predict_model(model, X=X_train, fh=horizon)
         if column is not None:
             preds = preds[column].values[-horizon:]
-        # print('0 preds.shape', preds.shape)
+        # logger.debug('0 preds.shape', preds.shape)
         predictions = [preds]
 
         data = X_train
@@ -151,7 +151,7 @@ class PyCaretForecaster(Forecaster):
             # data.index = data.index.to_timestamp()
             # data.index = pd.date_range(start=data.index.min(), freq='H', periods=len(data)).to_period(freq)
 
-            # print('data', data, type(data), data.shape)
+            # logger.debug('data', data, type(data), data.shape)
             preds = exp.predict_model(model, X=data, fh=horizon)
             if column is not None:
                 preds = preds[column].values[-horizon:]
@@ -159,7 +159,7 @@ class PyCaretForecaster(Forecaster):
             predictions.append(preds)
 
         # Flatten predictions and truncate if needed
-        # print('len(predictions)', len(predictions))
+        # logger.debug('len(predictions)', len(predictions))
         try:
             predictions = np.concatenate([p.flatten() for p in predictions])
         except AttributeError:

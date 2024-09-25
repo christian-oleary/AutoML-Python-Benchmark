@@ -1,41 +1,45 @@
 """Tests GPU access"""
 
-import tensorflow as tf
-import torch
+import os
+import sys
 
 
-def tensorflow_test(debug=False):
+def tensorflow_test(logger, gpu_required=False) -> bool:
     """Test TensorFlow GPU access"""
-    if debug:
-        print('\nTesting TensorFlow...\n')
+    import tensorflow as tf  # pylint: disable=import-outside-toplevel
+    logger.info('Testing TensorFlow...')
 
-    if tf.test.gpu_device_name():
-        if debug:
-            print(f'TensorFlow can access a GPU. Default GPU Device: {tf.test.gpu_device_name()}')
-        access_gpu = True
+    device = tf.test.gpu_device_name()
+    if device:
+        logger.info('TensorFlow can access a GPU.')
+        logger.info(f'Default GPU Device: {device}')
     else:
-        if debug:
-            print('TensorFlow cannot access a GPU')
-        access_gpu = False
-    return access_gpu
+        logger.warning('TensorFlow cannot access a GPU')
+        if gpu_required:
+            raise RuntimeError('TensorFlow cannot access a GPU')
+    return device
 
 
-def pytorch_test(debug=False):
+def pytorch_test(logger, gpu_required=False) -> bool:
     """Test PyTorch GPU access"""
-    if debug:
-        print('\nTesting PyTorch...\n')
+    import torch  # pylint: disable=import-outside-toplevel
+    logger.info('Testing PyTorch...')
 
-    if torch.cuda.is_available() and torch.cuda.device_count() > 0:
-        if debug:
-            print('PyTorch can access a GPU')
-        access_gpu = True
+    access_gpu = torch.cuda.is_available() and torch.cuda.device_count() > 0
+    if access_gpu:
+        logger.info('PyTorch can access a GPU')
     else:
-        if debug:
-            print('PyTorch cannot access a GPU')
-        access_gpu = False
+        logger.warning('PyTorch cannot access a GPU')
+        if gpu_required:
+            raise RuntimeError('PyTorch cannot access a GPU')
     return access_gpu
 
 
 if __name__ == '__main__':
-    tensorflow_test(True)
-    pytorch_test(True)
+    # Add the parent directory to the path
+    sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
+    from src.automl.util import logger as logs
+
+    tensorflow_test(logs, bool(os.environ.get('TF_GPU_REQUIRED', False)))
+    pytorch_test(logs, bool(os.environ.get('TORCH_GPU_REQUIRED', False)))

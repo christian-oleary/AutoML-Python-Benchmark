@@ -130,18 +130,18 @@ class EvalMLForecaster(Forecaster):
         raise NotImplementedError()
         # # Split test set
         # test_splits = Utils.split_test_set(test_X, horizon)
-        # print('len(test_splits)', len(test_splits))
+        # logger.debug('len(test_splits)', len(test_splits))
 
         # predictions = []
         # # for s in test_X.iterrows():
-        # #     print('s')
-        # #     print(s, type(s))
-        # #     print(s[1], type(s[1]))
+        # #     logger.debug('s')
+        # #     logger.debug(s, type(s))
+        # #     logger.debug(s[1], type(s[1]))
         # #     exit()
         # #     s = s[1].values.flatten()
 
         # # for i in range(len(test_X)):
-        # #     print(i)
+        # #     logger.debug(i)
         # #     s = test_X.iloc[[i]]
         # #     train_X = pd.concat([train_X, s])
 
@@ -153,11 +153,11 @@ class EvalMLForecaster(Forecaster):
         #         s = s.values.flatten()[-horizon:]
         #         test.append(s)
         # predictions = model.predict(test, objective=None, X_train=train_X, y_train=y_train).values
-        # print('predictions.shape', predictions.shape)
+        # logger.debug('predictions.shape', predictions.shape)
         # exit()
 
         # #     # if horizon > len(s): # Pad with zeros to prevent errors with ARIMA
-        # #     #     print('A')
+        # #     #     logger.debug('A')
         # #     #     padding = horizon - len(s)
         # #     #     s = pd.concat([s, pd.DataFrame([s.values[0].tolist()] * padding, columns=s.columns)])
         # #     #     start_index = s.index.values[0]
@@ -171,30 +171,30 @@ class EvalMLForecaster(Forecaster):
         # #     #     preds = model.predict(s, objective=None, X_train=train_X, y_train=y_train).values
         # #     #     preds = preds[:len(s)] # Drop placeholder predictions
         # #     # else:
-        # #     print('B')
+        # #     logger.debug('B')
         # #     # try:
-        # #     # print('train_X.tail(1).index', train_X.tail(1).index, type(train_X.tail(1).index))
-        # #     # print('s.index', s.index, type(s.index))
-        # #     # print(train_X, type(train_X))
-        # #     # print(s, type(s))
-        # #     print('model', type(model))
-        # #     print('model.predict', type(model.predict))
+        # #     # logger.debug('train_X.tail(1).index', train_X.tail(1).index, type(train_X.tail(1).index))
+        # #     # logger.debug('s.index', s.index, type(s.index))
+        # #     # logger.debug(train_X, type(train_X))
+        # #     # logger.debug(s, type(s))
+        # #     logger.debug('model', type(model))
+        # #     logger.debug('model.predict', type(model.predict))
         # #     # exit()
         # #     preds = model.predict(s, objective=None, X_train=train_X, y_train=y_train).values
         # #     # except Exception as e:
         # #     #     logger.error(e)
         # #     #     logger.error('EvalML failed during prediction')
         # #     #     break
-        # #     print('preds.shape', preds.shape)
+        # #     logger.debug('preds.shape', preds.shape)
         # #     assert len(preds) == horizon
         # #     predictions.append(preds)
         # #     train_X = pd.concat([train_X, s])
 
         # # # Flatten predictions and truncate if needed
-        # # print('len(predictions)', len(predictions))
-        # # print('predictions[0]', predictions[0].shape)
+        # # logger.debug('len(predictions)', len(predictions))
+        # # logger.debug('predictions[0]', predictions[0].shape)
         # # predictions = np.concatenate([ p.flatten() for p in predictions ])
-        # # print('predictions', predictions.shape)
+        # # logger.debug('predictions', predictions.shape)
         # # predictions = predictions[:len(test_X)]
-        # # print('predictions', predictions.shape)
+        # # logger.debug('predictions', predictions.shape)
         # # return predictions

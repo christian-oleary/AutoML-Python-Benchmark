@@ -12,7 +12,7 @@ from sklearn.exceptions import ConvergenceWarning
 # import needed for IterativeImputer
 from sklearn.experimental import enable_iterative_imputer  # pylint: disable=W0611  # noqa: F401
 
-from src.automl.dataset_formatting import DatasetFormatter
+from src.automl.datasets import DatasetFormatter
 from src.automl.forecasting import Forecasting
 from src.automl.logs import logger, LogLevel, set_log_dir
 from src.automl.validation import Library, Task, Validator

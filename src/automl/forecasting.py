@@ -11,7 +11,7 @@ import numpy as np
 import pandas as pd
 
 from src.automl.base import Forecaster
-from src.automl.datasets import DatasetFormatter
+from src.automl.datasets import Dataset, DatasetFormatter
 from src.automl.errors import AutomlLibraryError, DatasetTooSmallError
 from src.automl.logs import logger
 from src.automl.util import Utils
@@ -20,6 +20,10 @@ from src.automl.validation import Task
 
 class Forecasting:
     """Functionality for applying forecasting libraries to existing datasets."""
+
+    dataset: Dataset
+    forecaster: Forecaster
+    forecaster_name: str
 
     # Filter datasets based on "Monash Time Series Forecasting Archive" by Godahewa et al. (2021):
     # "we do not consider the London smart meters, wind farms, solar power, and wind power datasets
@@ -53,22 +57,22 @@ class Forecasting:
         self.task: Task = Task[config.task.upper()]
 
         csv_files = Utils.get_csv_datasets(self.data_dir)
-        metadata = pd.read_csv(os.path.join(self.data_dir, '0_metadata.csv'))
+        # metadata = pd.read_csv(os.path.join(self.data_dir, '0_metadata.csv'))
 
         for csv_file in csv_files:
             self.dataset_name = csv_file.replace('.csv', '')
             raise NotImplementedError('Forecasting awaiting re-implementation')
-            dataset = self.dataset_formatter.load_dataset(csv_file, self.task)
-            self.df, self.train_df, self.test_df, metadata = dataset.get_data()
+            # self.dataset = self.dataset_formatter.load_dataset(csv_file, self.task)
+            # self.df, self.train_df, self.test_df, metadata = self.dataset.get_data()
 
-            # Run each forecaster on the dataset
-            for self.forecaster_name in config.libraries:
-                # Initialize forecaster and estimate a time/iterations limit
-                self.forecaster = self._init_forecaster(self.forecaster_name)
+            # # Run each forecaster on the dataset
+            # for self.forecaster_name in config.libraries:
+            #     # Initialize forecaster and estimate a time/iterations limit
+            #     self.forecaster = self._init_forecaster(self.forecaster_name)
 
-                for preset in self.forecaster.presets:
-                    self.limit = self.forecaster.estimate_initial_limit(config.time_limit, preset)
-                    self.evaluate_library_preset(preset, csv_file)
+            #     for preset in self.forecaster.presets:
+            #         self.limit = self.forecaster.estimate_initial_limit(config.time_limit, preset)
+            #         self.evaluate_library_preset(preset, csv_file)
 
     def evaluate_library_preset(self, preset: str, csv_file: str | Path):
         """Evaluate a specific library on a specific preset
@@ -102,21 +106,23 @@ class Forecasting:
             # Run forecaster and record total runtime
             tmp_dir = self.delete_tmp_dirs()
             logger.info(
-                f'Applying {self.forecaster_name} (preset: {preset}) to {self.dataset_path}'
+                f'Applying {self.forecaster_name} (preset: {preset}) to {self.dataset.aliases[0]}'
             )
             start_time = time.perf_counter()
 
             try:
                 predictions = self.forecaster.forecast(
-                    self.train_df.copy(),
-                    self.test_df.copy(),
-                    self.task,
-                    self.horizon,
-                    self.limit,
-                    self.frequency,
-                    tmp_dir,
+                    train_df=self.train_df.copy(),
+                    test_df=self.test_df.copy(),
+                    forecast_type=self.task,
+                    horizon=self.horizon,
+                    limit=self.limit,
+                    frequency=self.frequency,
+                    tmp_dir=tmp_dir,
                     nproc=self.config.nproc,
                     preset=preset,
+                    target=self.target,
+                    verbose=self.verbose,
                 )
 
                 duration = round(time.perf_counter() - start_time, 2)
@@ -157,7 +163,7 @@ class Forecasting:
                     plots=True,
                 )
 
-    def create_results_subdir(self, csv_file, preset):
+    def create_results_subdir(self, csv_file: str, preset: str, limit: int):
         results_subdir = self.config.results_dir
         if results_subdir is not None:
             results_subdir = os.path.join(
@@ -232,11 +238,11 @@ class Forecasting:
             actual, predictions, y_train, results_subdir, forecaster_name, duration=duration
         )
 
-        preds_path = os.path.join(results_subdir, 'predictions.csv')
+        predictions_path = os.path.join(results_subdir, 'predictions.csv')
         try:
-            predictions.to_csv(preds_path)
+            predictions.to_csv(predictions_path)
         except AttributeError:
-            np.savetxt(preds_path, predictions, fmt='%s', delimiter=',')
+            np.savetxt(predictions_path, predictions, fmt='%s', delimiter=',')
 
         try:  # If pandas Series
             predictions = predictions.reset_index(drop=True)
@@ -288,7 +294,9 @@ class Forecasting:
         os.makedirs(tmp_dir)
         return tmp_dir
 
-    def _init_forecaster(self, forecaster_name: str):  # noqa: C901  # pylint: disable=R0912
+    def _init_forecaster(
+        self, forecaster_name: str
+    ) -> Forecaster:  # noqa: C901  # pylint: disable=R0912
         """Create forecaster object from name (see Forecasting.forecaster_names).
 
         :param str forecaster_name: Name of forecaster

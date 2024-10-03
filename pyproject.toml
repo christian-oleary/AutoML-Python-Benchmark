@@ -4,7 +4,6 @@ build-backend = "setuptools.build_meta"
 
 [tool.setuptools.dynamic]
 dependencies = {file = ["requirements.txt"]}
-optional-dependencies = {test = { file = ["./tests/requirements.txt"] }}
 
 [project]
 name = "automl_benchmark"
@@ -14,15 +13,33 @@ authors = [
 description = "AutoML Python Benchmark"
 readme = "README.md"
 requires-python = "==3.10"
-dynamic = [ "version", "dependencies", "optional-dependencies" ]
+dynamic = [ "version", "dependencies" ]
 classifiers = [
     "Programming Language :: Python :: 3",
     "Operating System :: OS Independent",
 ]
 
+[project.optional-dependencies]
+dev = [
+    "flake8==7.1.1",
+    "mypy==1.11.1",
+    "pylint==3.1.0",
+    "ruff==0.6.5",
+    "setuptools",
+]
+docs = [
+    "grip==4.6.2",
+    "Jinja2==3.0.3",
+    "pydot==2.0.0",
+    "Sphinx==5.3.0",
+    "sphinx_mdinclude==0.6.0",
+    "sphinx-rtd-theme==2.0.0",
+]
+
 [project.urls]
 Homepage = "https://github.com/christian-oleary/AutoML-Python-Benchmark"
 Issues = "https://github.com/christian-oleary/AutoML-Python-Benchmark/issues"
+
 
 
 ################################################################################

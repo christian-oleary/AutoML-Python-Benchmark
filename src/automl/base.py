@@ -188,6 +188,7 @@ class Forecaster:
         test_df: pd.DataFrame,
         forecast_type: str,
         horizon: int,
+        limit: int,
         frequency: int | str,  # pylint: disable=unused-argument
         tmp_dir: str | Path,
         nproc: int = 1,
@@ -201,6 +202,7 @@ class Forecaster:
         :param pd.DataFrame test_df: DataFrame of test data
         :param str forecast_type: Type of forecasting, 'global', 'univariate' or 'multivariate'
         :param int horizon: Forecast horizon (how far ahead to predict)
+        :param int limit: Time limit for forecasting
         :param int frequency: Data frequency (included for API compatibility)
         :param str tmp_dir: Path to directory to store temporary files
         :param int nproc: Number of threads/processes allowed, defaults to 1

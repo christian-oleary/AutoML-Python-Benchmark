@@ -24,8 +24,8 @@ from src.automl.validation import Task
 class Dataset(metaclass=ABCMeta):
     """Base class for datasets"""
 
-    # Dataset name
-    aliases: list[str] = []
+    # Dataset aliases
+    aliases: list[str] = ['_base_dataset']
 
     # Default data directory
     path: str | Path | None = None
@@ -186,8 +186,8 @@ class ISEM2020Dataset(ISEMDataset):
         logger.debug('Loading I-SEM 2020 dataset')
         # Ensure index is datetime
         self.df.index = pd.to_datetime(self.df.index)
-        self.train_df = self.df.loc[self.train_set_start_time : self.train_set_end_time, :]
-        self.test_df = self.df.loc[self.test_set_start_time : self.test_set_end_time, :]
+        self.train_df = self.df.loc[self.train_set_start_time : self.train_set_end_time, :]  # type: ignore
+        self.test_df = self.df.loc[self.test_set_start_time : self.test_set_end_time, :]  # type: ignore
         return self.train_df, self.test_df
 
 
@@ -202,8 +202,8 @@ class ISEM2020Dataset(ISEMDataset):
 #     #     'origin_index': int(self.data['origin_index'].iloc[0]),
 #     #     'step_size': int(self.data['step_size'].iloc[0])
 #     #     }
-    # self.df = pd.read_csv(self.dataset_path, header=None)
-    # self.df.columns = ['target']
+# self.df = pd.read_csv(self.dataset_path, header=None)
+# self.df.columns = ['target']
 
 
 # class MonashDataset(Dataset):
@@ -286,7 +286,7 @@ class DatasetFormatter:
                 meta_data['file'].append(csv_file)
                 meta_data['horizon'].append(24)  # hourly data
                 meta_data['frequency'].append(24)  # hourly data
-                meta_data['nan_count'].append(int(df.isna().sum()))
+                meta_data['nan_count'].append(int(df.isna().sum().values.sum()))
                 meta_data['num_rows'].append(df.shape[0])
                 meta_data['num_cols'].append(df.shape[1])
 
@@ -307,7 +307,7 @@ class DatasetFormatter:
                 # meta_data['horizon'].append(int(df.shape[0] * 0.2))
                 meta_data['horizon'].append(int(min(df.shape[0] * 0.2, 10 * frequency)))
                 meta_data['frequency'].append(frequency)
-                meta_data['nan_count'].append(int(df.isna().sum()))
+                meta_data['nan_count'].append(int(df.isna().sum().values.sum()))
                 meta_data['num_rows'].append(df.shape[0])
                 meta_data['num_cols'].append(df.shape[1])
                 meta_data['origin_index'].append(int(max(df.shape[0] * 0.4, (2 * frequency) + 1)))
@@ -318,74 +318,30 @@ class DatasetFormatter:
 
         logger.info('Univariate forecasting data ready.')
 
-    def format_global_forecasting_data(self, data_dir, gather_metadata=False):
+    def format_global_forecasting_data(self, data_dir: str, gather_metadata: bool = False):
         """Prepare forecasting data for modelling from zip files
 
         :param str data_dir: Path to data directory
         :param bool gather_metadata: Store datasets metadata in a CSV file, defaults to False
         """
-
         tsf_files = self.extract_zip_tsf_files(data_dir)
 
-        if gather_metadata:
-            meta_data = {
-                'file': [],
-                'frequency': [],
-                'horizon': [],
-                'has_nans': [],
-                'equal_length': [],
-                'num_rows': [],
-                'num_cols': [],
-            }
-
         # Parse .tsf files sequentially
+        meta_data: dict[str, list] = {
+            'file': [],
+            'frequency': [],
+            'horizon': [],
+            'has_nans': [],
+            'equal_length': [],
+            'num_rows': [],
+            'num_cols': [],
+        }
         for tsf_file in tsf_files:
             csv_path = os.path.join(data_dir, f'{tsf_file.split(".")[0]}.csv')
 
             # Parse .tsf files and output dataframe
             if not os.path.exists(csv_path) or gather_metadata:
-                logger.info(f'Parsing {tsf_file}')
-                # TODO: consider replacing this code with one of:
-                # - sktime.datasets.load_from_tsfile
-                # - aeon.datasets.load_from_tsfile
-                data, freq, horizon, has_nans, equal_length = convert_tsf_to_dataframe(
-                    os.path.join(data_dir, tsf_file), 'NaN', 'value'
-                )
-
-                if horizon is None:
-                    horizon = self.select_horizon(freq, csv_path)
-
-                if gather_metadata:
-                    meta_data['file'].append(tsf_file)
-                    meta_data['horizon'].append(horizon)
-                    meta_data['frequency'].append(freq)
-                    meta_data['has_nans'].append(has_nans)
-                    meta_data['equal_length'].append(equal_length)
-
-                # Determine frequency
-                if freq is not None:
-                    freq = FREQUENCY_MAP[freq]
-                else:
-                    freq = '1Y'
-
-                # Parse data one variable at time
-                df = pd.DataFrame()
-                columns = []
-                for row_index in range(len(data)):
-                    # Convert TSF row to CSV column
-                    column = self.process_row(data, row_index, freq)
-                    columns.append(column)
-
-                    if row_index % 1000 == 0:
-                        df = pd.concat([df] + columns, axis=1)
-                        columns = []
-                if len(columns) > 0:
-                    df = pd.concat([df] + columns, axis=1)
-
-                df.to_csv(csv_path)
-                if gather_metadata:
-                    meta_data['num_rows'].append(df.shape[0])
-                    meta_data['num_cols'].append(df.shape[1])
+                meta_data = self.convert_tsf_to_csv(data_dir, tsf_file, csv_path, meta_data)
 
         # Save dataset-specific metadata
         if gather_metadata:
@@ -393,6 +349,65 @@ class DatasetFormatter:
             metadata_df.to_csv(os.path.join(data_dir, '0_metadata.csv'), index=False)
 
         logger.info('Global forecasting data ready.')
+
+    def convert_tsf_to_csv(
+        self,
+        data_dir: str,
+        tsf_file: str,
+        csv_path: str,
+        meta_data: dict,
+    ) -> dict:
+        """Convert .tsf file to CSV
+
+        :param str data_dir: Path to data directory
+        :param str tsf_file: Path to .tsf file
+        :param str csv_path: Path to output CSV file
+        :param dict meta_data: Metadata dictionary
+        :return dict: Updated metadata dictionary
+        """
+        logger.info(f'Parsing {tsf_file}')
+        # TODO: consider replacing this code with one of:
+        # - sktime.datasets.load_from_tsfile
+        # - aeon.datasets.load_from_tsfile
+        data, freq, horizon, has_nans, equal_length = convert_tsf_to_dataframe(
+            os.path.join(data_dir, tsf_file), 'NaN', 'value'
+        )
+        # Determine frequency
+        if freq is None:
+            raise NotImplementedError()
+        else:
+            freq = FREQUENCY_MAP[freq]
+        # Determine horizon
+        if horizon is None:
+            horizon = self.select_horizon(freq, csv_path)
+        else:
+            freq = '1Y'
+
+        # Parse data one variable at time
+        df = pd.DataFrame()
+        columns = []
+        for row_index in range(len(data)):
+            # Convert TSF row to CSV column
+            column = self.process_row(data, row_index, freq)
+            columns.append(column)
+            if row_index % 1000 == 0:
+                df = pd.concat([df] + columns, axis=1)
+                columns = []
+
+        # Concatenate remaining columns and save to CSV
+        if len(columns) > 0:
+            df = pd.concat([df] + columns, axis=1)
+        df.to_csv(csv_path)
+
+        # Update metadata
+        meta_data['file'].append(tsf_file)
+        meta_data['horizon'].append(horizon)
+        meta_data['frequency'].append(freq)
+        meta_data['has_nans'].append(has_nans)
+        meta_data['equal_length'].append(equal_length)
+        meta_data['num_rows'].append(df.shape[0])
+        meta_data['num_cols'].append(df.shape[1])
+        return meta_data
 
     def select_horizon(self, freq: str, csv_path: str | Path) -> int:
         """Select horizon for forecasters for a given dataset
@@ -402,30 +417,29 @@ class DatasetFormatter:
         :raises ValueError: If freq is None or not supported
         :return int: Forecasting horizon
         """
+        # The following horizons are suggested by Godahewa et al. (2021)
+        horizons: dict[str, int] = {
+            'monthly': 12,
+            'weekly': 8,
+            'daily': 30,
+            'hourly': 168,  # i.e. one week in hours
+            'half_hourly': 168 * 2,  # i.e. one week in half-hours
+            'minutely': 60 * 168,  # i.e. one week in minutes
+        }
+
         if '4_seconds' in str(csv_path):
             horizon = 15  # i.e. 1 minute
         elif '10_minutes' in str(csv_path):
             horizon = 6  # i.e. 1 hour
-
-        # The following horizons are suggested by Godahewa et al. (2021)
         elif 'solar_weekly_dataset' in str(csv_path):
             horizon = 5
         elif freq is None:
             raise ValueError('No frequency or horizon found in file')
-        elif freq == 'monthly':
-            horizon = 12
-        elif freq == 'weekly':
-            horizon = 8
-        elif freq == 'daily':
-            horizon = 30
-        elif freq == 'hourly':
-            horizon = 168  # i.e. one week
-        elif freq == 'half_hourly':
-            horizon = 168 * 2  # i.e. one week
-        elif freq == 'minutely':
-            horizon = 60 * 168  # i.e. one week
         else:
-            raise ValueError(f'Unclear what horizon to assign for frequency {freq}')
+            try:
+                horizon = horizons[freq]
+            except KeyError as e:
+                raise KeyError(f'Unclear what horizon to assign for frequency {freq}') from e
         return horizon
 
     def process_row(self, data, row_index, freq):

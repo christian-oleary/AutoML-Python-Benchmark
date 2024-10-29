@@ -61,9 +61,9 @@ python run.py
 
 Removed. To be redrafted.
 
+<!--
 After installation and the download of repositories and datasets, you can run functional tests with:
 
-<!--
 ```bash
 pip install -r ./tests/requirements.txt
 python -m pytest tests/functional_tests.py
@@ -108,6 +108,22 @@ coverage run -m pytest tests/functional_tests.py
 coverage report --omit="env/*,venv/*,.env/*,.venv/*,*AppData*,*python37*,tests/*"
 rm .coverage
 ``` -->
+
+## SonarQube
+
+```bash
+# Start server
+docker-compose up --timeout 300 -d --build --force-recreate
+
+# Download repositories
+sh -i ./shell/pull_repos.sh
+
+# Run sonar-scanner
+sh -i ./shell/sonar_scanner.sh
+
+# Stop server:
+docker-compose down
+```
 
 ## Contact
 

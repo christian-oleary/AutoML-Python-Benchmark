@@ -14,6 +14,7 @@
 # Data/Backups
 *.backup
 *.csv
+*.json
 *.ignore
 *.svg
 *.txt
@@ -86,6 +87,8 @@ pids
 
 # Sonarqube
 .scannerwork
+sonar-*.properties
+sonar-scanner-cli
 
 # SQLite
 *.db

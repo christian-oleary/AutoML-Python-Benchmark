@@ -1,6 +1,4 @@
-"""
-Utility functions
-"""
+"""Utility functions."""
 
 import csv
 import math
@@ -27,7 +25,7 @@ from src.automl.logs import logger
 
 
 class Utils:
-    """Utility functions"""
+    """Utility functions."""
 
     ignored_presets = []
 
@@ -43,16 +41,15 @@ class Utils:
     ):
         """Calculate forecasting metrics and optionally save results.
 
-        :param np.array actual: Original time series values
-        :param np.array predicted: Predicted time series values
-        :param np.array y_train: Training values (required for MASE)
+        :param np.ndarray actual: Original time series values
+        :param np.ndarray predicted: Predicted time series values
+        :param np.ndarray y_train: Training values (required for MASE)
         :param str scores_dir: Path to file to record scores (str or None), defaults to None
         :param str forecaster_name: Name of model
         :param str multioutput: 'raw_values' (raw error), 'uniform_average' (averaged error), default: 'uniform_average'
         :raises TypeError: If forecaster_name is not provided when saving results to file
         :return results: Dictionary of results
         """
-
         # Convert pd.Series to NumPy Array
         if predicted.shape == (actual.shape[0], 1) and not pd.core.frame.DataFrame:
             predicted = predicted.flatten()
@@ -180,12 +177,15 @@ class Utils:
 
     @staticmethod
     def smape(actual, predicted):
-        """sMAPE"""
-        return (
-            100
-            / len(actual)
-            * np.sum(2 * np.abs(predicted - actual) / (np.abs(actual) + np.abs(predicted)))
-        )
+        """Implementation of sMAPE"""
+        totals = np.abs(actual) + np.abs(predicted)
+        differences = np.abs(predicted - actual)
+        return 100 / len(actual) * np.sum(2 * differences / totals)
+        # return (
+        #     100
+        #     / len(actual)
+        #     * np.sum(2 * np.abs(predicted - actual) / (np.abs(actual) + np.abs(predicted)))
+        # )
 
     @staticmethod
     def write_to_csv(path, results):
@@ -194,15 +194,7 @@ class Utils:
         :param str path: the result file path
         :param dict results: a dict containing results from running a model
         """
-
         np.set_printoptions(precision=4)
-
-        # Remove unneeded values
-        # unused_cols = []
-        # for col in unused_cols:
-        #     if col in results.keys():
-        #         del results[col]
-
         if len(results) > 0:
             HEADERS = sorted(list(results.keys()), key=lambda v: str(v).upper())
             if 'model' in HEADERS:
@@ -292,11 +284,9 @@ class Utils:
         # Show plot
         if show:
             plt.show()
-
         # Show plot as file
         if save_path is not None:
             plt.savefig(save_path, bbox_inches='tight')
-
         # Clear for next plot
         plt.cla()
         plt.clf()
@@ -311,14 +301,12 @@ class Utils:
         :raises IOError: If datasets_directory does not have CSV files
         :return: list of dataset file names
         """
-
         if not os.path.exists(datasets_directory):
             raise NotADirectoryError('Datasets directory path does not exist')
 
         csv_files = [
             f for f in os.listdir(datasets_directory) if f.endswith('csv') and '0_metadata' not in f
         ]
-
         if len(csv_files) == 0:
             raise IOError('No CSV files found')
 
@@ -348,12 +336,11 @@ class Utils:
 
     @staticmethod
     def summarize_dataset_results(results_dir, plots=True):
-        """Analyse results saved to file
+        """Analyse results saved to file.
 
         :param str results_subdir: Path to relevant results directory
         :param bool plots: Save plots as images, defaults to True
         """
-
         stats_dir = os.path.join(results_dir, 'statistics')
 
         test_results = []
@@ -573,7 +560,6 @@ class Utils:
         :param str results_subdir: Path to relevant results directory
         :param bool plots: Save plots as images, defaults to True
         """
-
         dataframes = []
         results_subdir = os.path.join(results_dir, f'{forecast_type}_forecasting')
         for dirpath, _, filenames in os.walk(results_subdir):
@@ -582,7 +568,7 @@ class Utils:
                 try:
                     df = pd.read_csv(all_scores_path)
                     dataframes.append(df)
-                except pd.errors.EmptyDataError as _:
+                except pd.errors.EmptyDataError:
                     logger.debug(f'No data found in {all_scores_path}. Skipping')
 
         all_scores = pd.concat(dataframes, axis=0)

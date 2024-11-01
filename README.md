@@ -28,8 +28,6 @@ A Comparative Analysis of Automated Machine Learning Libraries for Electricity P
 - [Code](https://github.com/christian-oleary/AutoML-Python-Benchmark/tree/c436f3f83e6872ab8a4bb430923fc5aaf64f5ade)
 - These experiments are run with Python 3.9 and CUDA versions 11.2 and 11.7.
 
-
-
 ## Installation
 
 Removed. To be redrafted.
@@ -51,11 +49,12 @@ Before running the code, datasets and repositories must be downloaded
 
 ## Experiments
 
-After downloading repositories and datasets, you can run experiments with the following:
+Removed. To be redrafted.
+<!-- After downloading repositories and datasets, you can run experiments with the following:
 
 ```bash
 python run.py
-```
+``` -->
 
 ## Development
 

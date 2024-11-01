@@ -48,9 +48,9 @@ class Utils:
     ):
         """Calculate forecasting metrics and optionally save results.
 
-        :param np.array actual: Original time series values
-        :param np.array predicted: Predicted time series values
-        :param np.array y_train: Training values (required for MASE)
+        :param np.ndarray actual: Original time series values
+        :param np.ndarray predicted: Predicted time series values
+        :param np.ndarray y_train: Training values (required for MASE)
         :param str scores_dir: Path to file to record scores (str or None), defaults to None
         :param str forecaster_name: Name of model
         :param str multioutput: 'raw_values', 'uniform_average', defaults to 'uniform_average'
@@ -184,10 +184,15 @@ class Utils:
 
     @staticmethod
     def smape(actual, predicted):
-        """Calculation for sMAPE metric."""
-        difference = np.abs(predicted - actual)
-        addition = np.abs(actual) + np.abs(predicted)
-        return 100 / len(actual) * np.sum(2 * difference / addition)
+        """Implementation of sMAPE"""
+        totals = np.abs(actual) + np.abs(predicted)
+        differences = np.abs(predicted - actual)
+        return 100 / len(actual) * np.sum(2 * differences / totals)
+        # return (
+        #     100
+        #     / len(actual)
+        #     * np.sum(2 * np.abs(predicted - actual) / (np.abs(actual) + np.abs(predicted)))
+        # )
 
     @staticmethod
     def write_to_csv(path, results):
@@ -197,7 +202,6 @@ class Utils:
         :param dict results: a dict containing results from running a model
         """
         np.set_printoptions(precision=4)
-
         if len(results) > 0:
             HEADERS = sorted(list(results.keys()), key=lambda v: str(v).upper())
             if 'model' in HEADERS:
@@ -287,11 +291,9 @@ class Utils:
         # Show plot
         if show:
             plt.show()
-
         # Show plot as file
         if save_path is not None:
             plt.savefig(save_path, bbox_inches='tight')
-
         # Clear for next plot
         plt.cla()
         plt.clf()

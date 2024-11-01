@@ -1,20 +1,9 @@
 
-coverage==7.4.4         # Test coverage
-flake8==7.1.0           # Linting
-lightgbm                # Light Gradient Boosting Machine
 matplotlib              # Plots
-mypy==1.10.1            # Static type checking
 numpy                   # Data manipulation
 pandas==1.4.1           # Data manipulation
 pre-commit==3.7.1       # Pre-commit hooks
-protobuf==3.19.5        # Data serialization for DL models
-pylint==2.17.7          # Linting
-pytest==8.2.2           # Testing
-pytest-cov==5.0.0       # Test coverage
 seaborn                 # Plots
 setuptools              # Package setup
 shellcheck_py==0.10.0.1 # Shell script linting
 sktime==0.18.0          # Time series forecasting
-tensorflow==2.10.1      # Deep learning
-torch==2.3.1            # Deep learning
-xgboost                 # Extreme Gradient Boosting

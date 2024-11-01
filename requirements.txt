@@ -7,3 +7,4 @@ seaborn                 # Plots
 setuptools              # Package setup
 shellcheck_py==0.10.0.1 # Shell script linting
 sktime==0.18.0          # Time series forecasting
+typing_extensions       # Type hinting

@@ -103,7 +103,29 @@ match = ".*\\.py"
 ################################################################################
 # PYLINT
 [tool.pylint.'MASTER']
-addopts = "--rcfile=.pylintrc"
+fail-under = 8.0
+disable = [
+    "C0103", # invalid-name
+    "E0110", # abstract-class-instantiated
+    "E0611", # no-name-in-module
+    "E0401", # import-error
+    "W0201", # attribute-defined-outside-init
+    "W1203", # logging-fstring-interpolation
+]
+ignore = ["tests", "**/TSForecasting/*"]
+ignore-comments = false
+ignore-docstrings = false
+ignore-imports = false
+ignored-classes = ["optparse.Values", "thread._local", "_thread._local"]
+ignored-modules=["numpy.random", "sklearn.datasets"]
+ignore-on-opaque-inference=true
+# Warn about missing members when the owner of the attribute is inferred to be None
+ignore-none=true
+max-args=12
+max-attributes=10
+max-line-length=120
+max-locals=16
+# min-similarity-lines=3
 
 ################################################################################
 # PYTEST

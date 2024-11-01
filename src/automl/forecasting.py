@@ -80,8 +80,11 @@ class Forecasting:
         :param str preset: Library specific preset
         :param str csv_file: Name of dataset CSV file
         """
-        results_subdir = self.create_results_subdir(csv_file, preset)
+        raise NotImplementedError('Forecasting awaiting re-implementation')
+        if not hasattr(self, 'train_df'):
+            raise ValueError('train_df not found. Did you forget to call self.dataset.get_data()?')
 
+        results_subdir = self.create_results_subdir(preset)
         max_trials = self.determine_num_trials(results_subdir)
         # Option to skip training if completed previously
         if max_trials == 0:
@@ -163,7 +166,12 @@ class Forecasting:
                     plots=True,
                 )
 
-    def create_results_subdir(self, csv_file: str, preset: str, limit: int):
+    def create_results_subdir(self, preset: str):
+        """Create a subdirectory for storing results of a forecasting experiment
+
+        :param str preset: Library specific preset
+        :return: Path to results subdirectory
+        """
         results_subdir = self.config.results_dir
         if results_subdir is not None:
             results_subdir = os.path.join(
@@ -171,7 +179,7 @@ class Forecasting:
                 f'{self.task}_forecasting',
                 self.dataset_name,
                 self.forecaster_name,
-                f'preset-{preset}_proc-{self.config.nproc}_limit-{self.limit}',
+                f'preset-{preset}_proc-{self.config.nproc}_limit-{self.config.limit}',
             )
             # If results are invalid and need to be removed:
             # if 'forecaster_name' in results_subdir and os.path.exists(results_subdir):
@@ -294,9 +302,9 @@ class Forecasting:
         os.makedirs(tmp_dir)
         return tmp_dir
 
-    def _init_forecaster(
+    def _init_forecaster(  # noqa: C901
         self, forecaster_name: str
-    ) -> Forecaster:  # noqa: C901  # pylint: disable=R0912
+    ) -> Forecaster:  # pylint: disable=R0912
         """Create forecaster object from name (see Forecasting.forecaster_names).
 
         :param str forecaster_name: Name of forecaster

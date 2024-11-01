@@ -82,7 +82,7 @@ directory = "./docs/coverage_html_report"
 ################################################################################
 # MYPY
 [tool.mypy]
-exclude = "tests"
+exclude = ["tests", "docs", "repositories", "**/TSForecasting/*"]
 ignore_missing_imports = true
 namespace_packages = false
 
@@ -91,12 +91,12 @@ namespace_packages = false
 [tool.pydocstyle]
 inherit = false
 ignore = [
-    "D107",
+    "D107",  # Missing docstring in __init__
     "D203",  # Blank line before class docstring
-    "D213",
-    "D400",  # First line should end in period 1
-    "D401",
-    "D415",  # First line should end in period 2
+    "D213",  # Multi-line docstring summary should start at the second line
+    "D400",  # First line should end in period
+    "D401",  # First line should be in imperative mood
+    "D415",  # First line should end with period/question mark/exclamation point
 ]
 match = ".*\\.py"
 
@@ -144,6 +144,7 @@ ignore = [ "data_loader.py" ]
 # RUFF
 [tool.ruff]
 exclude = ["docs"]
+output-format = "full"
 
 [tool.ruff.format]
 quote-style = "single"

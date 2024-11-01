@@ -23,7 +23,6 @@ repos:
         hooks:
         -   id: mypy
             args: ["--config-file=./pyproject.toml"]
-            exclude: ^(docs/|repositories/)
 
     -   repo: https://github.com/pre-commit/pre-commit-hooks
         rev: v3.2.0
@@ -53,7 +52,7 @@ repos:
         rev: v0.2.1
         hooks:
         -   id: ruff
-            args: ["--fix", "--output-format=full"]
+            args: ["--fix"]
 
     -   repo: https://github.com/PyCQA/pydocstyle
         rev: 6.1.1

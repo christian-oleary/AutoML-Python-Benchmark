@@ -116,10 +116,10 @@ rm .coverage
 docker-compose up --timeout 300 -d --build --force-recreate
 
 # Download repositories
-sh -i ./shell/pull_repos.sh
+sh -i ./shell/repo_clone_or_pull.sh
 
 # Run sonar-scanner
-sh -i ./shell/sonar_scanner.sh
+sh -i ./shell/repo_sonar_scanner.sh
 
 # Stop server:
 docker-compose down

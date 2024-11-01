@@ -2,7 +2,10 @@
 
 # shellcheck disable=SC2086
 
+# Usage:
+# (ensure python and conda are installed)
 # sudo apt-get install zip unzip
+# ./shell/sonar_scanner.sh
 
 ################################################################################
 # This program sets up SonarQube and runs a scan on the project.
@@ -44,7 +47,6 @@ export SONAR_HOST_URL=${SONAR_HOST_URL:-"http://localhost:9000"}
 export SONAR_LOGIN=${SONAR_LOGIN:-"admin"}
 export SONAR_PASSWORD=${SONAR_PASSWORD:-"2c71d75bcs4hq934tdjqngtsojxercm"}
 API_URL="${SONAR_HOST_URL}/api/"
-
 print_line "DOCKER=${DOCKER}"
 print_line "REPOSITORIES_DIR=${REPOSITORIES_DIR}"
 print_line "SONAR_HOST_URL=${SONAR_HOST_URL}"
@@ -78,9 +80,9 @@ if [ "$DOCKER" = "false" ]; then
             scanner_url="${URL}-6.2.1.4610-windows-x64.zip"
         fi
         curl --clobber -sL "${scanner_url}" -o $TOOL.zip
-        print_line "Download finished"
 
         # Unzip SonarScanner and remove zip file
+        print_line "Download finished. Unzipping..."
         unzip -q $TOOL.zip
         rm $TOOL.zip
 
@@ -102,29 +104,49 @@ fi
 repositories=$(find ./$REPOSITORIES_DIR -mindepth 1 -maxdepth 1 -type d)
 print_line "All repository directories found in '${REPOSITORIES_DIR}':\n$repositories"
 
+# print_heading "Deleting All Projects"
+# # Fetch all project keys
+# project_keys=$(curl -u ${SONAR_LOGIN}:${SONAR_PASSWORD} -s \
+#     -X GET "${API_URL}projects/search" | grep -oP '(?<="key":")[^"]*')
+# # Loop over each project key and delete the project
+# for project_key in $project_keys; do
+#     print_line "Deleting project: $project_key"
+#     curl -u ${SONAR_LOGIN}:${SONAR_PASSWORD} -s -X POST \
+#         "${API_URL}projects/delete?project=${project_key}"
+# done
+
+current_dir=$(pwd)
+
 # Loop over each directory and analyse
 for repo_path in $repositories; do
-    print_heading "Processing directory: $repo_path"
-
     # Skip if not a directory
     if [ ! -d "$repo_path" ]; then
         echo "Skipping $repo_path (not a directory)"
         continue
     fi
 
-    # Establish the project name
     repo_name=$(basename "$repo_path")
 
+    # Skip if output file already exists
+    OUTPUT_FILE="${OUTPUT_DIR}measures.json"
+    if [ -f "$OUTPUT_FILE" ]; then
+        print_line "Output file $OUTPUT_FILE already exists. Skipping ${repo_name}..."
+        continue
+    fi
+
+    # Establish the project name
+    print_heading "Processing directory: $repo_path"
+
     # Create a working directory to store sonar-scanner outputs
-    OUTPUT_DIR=".scannerwork/${repo_name}/"
+    OUTPUT_DIR="./results/sca/.scannerwork/${repo_name}/"
     mkdir -p $OUTPUT_DIR
 
     ############################################################################
     # Environment variables
     ############################################################################
-    print_subheading "Environment Variables"
+    print_subheading "Environment Variables (project: $repo_name)"
 
-    export PROJECT_BRANCH="main"
+    export PROJECT_BRANCH="master"
     export PROJECT_NAME=$repo_name
     export PROJECTKEY=$PROJECT_NAME
     export SONAR_PROJECTKEY=$PROJECT_NAME
@@ -140,9 +162,59 @@ for repo_path in $repositories; do
     print_line "TARGET_DIR=${TARGET_DIR}"
 
     ############################################################################
+    # Running Python tests
+    ############################################################################
+    print_subheading "Running Python Tests (project: $repo_name)"
+    cd $repo_path
+
+    # Check if coverage.xml exists
+    if [ ! -f "coverage.xml" ]; then
+        # Create a new conda environment and install dependencies
+        if ! conda env list | grep -q "$repo_name"; then
+            print_line "Setting up conda environment..."
+            conda create -y -n $repo_name python=3.10
+        else
+            print_line "Conda environment $repo_name found"
+        fi
+
+        # Install dependencies from requirements.txt
+        # List of possible requirements files
+        requirements_files=(
+            "requirements.txt"
+            "requirements-dev.txt"
+            "requirements-test.txt"
+        )
+
+        # Install dependencies from each requirements file if it exists
+        for req_file in "${requirements_files[@]}"; do
+            if [ -f "$req_file" ]; then
+                print_line "Installing dependencies from $req_file..."
+                conda run -n $repo_name python -m pip install -r "$req_file"
+            fi
+        done
+
+        # Install pytest and pytest-cov
+        print_line "Installing pytest and pytest-cov..."
+        conda run -n $repo_name python -m pip install pytest pytest-cov
+
+        # Run tests
+        print_line "Running pytest..."
+        conda run -n $repo_name pytest --cov-report xml --cov=. || true
+        cp coverage.xml $OUTPUT_DIR
+
+        # print_line "Deleting conda environment..."
+        # conda remove -n $repo_name --all -y
+        conda run -n $repo_name pytest --cov-report xml --cov=. || true
+    else
+        print_line "coverage.xml found. Skipping tests..."
+    fi
+
+    cd $current_dir
+
+    ############################################################################
     # Create/replace user access token
     ############################################################################
-    print_subheading "Generating user access token"
+    print_subheading "Generating user access token (project: $repo_name)"
 
     # Revoke old token if it exists
     print_line "Revoking old token..."
@@ -170,7 +242,7 @@ for repo_path in $repositories; do
     ############################################################################
     # Create sonar-project.properties file
     ############################################################################
-    print_subheading "Updating sonar-project.properties file"
+    print_subheading "Updating sonar-project.properties file (project: $repo_name)"
     ABSOLUTE_PATH=$(realpath $TARGET_DIR)
     cat <<EOL >$OUTPUT_DIR/sonar-project.properties
 sonar.projectKey=$SONAR_PROJECT_KEY
@@ -181,17 +253,18 @@ sonar.login=$SONAR_LOGIN
 sonar.password=$SONAR_PASSWORD
 sonar.token=$SONAR_TOKEN
 sonar.language=py
-sonar.python.version=3.x
-sonar.sourceEncoding=UTF-8
 sonar.python.coverage.reportPaths=coverage.xml
+sonar.scm.disabled=true
 sonar.working.directory=$OUTPUT_DIR
 EOL
     cat "$OUTPUT_DIR/sonar-project.properties"
+    # sonar.python.version=3.x
+    # sonar.sourceEncoding=UTF-8
 
     ############################################################################
     # Create projects. Delete old projects if they already exists.
     ############################################################################
-    print_subheading "Set Up Projects"
+    print_subheading "Set Up Projects (project: $repo_name)"
 
     # Delete project if it already exists
     print_line "Deleting old project..."
@@ -203,15 +276,15 @@ EOL
         "${API_URL}projects/create?name=${PROJECT_NAME}&project=${PROJECT_NAME}&projectKey=${PROJECT_KEY}&token=${SONAR_TOKEN}&branch=${BRANCH}"
     printf "\n"
 
-    # # List projects
-    # print_line "Projects in SonarQube:\n"
-    # curl -u ${SONAR_LOGIN}:${SONAR_PASSWORD} -s \
-    #     -X POST "${API_URL}components/search?qualifiers=TRK" | python -m json.tool
+    # List projects
+    print_line "Projects in SonarQube:\n"
+    curl -u ${SONAR_LOGIN}:${SONAR_PASSWORD} -s \
+        -X POST "${API_URL}components/search?qualifiers=TRK" | python -m json.tool
 
     ############################################################################
     # Run SonarScanner
     ############################################################################
-    print_subheading "Running SonarScanner"
+    print_subheading "Running SonarScanner (project: $repo_name)"
 
     # Run SonarScanner CLI tool
     if [ "${DOCKER}" = "false" ]; then
@@ -231,6 +304,8 @@ EOL
             -e PROJECT_SETTINGS=$OUTPUT_DIR/sonar-project.properties \
             -e SONAR_PROJECT_SETTINGS=$OUTPUT_DIR/sonar-project.properties \
             -v "${TARGET_DIR}:/usr/src" \
+            -v "${OUTPUT_DIR}:/usr/src" \
+            -v "${OUTPUT_DIR}:/usr/src/.scannerwork" \
             sonarsource/sonar-scanner-cli:4 -X
         # -v .scannerwork/${PROJECT_NAME}/:/usr/src/.scannerwork/ \
     fi
@@ -238,23 +313,23 @@ EOL
     ################################################################################
     # Export results from SonarQube to file
     ################################################################################
-    print_subheading "Exporting SonarQube Results to File"
+    print_subheading "Exporting SonarQube Results to File (project: $repo_name)"
 
-    # Specify output file
-    OUTPUT_FILE="${OUTPUT_DIR}measures.component_tree.json"
-    rm -rf $OUTPUT_FILE
+    # List all available measures
+    print_line "Listing all available measures..."
+    measures=$(curl -u ${SONAR_LOGIN}:${SONAR_PASSWORD} -s -X GET \
+        "${API_URL}metrics/search" | grep -oP '(?<="key":")[^"]*')
 
-    # Export measures/component_tree
-    curl -u ${SONAR_LOGIN}:${SONAR_PASSWORD} -s \
-        -X GET "${API_URL}measures/component_tree?component=${PROJECT_NAME}&metricKeys=ncloc,complexity,bugs,vulnerabilities,code_smells,duplicated_lines_density&strategy=children" \
-        > $OUTPUT_FILE
-
-    # Print results
-    print_line "SonarQube results (${OUTPUT_FILE}):"
-    cat $OUTPUT_FILE | python -m json.tool
+    # Loop over each measure and fetch metrics
+    for measure in $measures; do
+        print_line "Fetching metrics for measure: $measure"
+        curl -u ${SONAR_LOGIN}:${SONAR_PASSWORD} -s -X GET \
+            "${API_URL}measures/component?component=${PROJECT_NAME}&metricKeys=${measure}" \
+            >> $OUTPUT_FILE
+        printf "\n" >> $OUTPUT_FILE
+        tail -n 1 $OUTPUT_FILE
+    done
 
     # break
 done
-
-################################################################################
 print_heading "Program completed successfully"

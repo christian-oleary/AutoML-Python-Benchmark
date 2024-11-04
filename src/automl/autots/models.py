@@ -24,11 +24,11 @@ cmdstanpy_logger.setLevel(logging.CRITICAL)
 # Presets are every combination of the following:
 configs = ['superfast', 'fast', 'fast_parallel', 'default', 'all']
 time_limits = ['60', '120', '240', '480', '960', '1920']  # Minutes: 1, 2, 4, 8, 16, 32
-presets = list(itertools.product(configs, time_limits))
-presets = ['__'.join(p) for p in presets]
+presets = ['__'.join(p) for p in list(itertools.product(configs, time_limits))]
 
 
 class AutoTSForecaster(Forecaster):
+    """AutoTS forecasting models"""
 
     name = 'AutoTS'
 
@@ -49,7 +49,7 @@ class AutoTSForecaster(Forecaster):
         target_name: str | None = None,
         verbose: int = 1,
     ):
-        """Perform time series forecasting
+        """Perform time series forecasting.
 
         :param pd.DataFrame train_df: Dataframe of training data
         :param pd.DataFrame test_df: Dataframe of test data
@@ -64,7 +64,6 @@ class AutoTSForecaster(Forecaster):
         :param int verbose: Verbosity, defaults to 1
         :return np.ndarray predictions: Model predictions
         """
-
         logger.debug('Preparing data...')
         if forecast_type == 'global':
             raise NotImplementedError()
@@ -107,7 +106,7 @@ class AutoTSForecaster(Forecaster):
             raise DatasetTooSmallError('Time series is too short for AutoTS', ValueError())
 
         limit = int(limit)
-        # Max generations and generation timeout (if converted back to seconds) should approxiamtely equal the limit
+        # Max generations and generation timeout (if converted back to seconds) should approximately equal the limit
         # It can be slightly off due to rounding and the 0.95 modifier that accounts for miscellaneous processing
         max_generations = int(round((limit / int(preset.split('__')[1])) * 0.95, 0))
         generation_timeout = int(round((limit / max_generations) / 60, 0))  # In minutes

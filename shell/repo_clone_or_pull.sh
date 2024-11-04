@@ -1,14 +1,34 @@
 #!/bin/bash
 
-# Usage: ./shell/pull_repos.sh
+# Usage: ./shell/repo_clone_or_pull.sh
 
-echo Cloning repositories...
+# Exit on error
+# set -e
+
+GREEN='\033[0;32m'
+LIGHT_BLUE='\033[1;36m'
+RESET_COLOR='\033[0m'
+
+# Functions to print messages with fancy formatting
+print_heading() {
+    local message="  $1  "
+    local border
+    border=$(printf '%*s' "${#message}" '' | tr ' ' '=')
+    echo -e "\n${GREEN}${border}\n${message}\n${border}${RESET_COLOR}\n"
+}
+
+print_subheading() {
+    local message="  $1  "
+    echo -e "\n${LIGHT_BLUE}-> ${message}${RESET_COLOR}"
+}
 
 # Create directory for repositories
+print_heading "Creating repositories directory..."
 repo_dir=./repositories/
 mkdir -p ${repo_dir}
 
 # List of repository URLs
+print_heading Cloning repositories...
 repos=(
     "https://github.com/tensorflow/adanet.git"
     "https://github.com/automl/Auto-PyTorch.git"
@@ -33,10 +53,12 @@ repos=(
     "https://github.com/datamllab/pyodds"
     "https://github.com/epistasislab/tpot"
 )
+echo "Repositories to clone: ${repos[*]}"
 
 # Loop over repositories and clone or pull if already existing
 for repo_url in "${repos[@]}"; do
-    repo_name=$(basename ${repo_url} .git)
+    print_subheading "Cloning or pulling ${repo_url}..."
+    repo_name=$(basename "${repo_url}" .git)
     repo_path="${repo_dir}${repo_name}"
 
     if [ -d "${repo_path}" ]; then
@@ -48,4 +70,4 @@ for repo_url in "${repos[@]}"; do
     fi
 done
 
-echo "Repositories ready"
+print_heading "Repositories ready"

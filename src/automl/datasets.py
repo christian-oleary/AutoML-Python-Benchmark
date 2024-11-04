@@ -1,6 +1,4 @@
-"""
-Data formatting functions
-"""
+"""Data formatting functions."""
 
 from abc import ABCMeta, abstractmethod
 import argparse
@@ -22,7 +20,7 @@ from src.automl.validation import Task
 
 
 class Dataset(metaclass=ABCMeta):
-    """Base class for datasets"""
+    """Base class for datasets."""
 
     # Dataset aliases
     aliases: list[str] = ['_base_dataset']
@@ -111,7 +109,7 @@ class Dataset(metaclass=ABCMeta):
 
     @classmethod
     def load_dataset(cls, name: str, path_or_url: str | Path | None = None, **kwargs) -> Self:
-        """Load a dataset by name or file path
+        """Load a dataset by name or file path.
 
         :param str name: Dataset name
         :param str | Path | None path_or_url: Dataset path, defaults to None
@@ -147,7 +145,7 @@ class Dataset(metaclass=ABCMeta):
 
 
 class ISEMDataset(Dataset):
-    """I-SEM dataset"""
+    """I-SEM dataset."""
 
     aliases: list[str] = ['isem']
     frequency: str = '24H'
@@ -172,7 +170,7 @@ class ISEMDataset(Dataset):
 
 
 class ISEM2020Dataset(ISEMDataset):
-    """I-SEM 2020 dataset"""
+    """I-SEM 2020 dataset."""
 
     aliases: list[str] = ['isem2020']
     train_set_start_time: str = '2019/12/31 23:00:00'
@@ -236,7 +234,7 @@ class DatasetFormatter:
     default_start_timestamp = datetime.strptime('1970-01-01 00-00-00', '%Y-%m-%d %H-%M-%S')
 
     def format_data(self, config: argparse.Namespace):
-        """Format data in a given config.data_dir in preparation for modelling
+        """Format data in a given config.data_dir in preparation for modelling.
 
         :param argparse.Namespace config: arguments from command line
         """
@@ -250,7 +248,7 @@ class DatasetFormatter:
             raise NotImplementedError()
 
     def format_univariate_forecasting_data(self, data_dir: str | Path) -> None:
-        """Format data for univariate forecasting
+        """Format data for univariate forecasting.
 
         :param str data_dir: Data directory
         """
@@ -319,7 +317,7 @@ class DatasetFormatter:
         logger.info('Univariate forecasting data ready.')
 
     def format_global_forecasting_data(self, data_dir: str, gather_metadata: bool = False):
-        """Prepare forecasting data for modelling from zip files
+        """Prepare forecasting data for modelling from zip files.
 
         :param str data_dir: Path to data directory
         :param bool gather_metadata: Store datasets metadata in a CSV file, defaults to False
@@ -357,7 +355,7 @@ class DatasetFormatter:
         csv_path: str,
         meta_data: dict,
     ) -> dict:
-        """Convert .tsf file to CSV
+        """Convert .tsf file to CSV.
 
         :param str data_dir: Path to data directory
         :param str tsf_file: Path to .tsf file
@@ -410,7 +408,7 @@ class DatasetFormatter:
         return meta_data
 
     def select_horizon(self, freq: str, csv_path: str | Path) -> int:
-        """Select horizon for forecasters for a given dataset
+        """Select horizon for forecasters for a given dataset.
 
         :param  str freq: Time series frequency
         :param str | Path csv_path: Path to CSV file
@@ -443,7 +441,7 @@ class DatasetFormatter:
         return horizon
 
     def process_row(self, data, row_index, freq):
-        """Convert Dataframe row to column with correct timestamp as index
+        """Convert Dataframe row to column with correct timestamp as index.
 
         :param data: Original dataframe
         :param row_index: Index of row to process
@@ -451,7 +449,6 @@ class DatasetFormatter:
         :raises ValueError: Raised if dates exceed bounds processable by pandas
         :return: Pandas series
         """
-
         series = data.iloc[row_index, :]
         # Find series name, values and starting timestamp
         series_name = series.loc['series_name']
@@ -492,7 +489,7 @@ class DatasetFormatter:
         return column
 
     def extract_zip_tsf_files(self, data_dir: str) -> list[str]:
-        """Read zip files from directory and extract .tsf files
+        """Read zip files from directory and extract .tsf files.
 
         :param data_dir: Path to data directory of zip files
         :raises NotADirectoryError: occurs if non-directory passed as parameter

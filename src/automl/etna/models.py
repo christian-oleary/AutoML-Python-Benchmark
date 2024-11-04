@@ -23,11 +23,11 @@ from src.automl.TSForecasting.data_loader import FREQUENCY_MAP
 # All produce the same result...
 tune_size = ['5']
 n_trials = ['5']
-presets = list(itertools.product(tune_size, n_trials))
-presets = ['_'.join(p) for p in presets]
+presets = ['_'.join(p) for p in list(itertools.product(tune_size, n_trials))]
 
 
 class ETNAForecaster(Forecaster):
+    """ETNA forecasting models"""
 
     name = 'ETNA'
 
@@ -64,7 +64,6 @@ class ETNAForecaster(Forecaster):
         :param int verbose: Verbosity, defaults to 1
         :return predictions: Numpy array of predictions
         """
-
         logger.debug('Preprocessing...')
         # May be useful for global forecasting:
         # def format_dataframe(df):
@@ -171,7 +170,6 @@ class ETNAForecaster(Forecaster):
         :param str preset: Unused. Included for API compatibility
         :return: Time limit in seconds (int)
         """
-
         return int(time_limit * self.initial_training_fraction)
 
     def rolling_origin_forecast(self, model, X_test, horizon, freq):
@@ -182,7 +180,6 @@ class ETNAForecaster(Forecaster):
         :param horizon: Forecast horizon (int)
         :return: Predictions (numpy array)
         """
-
         predictions = []
         for i in range(0, len(X_test), horizon):
             data = X_test.head(i)  # returns pd.DataFrame

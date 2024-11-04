@@ -1,4 +1,4 @@
-"""Functional tests"""
+"""Tests for univariate forecasting."""
 
 import os
 
@@ -12,13 +12,14 @@ from src.automl.validation import Library, Task
 
 
 class TestDataset:
+    """Test dataset methods."""
 
     @pytest.fixture(autouse=True)
     def setup(self, overwrite=True):
-        """Setup for functional tests"""
+        """Setup for functional tests."""
 
         class Config:  # pylint: disable=R0903
-            """Default testing configuration"""
+            """Default testing configuration."""
 
             data_dir = os.path.join('tests', 'data', 'univariate')
             libraries = ['test']

@@ -1,17 +1,19 @@
 """Ludwig models"""
 
-import logging
+from __future__ import annotations
+
+from logging import WARNING
+from pathlib import Path
 
 import pandas as pd
 
 from src.automl.base import Forecaster
-from src.automl.logs import logger
 
 try:
-    from ludwig.api import LudwigModel
-    from ludwig.utils.data_utils import add_sequence_feature_column
+    from ludwig.api import LudwigModel  # type: ignore
+    from ludwig.utils.data_utils import add_sequence_feature_column  # type: ignore
 except ImportError as e:
-    raise ImportError('Failed to import Ludwig', e)
+    raise ImportError('Failed to import Ludwig') from e
 
 
 class LudwigForecaster(Forecaster):
@@ -19,7 +21,9 @@ class LudwigForecaster(Forecaster):
 
     name: str = 'Ludwig'
 
-    initial_training_fraction: float = 0.95  # Use 95% of max. time for training in initial experiment
+    initial_training_fraction: float = (
+        0.95  # Use 95% of max. time for training in initial experiment
+    )
 
     presets: list[int] = [10, 50, 100, 150, 200, 1000]
 
@@ -31,13 +35,13 @@ class LudwigForecaster(Forecaster):
         horizon: int,
         limit: int,
         frequency: str | int,
-        tmp_dir: str,
+        tmp_dir: str | Path,
         nproc: int = 1,
         preset: int = 10,
         target_name: str | None = None,
         verbose: int = 1,
     ):
-        """Perform time series forecasting
+        """Perform time series forecasting.
 
         :param pd.DataFrame train_df: Dataframe of training data
         :param pd.DataFrame test_df: Dataframe of test data
@@ -52,7 +56,6 @@ class LudwigForecaster(Forecaster):
         :param int verbose: Verbosity, defaults to 1
         :return predictions: Numpy array of predictions
         """
-
         # IGNORE. Produces scaled predictions...
         # Ludwig examples indicate scaling must be done separately: https://ludwig.ai/latest/examples/weather/
         # train_df[target_name] = ((train_df[target_name]-train_df[target_name].mean()) / train_df[target_name].std())
@@ -99,7 +102,7 @@ class LudwigForecaster(Forecaster):
             test_df = test_df.drop('ludwig_datetime', axis=1)
 
         # Constructs Ludwig model from config dictionary
-        model = LudwigModel(config, logging_level=logging.WARNING)
+        model = LudwigModel(config, logging_level=WARNING)
 
         model.train(
             dataset=train_df,
@@ -131,17 +134,16 @@ class LudwigForecaster(Forecaster):
         return predictions
 
     def estimate_initial_limit(self, time_limit, preset):
-        """Estimate initial limit to use for training models
+        """Estimate initial limit to use for training models.
 
         :param time_limit: Maximum amount of time allowed for forecast() (int)
         :param str preset: Model configuration to use
         :return: Time limit in seconds (int)
         """
-
         return int(time_limit * self.initial_training_fraction)
 
     def rolling_origin_forecast(self, model, X_train, X_test, horizon, column=None):
-        """DEPRECATED Iteratively forecast over increasing dataset
+        """DEPRECATED Iteratively forecast over increasing dataset.
 
         :param model: Forecasting model, must have predict()
         :param X_train: Training feature data (pandas DataFrame)
@@ -150,7 +152,6 @@ class LudwigForecaster(Forecaster):
         :param column: Specifies forecast column if dataframe outputted, defaults to None
         :return: Predictions (numpy array)
         """
-
         # # Split test set
         # from util import Utils
         # test_splits = Utils.split_test_set(X_test, horizon)

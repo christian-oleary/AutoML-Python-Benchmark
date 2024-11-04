@@ -1,4 +1,4 @@
-"""FLAML models"""
+"""FLAML models."""
 
 import os
 
@@ -13,7 +13,7 @@ from src.automl.util import Utils
 
 
 class FLAMLForecaster(Forecaster):
-    """Class for Forecasting using FLAML"""
+    """Class for Forecasting using FLAML."""
 
     name = 'FLAML'
 
@@ -35,7 +35,7 @@ class FLAMLForecaster(Forecaster):
         preset='auto',
         target_name=None,
     ):
-        """Perform time series forecasting
+        """Perform time series forecasting.
 
         :param pd.DataFrame train_df: Dataframe of training data
         :param pd.DataFrame test_df: Dataframe of test data
@@ -49,7 +49,6 @@ class FLAMLForecaster(Forecaster):
         :param str target_name: Name of target variable for multivariate forecasting, defaults to None
         :return predictions: Numpy array of predictions
         """
-
         if len(test_df) <= horizon + 1:  # 4 = lags
             raise DatasetTooSmallError('Dataset too small for FLAML', ValueError())
 

@@ -1,6 +1,9 @@
-"""EvalML models"""
+"""EvalML models."""
 
-from evalml.automl import AutoMLSearch
+try:
+    from evalml.automl import AutoMLSearch  # type: ignore
+except ImportError as e:
+    raise ImportError('EvalML is not installed') from e
 import pandas as pd
 
 from src.automl.base import Forecaster
@@ -8,6 +11,7 @@ from src.automl.errors import DatasetTooSmallError
 
 
 class EvalMLForecaster(Forecaster):
+    """EvalML forecaster."""
 
     name = 'EvalML'
 
@@ -111,7 +115,6 @@ class EvalMLForecaster(Forecaster):
         :param str preset: Model configuration to use
         :return: Time limit in seconds (int)
         """
-
         return int(time_limit * self.initial_training_fraction)
 
     def rolling_origin_forecast(

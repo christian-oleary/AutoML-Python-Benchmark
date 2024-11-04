@@ -41,7 +41,7 @@ class PyCaretForecaster(Forecaster):
         target_name: str | None = None,
         verbose: int = 1,
     ):
-        """Perform time series forecasting
+        """Perform time series forecasting.
 
         :param pd.DataFrame train_df: Dataframe of training data
         :param pd.DataFrame test_df: Dataframe of test data
@@ -55,7 +55,6 @@ class PyCaretForecaster(Forecaster):
         :param str target_name: Name of target variable for multivariate forecasting, defaults to None
         :return predictions: Numpy array of predictions
         """
-
         if forecast_type == 'global':
             freq = FREQUENCY_MAP[frequency].replace('1', '')
             train_df.index = pd.to_datetime(train_df.index).to_period(freq)
@@ -119,7 +118,6 @@ class PyCaretForecaster(Forecaster):
         :param str preset: Model configuration to use
         :return: Time limit in minutes (int)
         """
-
         return int((time_limit / 60) * self.initial_training_fraction)
 
     def rolling_origin_forecast(self, exp, model, X_train, X_test, horizon, freq, column=None):
@@ -132,7 +130,6 @@ class PyCaretForecaster(Forecaster):
         :param column: Specifies forecast column if dataframe outputted, defaults to None
         :return: Predictions (numpy array)
         """
-
         # Make predictions
         preds = exp.predict_model(model, X=X_train, fh=horizon)
         if column is not None:

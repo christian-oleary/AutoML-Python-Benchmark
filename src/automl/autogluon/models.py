@@ -195,7 +195,9 @@ class AutoGluonForecaster(Forecaster):
                 predictor, train_data, test_data, horizon, tmp_dir, column='mean'
             )
         except NetworkXError as error:
-            raise AutomlLibraryError('AutoGluon failed to fit/predict due to NetworkX', error) from error
+            raise AutomlLibraryError(
+                'AutoGluon failed to fit/predict due to NetworkX', error
+            ) from error
 
         if forecast_type == 'univariate' and 'ISEM_prices' in str(tmp_dir):
             # Re-use test_data indices for date filtering

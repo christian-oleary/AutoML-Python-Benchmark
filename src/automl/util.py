@@ -4,10 +4,12 @@ from __future__ import annotations
 
 import csv
 import math
+import importlib
 import os
 from pathlib import Path
 import platform
 import time
+from typing import Any
 import warnings
 
 import matplotlib.pyplot as plt
@@ -23,6 +25,7 @@ from sklearn.metrics import (
     r2_score,
 )
 from sktime.performance_metrics.forecasting import MeanAbsoluteScaledError
+
 try:
     from pandas.errors import IndexingError
 except ImportError:  # Older pandas
@@ -34,7 +37,12 @@ from src.automl.logs import logger
 class Utils:
     """Utility functions."""
 
+    # Ignored AutoML library presets
     ignored_presets: list[str] = []
+
+    # Optional imports
+    imported_status: dict[str, bool] = {}
+    imported_package: dict[str, Any] = {}
 
     @staticmethod
     def regression_scores(
@@ -679,3 +687,37 @@ class Utils:
         # axes.set_yticklabels(columns, fontsize=11, rotation=45, va='top')
         plt.tight_layout()
         Utils.save_plot('Pearson Correlation Heatmap', save_path=png_path)
+
+    @classmethod
+    def attempt_import(
+        cls,
+        module_name: str,
+        warning_text: str | None = None,
+        extra_text: str | None = None,
+    ):
+        """Attempt to import a module.
+
+        :param str module_name: Name of library to import
+        :param str | None warning_text: Warning text if referencing missing module, defaults to None
+        :param str extra_text: Additional text to log during initial attempted import
+        :return: reference to package or None if import failed
+        """
+        if module_name in cls.imported_status:
+            return cls.imported_package[module_name]
+        # Set default warning and extra text
+        if warning_text is None:
+            warning_text = f'{module_name} not installed.'
+        if extra_text is None:
+            extra_text = f'Continuing without {module_name}'
+        # Attempt import
+        package = None
+        imported = True
+        try:
+            package = importlib.import_module(module_name)
+        except ModuleNotFoundError:
+            logger.debug(f'{module_name} not installed. {extra_text}')
+            imported = False
+        # Record import success or failure
+        cls.imported_status[module_name] = imported
+        cls.imported_package[module_name] = package
+        return package

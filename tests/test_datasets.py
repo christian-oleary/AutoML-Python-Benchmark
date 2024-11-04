@@ -87,15 +87,13 @@ class TestDatasetFormatter:
     def test_format_univariate_forecasting_data(self, tmp_path):
         """Test format_univariate_forecasting_data method of DatasetFormatter class."""
         # Create a temporary CSV file
-        data = {
-            'date': pd.date_range(start='1/1/2020', periods=100, freq='H'),
-            'value': range(100)
-        }
+        data = {'date': pd.date_range(start='1/1/2020', periods=100, freq='H'), 'value': range(100)}
         df = pd.DataFrame(data)
         df.to_csv(TestDatasetFormatter.csv_path, index=False)
 
         class TestConfig(argparse.Namespace):
             """Configuration class for testing purposes."""
+
             task = Task.UNIVARIATE_FORECASTING.value
             data_dir = tmp_path
 

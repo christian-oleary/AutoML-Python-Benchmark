@@ -16,7 +16,8 @@ set -e
 # Functions to print messages with fancy formatting
 print_heading() {
     local message="  $1  "
-    local border=$(printf '%*s' "${#message}" '' | tr ' ' '=')
+    local border
+    border=$(printf '%*s' "${#message}" '' | tr ' ' '=')
     local color='\033[1;36m' # Light blue color
     local reset='\033[0m'    # Reset color
     echo -e "\n${color}${border}\n${message}\n${border}${reset}\n"
@@ -24,7 +25,8 @@ print_heading() {
 
 print_subheading() {
     local message="  $1  "
-    local border=$(printf '%*s' "${#message}" '' | tr ' ' '-')
+    local border
+    border=$(printf '%*s' "${#message}" '' | tr ' ' '-')
     local color='\033[1;33m' # Yellow color
     local reset='\033[0m'    # Reset color
     echo -e "\n${color}${border}\n${message}\n${border}${reset}"
@@ -149,6 +151,7 @@ for repo_path in $repositories; do
     export PROJECT_BRANCH="master"
     export PROJECT_NAME=$repo_name
     export PROJECTKEY=$PROJECT_NAME
+    export PROJECT_KEY=$PROJECT_NAME
     export SONAR_PROJECTKEY=$PROJECT_NAME
     export SONAR_PROJECT_KEY=$PROJECT_NAME
     export TARGET_DIR="${repo_path}/"
@@ -156,8 +159,9 @@ for repo_path in $repositories; do
     # Print newly added environment variables
     print_line "PROJECT_BRANCH=${PROJECT_BRANCH}"
     print_line "PROJECT_NAME=${PROJECT_NAME}"
-    print_line "PROJECTKEY=${PROJECTKEY}"
-    print_line "SONAR_PROJECTKEY=${SONAR_PROJECTKEY}"
+    # print_line "PROJECTKEY=${PROJECTKEY}"
+    print_line "PROJECT_KEY=${PROJECTKEY}"
+    # print_line "SONAR_PROJECTKEY=${SONAR_PROJECTKEY}"
     print_line "SONAR_PROJECT_KEY=${SONAR_PROJECT_KEY}"
     print_line "TARGET_DIR=${TARGET_DIR}"
 

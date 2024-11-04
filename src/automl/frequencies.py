@@ -1,5 +1,5 @@
-"""
-Found using code in findFrequencies.R
+"""Found using code in findFrequencies.R
+
 Credit to Mitchell O'Hara-Wild and Rob J Hyndman for the R code
 Link: https://github.com/robjhyndman/forecast
 """

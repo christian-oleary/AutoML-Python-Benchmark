@@ -29,23 +29,10 @@ from sklearn.svm import LinearSVR, NuSVR, SVR
 from sklearn.tree import DecisionTreeRegressor, ExtraTreeRegressor
 
 from src.automl.logs import logger
-
-# Check for optional dependencies
-try:
-    from lightgbm import LGBMRegressor
-except ImportError:
-    LGBMRegressor = None
-    logger.warning('lightgbm not installed, ignoring...')
-
-try:
-    from xgboost import XGBRegressor
-except ImportError:
-    XGBRegressor = None
-    logger.warning('xgboost not installed, ignoring...')
-
+from src.automl.util import Utils
 
 # fmt: off
-regression_models = {
+regression_models: dict[str, tuple[object, dict]] = {
     BayesianRidge.__name__: (BayesianRidge, {
         'tol': [1e-2, 1e-3, 1e-4],
         'alpha_1': [1e-5, 1e-6, 1e-7],
@@ -170,7 +157,10 @@ regression_models = {
 }
 # fmt: on
 
-if LGBMRegressor is not None:
+# Add LightGBM model if available
+info = "Can install with: `pip install -e .[lightgbm]`. Continuing..."
+if Utils.attempt_import('lightgbm', extra_text=info):
+    from lightgbm import LGBMRegressor
     _search_space = {
         'verbosity': [-1],
         # Based on Lynch et al. 2021:
@@ -182,9 +172,11 @@ if LGBMRegressor is not None:
         'num_leaves': [round(0.6 * 2**x) for x in range(3, 14, 2)],
         'min_child_samples': range(10, 71, 10),
     }
-    regression_models[LGBMRegressor.__name__] = (LGBMRegressor, _search_space)
+    regression_models['LGBMRegressor'] = (LGBMRegressor, _search_space)
 
-if XGBRegressor is not None:
+# Add XGBoost model if available
+if Utils.attempt_import('xgboost', extra_text=info.replace('lightgbm', 'xgboost')):
+    from xgboost import XGBRegressor
     _search_space = {
         'verbosity': [0],
         # Based on Lynch et al. 2021:
@@ -194,7 +186,7 @@ if XGBRegressor is not None:
         'subsample': np.arange(0.1, 1.1, 0.1),
         'colsample_bytree': np.arange(0.1, 1.1, 0.1),
     }
-    regression_models[XGBRegressor.__name__] = (XGBRegressor, _search_space)
+    regression_models['XGBRegressor'] = (XGBRegressor, _search_space)
 
 
 class Forecaster:
@@ -319,7 +311,7 @@ class Forecaster:
         # Generate predictions
         if forecast_type == 'univariate':
             # Drop irrelevant rows
-            if 'I-SEM' in tmp_dir or 'ISEM' in tmp_dir:
+            if 'I-SEM' in str(tmp_dir) or 'ISEM' in str(tmp_dir):
                 X_test['base_datetime'] = X_test.index
                 X_test['base_datetime'] = pd.to_datetime(X_test['base_datetime'], errors='coerce')
                 X_test = X_test[X_test['base_datetime'].dt.hour == 0]

@@ -47,6 +47,7 @@ torch = [
 xgboost = [
     "xgboost",
 ]
+ml = ["automl[lightgbm,tensorflow,torch,xgboost]"]
 all = ["automl[dev,docs,lightgbm,tensorflow,torch,xgboost]"]
 
 [project.urls]

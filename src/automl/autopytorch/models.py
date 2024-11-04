@@ -4,7 +4,7 @@ import copy
 from pathlib import Path
 
 try:
-    from autoPyTorch.api.time_series_forecasting import TimeSeriesForecastingTask
+    from autoPyTorch.api.time_series_forecasting import TimeSeriesForecastingTask  # type: ignore
 except ModuleNotFoundError as error:
     raise ModuleNotFoundError('AutoPyTorch not installed') from error
 import pandas as pd
@@ -14,6 +14,7 @@ from src.automl.TSForecasting.data_loader import FREQUENCY_MAP
 
 
 class AutoPyTorchForecaster(Forecaster):
+    """AutoPyTorch forecasting models"""
 
     name = 'AutoPyTorch'
 
@@ -51,7 +52,6 @@ class AutoPyTorchForecaster(Forecaster):
         :param int verbose: Verbosity, defaults to 1
         :return predictions: Numpy array of predictions
         """
-
         if forecast_type == 'univariate':
             freq = FREQUENCY_MAP[frequency].replace('1', '').replace('min', 'T')
             target_name = 'target'
@@ -107,5 +107,4 @@ class AutoPyTorchForecaster(Forecaster):
         :param str preset: Model configuration to use
         :return: Estimated time limit (int)
         """
-
         return int(time_limit * self.initial_training_fraction)

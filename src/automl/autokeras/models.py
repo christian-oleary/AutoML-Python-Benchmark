@@ -8,7 +8,11 @@ import shutil
 import numpy as np
 import pandas as pd
 from sklearn.model_selection import train_test_split
-from tensorflow.keras.callbacks import EarlyStopping
+
+try:
+    from tensorflow.keras.callbacks import EarlyStopping  # type: ignore
+except ImportError:
+    from keras.callbacks import EarlyStopping
 
 from src.automl.base import Forecaster
 from src.automl.errors import AutomlLibraryError
@@ -17,21 +21,22 @@ from src.automl.util import Utils
 from src.automl.validation import Task
 
 try:
-    import autokeras as ak
+    import autokeras as ak  # type: ignore
 except ImportError as e:
-    logger.error('Failed to import AutoKeras', e)
-    raise e
+    raise ImportError('Failed to import AutoKeras') from e
 
 # Presets are every combination of the following:
 optimizers = ['hyperband', 'greedy', 'bayesian', 'random']
 min_delta = ['0', '1', '2', '4', '8', '16', '32', '64', '128', '256']  # 0 = no early stopping
 num_epochs = ['1000']  # default
 num_trials = ['100']  # default
-presets = list(itertools.product(num_trials, num_epochs, optimizers, min_delta))
-presets = ['_'.join(p) for p in presets]
+presets = [
+    '_'.join(p) for p in list(itertools.product(num_trials, num_epochs, optimizers, min_delta))
+]
 
 
 class AutoKerasForecaster(Forecaster):
+    """AutoKeras forecaster"""
 
     name = 'AutoKeras'
 
@@ -67,7 +72,6 @@ class AutoKerasForecaster(Forecaster):
         :param int verbose: Verbosity, defaults to 1
         :return predictions: Numpy array of predictions
         """
-
         # Cannot use tmp_dir due to internal bugs with AutoKeras
         original_tmp_dir = tmp_dir
         tmp_dir = 'time_series_forecaster'
@@ -180,7 +184,6 @@ class AutoKerasForecaster(Forecaster):
         :param horizon: Forecast horizon (int)
         :return: Predictions (numpy array)
         """
-
         # Split test set
         # if forecast_type == 'univariate' and 'ISEM_prices' in tmp_dir:
         #     X_test['autokeras_datetime'] = X_test.index

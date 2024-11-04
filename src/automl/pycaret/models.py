@@ -1,14 +1,21 @@
 """PyCaret models"""
 
+from __future__ import annotations
+
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
-from pycaret.time_series import TSForecastingExperiment
 
 from src.automl.base import Forecaster
 from src.automl.logs import logger
 from src.automl.TSForecasting.data_loader import FREQUENCY_MAP
+
+try:
+    from pycaret.time_series import TSForecastingExperiment
+except ImportError as e:
+    logger.error('Failed to import PyCaret')
+    raise e
 
 
 class PyCaretForecaster(Forecaster):

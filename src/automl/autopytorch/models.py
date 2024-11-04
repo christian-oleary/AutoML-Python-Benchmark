@@ -30,7 +30,7 @@ class AutoPyTorchForecaster(Forecaster):
         tmp_dir: str | Path,
         nproc: int = 1,
         preset: str = '20',
-        target_name: str = None,
+        target_name: str | None = None,
         verbose: int = 1,
     ):
         """Perform time series forecasting

@@ -5,7 +5,6 @@ import os
 from pathlib import Path
 import shutil
 
-import autokeras as ak
 import numpy as np
 import pandas as pd
 from sklearn.model_selection import train_test_split
@@ -16,6 +15,12 @@ from src.automl.errors import AutomlLibraryError
 from src.automl.logs import logger
 from src.automl.util import Utils
 from src.automl.validation import Task
+
+try:
+    import autokeras as ak
+except ImportError as e:
+    logger.error('Failed to import AutoKeras', e)
+    raise e
 
 # Presets are every combination of the following:
 optimizers = ['hyperband', 'greedy', 'bayesian', 'random']
@@ -44,7 +49,7 @@ class AutoKerasForecaster(Forecaster):
         tmp_dir: str | Path,
         nproc: int = 1,
         preset: str = 'greedy_32_60',
-        target_name: str = None,
+        target_name: str | None = None,
         verbose: int = 1,
     ):
         """Perform time series forecasting

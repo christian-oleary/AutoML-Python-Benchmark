@@ -3,19 +3,25 @@
 import logging
 
 import pandas as pd
-from ludwig.api import LudwigModel
-from ludwig.utils.data_utils import add_sequence_feature_column
 
 from src.automl.base import Forecaster
+from src.automl.logs import logger
+
+try:
+    from ludwig.api import LudwigModel
+    from ludwig.utils.data_utils import add_sequence_feature_column
+except ImportError as e:
+    raise ImportError('Failed to import Ludwig', e)
 
 
 class LudwigForecaster(Forecaster):
+    """Forecaster using Ludwig."""
 
-    name = 'Ludwig'
+    name: str = 'Ludwig'
 
-    initial_training_fraction = 0.95  # Use 95% of max. time for training in initial experiment
+    initial_training_fraction: float = 0.95  # Use 95% of max. time for training in initial experiment
 
-    presets = [10, 50, 100, 150, 200, 1000]
+    presets: list[int] = [10, 50, 100, 150, 200, 1000]
 
     def forecast(
         self,

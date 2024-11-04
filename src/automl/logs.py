@@ -44,11 +44,10 @@ class LogLevel(BaseEnum):
 
 
 # https://docs.python.org/3/library/logging.html#logrecord-attributes
-# log_format = '|%(module)s.py|%(funcName)s|line %(lineno)d|%(asctime)s|%(levelname)s|: %(message)s'
-# log_format = '|%(module)s.py|%(funcName)s|%(asctime)s|%(levelname)s|: %(message)s'
-log_format = '|%(asctime)s|%(levelname)s|: %(message)s'
+LOG_FORMAT = '|%(asctime)s|%(pathname)s:%(lineno)d|%(levelname)s|: %(message)s'
+# LOG_FORMAT = '|%(asctime)s|%(levelname)s|: %(message)s'
 
-time_format = '%Y-%m-%d %H:%M:%S'
+TIME_FORMAT = '%Y-%m-%d %H:%M:%S'
 
 
 class ColorFormatter(logging.Formatter):
@@ -65,11 +64,11 @@ class ColorFormatter(logging.Formatter):
     reset = "\x1b[0m"
 
     FORMATS = {
-        logging.DEBUG: cyan + log_format + reset,
-        logging.INFO: green + log_format + reset,
-        logging.WARNING: yellow + log_format + reset,
-        logging.ERROR: red + log_format + reset,
-        logging.CRITICAL: bold_red + log_format + reset,
+        logging.DEBUG: cyan + LOG_FORMAT + reset,
+        logging.INFO: green + LOG_FORMAT + reset,
+        logging.WARNING: yellow + LOG_FORMAT + reset,
+        logging.ERROR: red + LOG_FORMAT + reset,
+        logging.CRITICAL: bold_red + LOG_FORMAT + reset,
     }
 
     def format(self, record) -> str:
@@ -78,7 +77,10 @@ class ColorFormatter(logging.Formatter):
         :param record: log record
         :return str: formatted log record
         """
-        formatter = logging.Formatter(self.FORMATS.get(record.levelno), time_format)
+        # Relative path to file
+        record.pathname = os.path.relpath(record.pathname, start=os.getcwd())
+        # Color format based on log level
+        formatter = logging.Formatter(self.FORMATS.get(record.levelno), TIME_FORMAT)
         return formatter.format(record)
 
 
@@ -96,7 +98,7 @@ def set_log_dir(log_dir='logs'):
         file_handler = TimedRotatingFileHandler(
             os.path.join(log_dir, 'log'), when='H', backupCount=24, utc=True
         )
-        file_handler.setFormatter(logging.Formatter(log_format, time_format))
+        file_handler.setFormatter(logging.Formatter(LOG_FORMAT, TIME_FORMAT))
         logger.addHandler(file_handler)
         logger.info(f'Logging to directory: {log_dir}')
 

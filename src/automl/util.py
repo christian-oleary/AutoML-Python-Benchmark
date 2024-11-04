@@ -1,10 +1,11 @@
-"""
-Utility functions
-"""
+"""Utility functions."""
+
+from __future__ import annotations
 
 import csv
 import math
 import os
+from pathlib import Path
 import platform
 import time
 import warnings
@@ -22,37 +23,40 @@ from sklearn.metrics import (
     r2_score,
 )
 from sktime.performance_metrics.forecasting import MeanAbsoluteScaledError
+try:
+    from pandas.errors import IndexingError
+except ImportError:  # Older pandas
+    from pandas.core.indexing import IndexingError
 
 from src.automl.logs import logger
 
 
 class Utils:
-    """Utility functions"""
+    """Utility functions."""
 
-    ignored_presets = []
+    ignored_presets: list[str] = []
 
     @staticmethod
     def regression_scores(
-        actual,
-        predicted,
-        y_train,
-        scores_dir=None,
-        forecaster_name=None,
-        multioutput='uniform_average',
+        actual: np.ndarray,
+        predicted: np.ndarray,
+        y_train: np.ndarray,
+        scores_dir: str | Path | None = None,
+        forecaster_name: str | None = None,
+        multioutput: str = 'uniform_average',
         **kwargs,
     ):
         """Calculate forecasting metrics and optionally save results.
 
-        :param np.array actual: Original time series values
-        :param np.array predicted: Predicted time series values
-        :param np.array y_train: Training values (required for MASE)
+        :param np.ndarray actual: Original time series values
+        :param np.ndarray predicted: Predicted time series values
+        :param np.ndarray y_train: Training values (required for MASE)
         :param str scores_dir: Path to file to record scores (str or None), defaults to None
         :param str forecaster_name: Name of model
-        :param str multioutput: 'raw_values' (raw error), 'uniform_average' (averaged error), default: 'uniform_average'
+        :param str multioutput: 'raw_values', 'uniform_average', defaults to 'uniform_average'
         :raises TypeError: If forecaster_name is not provided when saving results to file
         :return results: Dictionary of results
         """
-
         # Convert pd.Series to NumPy Array
         if predicted.shape == (actual.shape[0], 1) and not pd.core.frame.DataFrame:
             predicted = predicted.flatten()
@@ -114,7 +118,7 @@ class Utils:
         return results
 
     @staticmethod
-    def geometric_mean(error_score, rank_correlation_score):
+    def geometric_mean(error_score: float, rank_correlation_score: float) -> np.ndarray:
         """Calculates the geometric mean of some mean error score and a mean rank correlation score.
 
         :param float error_score: Mean error score
@@ -127,16 +131,16 @@ class Utils:
         return gmean([error_score, 1 - rank_correlation_score])
 
     @staticmethod
-    def geometric_mean_MAE_SR(actual, predicted):
+    def geometric_mean_MAE_SR(actual: np.ndarray, predicted: np.ndarray) -> np.ndarray:
         """Calculates the geometric mean of MAE and a Spearman correlation score.
 
-        :param np.array actual: Real values
-        :param np.array predicted: Predicted values
+        :param np.ndarray actual: Real values
+        :param np.ndarray predicted: Predicted values
         :return float: Geometric mean of MAE and SRC
         """
         MAE = mean_absolute_error(actual, predicted, multioutput='uniform_average')
         SRC = Utils.correlation(actual, predicted, method='spearman')[0]
-        return Utils.geometric_mean(MAE, SRC)
+        return Utils.geometric_mean(MAE, SRC)  # type: ignore
 
     @staticmethod
     def correlation(actual, predicted, method='pearson'):
@@ -180,12 +184,15 @@ class Utils:
 
     @staticmethod
     def smape(actual, predicted):
-        """sMAPE"""
-        return (
-            100
-            / len(actual)
-            * np.sum(2 * np.abs(predicted - actual) / (np.abs(actual) + np.abs(predicted)))
-        )
+        """Implementation of sMAPE"""
+        totals = np.abs(actual) + np.abs(predicted)
+        differences = np.abs(predicted - actual)
+        return 100 / len(actual) * np.sum(2 * differences / totals)
+        # return (
+        #     100
+        #     / len(actual)
+        #     * np.sum(2 * np.abs(predicted - actual) / (np.abs(actual) + np.abs(predicted)))
+        # )
 
     @staticmethod
     def write_to_csv(path, results):
@@ -194,15 +201,7 @@ class Utils:
         :param str path: the result file path
         :param dict results: a dict containing results from running a model
         """
-
         np.set_printoptions(precision=4)
-
-        # Remove unneeded values
-        # unused_cols = []
-        # for col in unused_cols:
-        #     if col in results.keys():
-        #         del results[col]
-
         if len(results) > 0:
             HEADERS = sorted(list(results.keys()), key=lambda v: str(v).upper())
             if 'model' in HEADERS:
@@ -292,11 +291,9 @@ class Utils:
         # Show plot
         if show:
             plt.show()
-
         # Show plot as file
         if save_path is not None:
             plt.savefig(save_path, bbox_inches='tight')
-
         # Clear for next plot
         plt.cla()
         plt.clf()
@@ -311,21 +308,19 @@ class Utils:
         :raises IOError: If datasets_directory does not have CSV files
         :return: list of dataset file names
         """
-
         if not os.path.exists(datasets_directory):
             raise NotADirectoryError('Datasets directory path does not exist')
 
         csv_files = [
             f for f in os.listdir(datasets_directory) if f.endswith('csv') and '0_metadata' not in f
         ]
-
         if len(csv_files) == 0:
             raise IOError('No CSV files found')
 
         return csv_files
 
     @staticmethod
-    def split_test_set(test_df, horizon):
+    def split_test_set(test_df: pd.DataFrame, horizon: int) -> list[pd.DataFrame]:
         """Split test dataset into list of smaller sets for rolling origin forecasting
 
         :param pd.DataFrame test_df: Test dataset
@@ -337,7 +332,7 @@ class Utils:
         for _ in range(0, len(test_df) - 1, horizon):  # -1 because last split may be < horizon
             try:
                 test_splits.append(test_df.iloc[total : total + horizon, :])
-            except pd.errors.IndexingError:  # If 1D (series)
+            except IndexingError:  # If 1D (series)
                 test_splits.append(test_df.iloc[total : total + horizon])
             total += horizon
 
@@ -347,25 +342,73 @@ class Utils:
         return test_splits
 
     @staticmethod
-    def summarize_dataset_results(results_dir, plots=True):
+    def summarize_dataset_results(results_dir: str | Path, plots: bool = True):
         """Analyse results saved to file
 
-        :param str results_subdir: Path to relevant results directory
+        :param str | Path results_subdir: Path to relevant results directory
         :param bool plots: Save plots as images, defaults to True
         """
-
         stats_dir = os.path.join(results_dir, 'statistics')
 
-        test_results = []
-        failed = []
+        test_results: list[dict] = []  # List of test results
+        failed: list[dict] = []  # List of failed training attempts
         dataset = os.path.basename(os.path.normpath(results_dir))
 
         # For each library/preset, get mean scores
+        test_results, failed = Utils.get_averaged_results(
+            results_dir,
+            stats_dir,
+            test_results,
+            dataset,
+            failed,
+        )
+
+        os.makedirs(stats_dir, exist_ok=True)
+
+        # Combine scores into one CSV file
+        test_scores_df = pd.DataFrame(test_results)
+        if len(test_scores_df) > 0:
+            failed_df = pd.DataFrame(failed)
+            test_scores_df = pd.concat([test_scores_df, failed_df])
+
+        # Save all scores as CSV
+        output_file = os.path.join(stats_dir, '1_all_scores.csv')
+        test_scores_df.to_csv(output_file, index=False)
+
+        # Scores per library across all presets and failed training counts
+        if len(test_scores_df) > 0:
+            summarized_scores = Utils.save_latex(test_scores_df, output_file.replace('csv', 'tex'))
+            if plots and len(summarized_scores) > 2:
+                Utils.save_heatmap(
+                    summarized_scores,
+                    os.path.join(stats_dir, 'heatmap.csv'),
+                    os.path.join(stats_dir, 'heatmap.png'),
+                )
+                # Utils.plot_test_scores(test_scores, stats_dir, plots)
+
+    @staticmethod
+    def get_averaged_results(
+        results_dir: str | Path,
+        stats_dir: str | Path,
+        test_results: list,
+        dataset: str,
+        failed: list,
+    ) -> tuple:
+        """Summarize results from CSV files
+
+        :param str | Path results_dir: Path to results directory
+        :param str | Path stats_dir: Path to statistics directory
+        :param list test_results: List of test results
+        :param str dataset: Dataset name
+        :param list failed: List of failed training attempts
+        :raises FileNotFoundError: If results file(s) are missing
+        :return: Tuple of test results and failed training attempts
+        """
         for library in os.listdir(results_dir):
             subdir = os.path.join(results_dir, library)
             for preset in os.listdir(subdir):
                 preset_dir = os.path.join(subdir, preset)
-                if subdir == stats_dir:
+                if subdir == str(stats_dir):
                     continue
 
                 scores_path = os.path.join(preset_dir, f'{library}.csv')
@@ -389,35 +432,13 @@ class Utils:
                     )
                 else:
                     raise FileNotFoundError(f'Results file(s) missing in {preset_dir}')
-
-        os.makedirs(stats_dir, exist_ok=True)
-
-        # Combine scores into one CSV file
-        test_scores = pd.DataFrame(test_results)
-        if len(test_scores) > 0:
-            failed = pd.DataFrame(failed)
-            test_scores = pd.concat([test_scores, failed])
-
-        # Save all scores as CSV
-        output_file = os.path.join(stats_dir, '1_all_scores.csv')
-        test_scores.to_csv(output_file, index=False)
-
-        # Scores per library across all presets and failed training counts
-        if len(test_scores) > 0:
-            summarized_scores = Utils.save_latex(test_scores, output_file.replace('csv', 'tex'))
-            if plots and len(summarized_scores) > 2:
-                Utils.save_heatmap(
-                    summarized_scores,
-                    os.path.join(stats_dir, 'heatmap.csv'),
-                    os.path.join(stats_dir, 'heatmap.png'),
-                )
-                # Utils.plot_test_scores(test_scores, stats_dir, plots)
+        return test_results, failed
 
     @staticmethod
-    def save_latex(df, output_file):
+    def save_latex(df: pd.DataFrame, output_file: str) -> pd.DataFrame:
         """Save dataframe of results in a LaTeX file
 
-        :param pd.DataFrame df: Results
+        :param pd.DataFrame df: DataFrame of results
         :param str output_file: Path to .tex file
         """
         # Sort by GM-MAE-SR
@@ -476,7 +497,11 @@ class Utils:
         return df
 
     @staticmethod
-    def plot_test_scores(test_scores, stats_dir, plots):
+    def plot_test_scores(
+        test_scores: pd.DataFrame,
+        stats_dir: str,
+        plots: bool,
+    ):
         """Plot test scores
 
         :param pd.DataFrame test_scores: Test scores
@@ -512,7 +537,7 @@ class Utils:
         df_failed = df_failed.set_index('library')
         df_failed = df_failed.groupby('library').sum()
 
-        def plot_averages(group_col, cols_to_drop, fig_width, fig_height):
+        def plot_averages(group_col: str, cols_to_drop: list[str], fig_width: int, fig_height: int):
             df_grouped = test_scores.drop(cols_to_drop, axis=1).groupby(group_col)
 
             df_grouped.index = df_grouped[group_col]
@@ -567,13 +592,12 @@ class Utils:
         #               fig_height=10)
 
     @staticmethod
-    def summarize_overall_results(results_dir, forecast_type, plots=True):
+    def summarize_overall_results(results_dir: str, forecast_type: str, plots: bool = True):
         """Analyse results saved to file
 
         :param str results_subdir: Path to relevant results directory
         :param bool plots: Save plots as images, defaults to True
         """
-
         dataframes = []
         results_subdir = os.path.join(results_dir, f'{forecast_type}_forecasting')
         for dirpath, _, filenames in os.walk(results_subdir):
@@ -582,7 +606,7 @@ class Utils:
                 try:
                     df = pd.read_csv(all_scores_path)
                     dataframes.append(df)
-                except pd.errors.EmptyDataError as _:
+                except pd.errors.EmptyDataError:
                     logger.debug(f'No data found in {all_scores_path}. Skipping')
 
         all_scores = pd.concat(dataframes, axis=0)

@@ -1,41 +1,41 @@
 """Tests GPU access"""
 
-import tensorflow as tf
-import torch
+import os
 
 
-def tensorflow_test(debug=False):
+def tensorflow_test(gpu_required=False) -> bool:
     """Test TensorFlow GPU access"""
-    if debug:
-        print('\nTesting TensorFlow...\n')
+    import tensorflow as tf  # pylint: disable=import-outside-toplevel
 
-    if tf.test.gpu_device_name():
-        if debug:
-            print(f'TensorFlow can access a GPU. Default GPU Device: {tf.test.gpu_device_name()}')
-        access_gpu = True
+    print('Testing TensorFlow...')
+
+    device = tf.test.gpu_device_name()
+    if device:
+        print('TensorFlow can access a GPU.')
+        print(f'Default GPU Device: {device}')
     else:
-        if debug:
-            print('TensorFlow cannot access a GPU')
-        access_gpu = False
-    return access_gpu
+        print('TensorFlow cannot access a GPU')
+        if gpu_required:
+            raise RuntimeError('TensorFlow cannot access a GPU')
+    return device
 
 
-def pytorch_test(debug=False):
+def pytorch_test(gpu_required=False) -> bool:
     """Test PyTorch GPU access"""
-    if debug:
-        print('\nTesting PyTorch...\n')
+    import torch  # pylint: disable=import-outside-toplevel
 
-    if torch.cuda.is_available() and torch.cuda.device_count() > 0:
-        if debug:
-            print('PyTorch can access a GPU')
-        access_gpu = True
+    print('Testing PyTorch...')
+
+    access_gpu = torch.cuda.is_available() and torch.cuda.device_count() > 0
+    if access_gpu:
+        print('PyTorch can access a GPU')
     else:
-        if debug:
-            print('PyTorch cannot access a GPU')
-        access_gpu = False
+        print('PyTorch cannot access a GPU')
+        if gpu_required:
+            raise RuntimeError('PyTorch cannot access a GPU')
     return access_gpu
 
 
 if __name__ == '__main__':
-    tensorflow_test(True)
-    pytorch_test(True)
+    tensorflow_test(bool(os.environ.get('TF_GPU_REQUIRED', False)))
+    pytorch_test(bool(os.environ.get('TORCH_GPU_REQUIRED', False)))

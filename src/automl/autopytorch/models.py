@@ -3,7 +3,10 @@
 import copy
 from pathlib import Path
 
-from autoPyTorch.api.time_series_forecasting import TimeSeriesForecastingTask
+try:
+    from autoPyTorch.api.time_series_forecasting import TimeSeriesForecastingTask
+except ModuleNotFoundError as error:
+    raise ModuleNotFoundError('AutoPyTorch not installed') from error
 import pandas as pd
 
 from src.automl.base import Forecaster

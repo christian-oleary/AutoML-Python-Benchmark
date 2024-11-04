@@ -4,26 +4,54 @@ build-backend = "setuptools.build_meta"
 
 [tool.setuptools.dynamic]
 dependencies = {file = ["requirements.txt"]}
-optional-dependencies = {test = { file = ["./tests/requirements.txt"] }}
 
 [project]
-name = "automl_benchmark"
+name = "automl"
 authors = [
     { name="Christian O'Leary", email="christian.oleary@mtu.ie" },
 ]
 description = "AutoML Python Benchmark"
 readme = "README.md"
-requires-python = "==3.10"
-dynamic = [ "version", "dependencies", "optional-dependencies" ]
+dynamic = ["version", "dependencies"]
+requires-python = "==3.10.*"
 classifiers = [
     "Programming Language :: Python :: 3",
     "Operating System :: OS Independent",
 ]
 
+[project.optional-dependencies]
+dev = [
+    "setuptools",
+    "coverage==7.4.4",
+    "pytest==8.2.2",
+    "pytest-cov==5.0.0",
+    "pre-commit==3.7.1",
+]
+docs = [
+    "Sphinx==5.3.0",
+    "sphinx_mdinclude==0.6.0",
+    "sphinx-rtd-theme==2.0.0",
+    "docxbuilder==1.2.0",
+    "docxbuilder[math]",
+]
+lightgbm = [
+    "lightgbm"
+]
+tensorflow = [
+    "tensorflow==2.10.1",
+    "protobuf==3.19.5",
+]
+torch = [
+    "torch==2.3.1",
+]
+xgboost = [
+    "xgboost",
+]
+all = ["automl[dev,docs,lightgbm,tensorflow,torch,xgboost]"]
+
 [project.urls]
 Homepage = "https://github.com/christian-oleary/AutoML-Python-Benchmark"
 Issues = "https://github.com/christian-oleary/AutoML-Python-Benchmark/issues"
-
 
 ################################################################################
 # BLACK
@@ -54,32 +82,55 @@ directory = "./docs/coverage_html_report"
 ################################################################################
 # MYPY
 [tool.mypy]
+exclude = ["tests", "docs", "repositories", "**/TSForecasting/*"]
 ignore_missing_imports = true
-exclude = "tests"
+namespace_packages = false
 
 ################################################################################
 # PYDOCSTYLE
 [tool.pydocstyle]
 inherit = false
 ignore = [
-    "D107",
+    "D107",  # Missing docstring in __init__
     "D203",  # Blank line before class docstring
-    "D213",
-    "D400",  # First line should end in period 1
-    "D401",
-    "D415",  # First line should end in period 2
+    "D213",  # Multi-line docstring summary should start at the second line
+    "D400",  # First line should end in period
+    "D401",  # First line should be in imperative mood
+    "D415",  # First line should end with period/question mark/exclamation point
 ]
 match = ".*\\.py"
 
 ################################################################################
 # PYLINT
 [tool.pylint.'MASTER']
-addopts = "--rcfile=.pylintrc"
+fail-under = 8.0
+disable = [
+    "C0103", # invalid-name
+    "E0110", # abstract-class-instantiated
+    "E0611", # no-name-in-module
+    "E0401", # import-error
+    "W0201", # attribute-defined-outside-init
+    "W1203", # logging-fstring-interpolation
+]
+ignore = ["tests", "**/TSForecasting/*"]
+ignore-comments = false
+ignore-docstrings = false
+ignore-imports = false
+ignored-classes = ["optparse.Values", "thread._local", "_thread._local"]
+ignored-modules=["numpy.random", "sklearn.datasets"]
+ignore-on-opaque-inference=true
+# Warn about missing members when the owner of the attribute is inferred to be None
+ignore-none=true
+max-args=12
+max-attributes=10
+max-line-length=120
+max-locals=16
+# min-similarity-lines=3
 
 ################################################################################
 # PYTEST
 [tool.pytest.ini_options]
-addopts = "-ra --durations=0 --cov --cov-append --cov-report=term-missing"
+addopts = "-ra --durations=10 --cov --cov-report xml:coverage.xml --junitxml=report.xml"
 log_cli = true
 log_cli_level = "INFO"
 log_cli_format = "%(asctime)s [%(levelname)8s] %(message)s"
@@ -87,11 +138,13 @@ log_cli_date_format = "%Y-%m-%d %H:%M:%S"
 console_output_style = "progress"
 filterwarnings = "ignore::DeprecationWarning"
 testpaths = [ "tests" ]
+ignore = [ "data_loader.py" ]
 
 ################################################################################
 # RUFF
 [tool.ruff]
 exclude = ["docs"]
+output-format = "full"
 
 [tool.ruff.format]
 quote-style = "single"

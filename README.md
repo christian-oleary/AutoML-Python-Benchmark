@@ -49,19 +49,20 @@ Before running the code, datasets and repositories must be downloaded
 
 ## Experiments
 
-After downloading repositories and datasets, you can run experiments with the following:
+Removed. To be redrafted.
+<!-- After downloading repositories and datasets, you can run experiments with the following:
 
 ```bash
 python run.py
-```
+``` -->
 
 ## Development
 
 Removed. To be redrafted.
 
+<!--
 After installation and the download of repositories and datasets, you can run functional tests with:
 
-<!--
 ```bash
 pip install -r ./tests/requirements.txt
 python -m pytest tests/functional_tests.py
@@ -106,6 +107,22 @@ coverage run -m pytest tests/functional_tests.py
 coverage report --omit="env/*,venv/*,.env/*,.venv/*,*AppData*,*python37*,tests/*"
 rm .coverage
 ``` -->
+
+## SonarQube
+
+```bash
+# Start server
+docker-compose up --timeout 300 -d --build --force-recreate
+
+# Download repositories
+sh -i ./shell/repo_clone_or_pull.sh
+
+# Run sonar-scanner
+sh -i ./shell/repo_sonar_scanner.sh
+
+# Stop server:
+docker-compose down
+```
 
 ## Contact
 

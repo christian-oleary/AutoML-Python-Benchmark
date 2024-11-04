@@ -11,10 +11,10 @@ class Task(BaseEnum):
 
     ANOMALY_DETECTION = 'anomaly_detection'
     CLASSIFICATION = 'classification'
-    GLOBAL_FORECASTING = 'global'
-    MULTIVARIATE_FORECASTING = 'multivariate'
+    GLOBAL_FORECASTING = 'global_forecasting'
+    MULTIVARIATE_FORECASTING = 'multivariate_forecasting'
     NONE = 'none'
-    UNIVARIATE_FORECASTING = 'univariate'
+    UNIVARIATE_FORECASTING = 'univariate_forecasting'
 
     @classmethod
     def is_forecasting_task(cls, value):
@@ -71,6 +71,7 @@ class Validator:
                 if library not in ['none', 'test'] and library not in Library.get_options():
                     raise ValueError(f'Unknown library. Options: {Library.get_options()}')
 
+        # nproc
         if not isinstance(args.nproc, int):
             raise TypeError(f'nproc must be an int. Received {type(args.nproc)}')
 

@@ -7,23 +7,23 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
+try:
+    from pycaret.time_series import TSForecastingExperiment  # type: ignore
+except ModuleNotFoundError as error:
+    raise ModuleNotFoundError('PyCaret not installed') from error
+
 from src.automl.base import Forecaster
 from src.automl.logs import logger
 from src.automl.TSForecasting.data_loader import FREQUENCY_MAP
 
-try:
-    from pycaret.time_series import TSForecastingExperiment
-except ImportError as e:
-    logger.error('Failed to import PyCaret')
-    raise e
-
 
 class PyCaretForecaster(Forecaster):
+    """Forecasting using PyCaret"""
 
     name = 'PyCaret'
 
-    initial_training_fraction = 0.95  # Use 95% of max. time for trainig in initial experiment
-    tuning_fraction = 0.85  # Use 95% of max. time for trainig in initial experiment
+    initial_training_fraction = 0.95  # Use 95% of max. time for training in initial experiment
+    tuning_fraction = 0.85  # Use 95% of max. time for training in initial experiment
 
     presets = ['']
 
@@ -60,7 +60,7 @@ class PyCaretForecaster(Forecaster):
             freq = FREQUENCY_MAP[frequency].replace('1', '')
             train_df.index = pd.to_datetime(train_df.index).to_period(freq)
             test_df.index = pd.to_datetime(test_df.index).to_period(freq)
-        elif 'ISEM_prices' in tmp_dir:
+        elif 'ISEM_prices' in str(tmp_dir):
             freq = 'H'
             train_df.index = pd.to_datetime(train_df.index)  # .to_period(freq)
             train_df.index = pd.date_range(
@@ -73,7 +73,7 @@ class PyCaretForecaster(Forecaster):
             ).to_period(freq)
 
             # Drop irrelevant rows
-            if forecast_type == 'univariate' and 'ISEM_prices' in tmp_dir:
+            if forecast_type == 'univariate' and 'ISEM_prices' in str(tmp_dir):
                 test_df['pycaret_datetime'] = test_df.index
                 # test_df['pycaret_datetime'] = pd.to_datetime(test_df['pycaret_datetime'], errors='coerce')
                 test_df = test_df[test_df['pycaret_datetime'].dt.hour == 0]
@@ -137,7 +137,7 @@ class PyCaretForecaster(Forecaster):
         preds = exp.predict_model(model, X=X_train, fh=horizon)
         if column is not None:
             preds = preds[column].values[-horizon:]
-        # print('0 preds.shape', preds.shape)
+        # logger.debug('0 preds.shape', preds.shape)
         predictions = [preds]
 
         data = X_train
@@ -153,7 +153,7 @@ class PyCaretForecaster(Forecaster):
             # data.index = data.index.to_timestamp()
             # data.index = pd.date_range(start=data.index.min(), freq='H', periods=len(data)).to_period(freq)
 
-            # print('data', data, type(data), data.shape)
+            # logger.debug('data', data, type(data), data.shape)
             preds = exp.predict_model(model, X=data, fh=horizon)
             if column is not None:
                 preds = preds[column].values[-horizon:]
@@ -161,7 +161,7 @@ class PyCaretForecaster(Forecaster):
             predictions.append(preds)
 
         # Flatten predictions and truncate if needed
-        # print('len(predictions)', len(predictions))
+        # logger.debug('len(predictions)', len(predictions))
         try:
             predictions = np.concatenate([p.flatten() for p in predictions])
         except AttributeError:

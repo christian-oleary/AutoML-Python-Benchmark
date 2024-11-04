@@ -18,18 +18,22 @@ data/
 
 *.backup
 *.csv
+*.json
 *.ignore
 *.svg
+*.txt
 *.wav
-*_ignore.ipynb
+*.xml
+tmp/
 
 # Images
-*.png
-*.jpg
-*.jpeg
 *.gif
+*.jpeg
+*.jpg
+*.png
+*.svg
 
-# Project-specific directories
+# Project-specific
 checkpoints/
 env*/
 ignore/
@@ -37,6 +41,9 @@ logs/
 papers/
 repositories/
 results/
+
+*_ignore.ipynb
+*.ignore
 
 # Models
 *.h5
@@ -88,6 +95,8 @@ pids
 
 # Sonarqube
 .scannerwork
+sonar-*.properties
+sonar-scanner-cli
 
 # SQLite
 *.db

@@ -1,4 +1,5 @@
 # See https://pre-commit.com/hooks.html for more hooks
+
 repos:
     -   repo: https://github.com/psf/black
         rev: 24.4.2
@@ -6,12 +7,22 @@ repos:
         -   id: black
             args: ["--config=./pyproject.toml"]
 
+    -   repo: https://github.com/PyCQA/flake8
+        rev: 7.0.0
+        hooks:
+        -   id: flake8
+            args: [
+                "--jobs=1",
+                "--select=E9,F63,F7,F82",
+                "--show-source",
+                "--statistics"
+            ]
+
     -   repo: https://github.com/pre-commit/mirrors-mypy
         rev: v1.8.0
         hooks:
         -   id: mypy
             args: ["--config-file=./pyproject.toml"]
-            exclude: ^(docs/|repositories/)
 
     -   repo: https://github.com/pre-commit/pre-commit-hooks
         rev: v3.2.0
@@ -41,7 +52,7 @@ repos:
         rev: v0.2.1
         hooks:
         -   id: ruff
-            args: ["--no-fix", "--output-format=full"]
+            args: ["--fix"]
 
     -   repo: https://github.com/PyCQA/pydocstyle
         rev: 6.1.1
@@ -49,18 +60,16 @@ repos:
         -   id: pydocstyle
             additional_dependencies: ['toml']
 
-    -   repo: https://github.com/PyCQA/flake8
-        rev: 7.0.0
+    -   repo: https://github.com/PyCQA/pylint
+        rev: v2.17.5
         hooks:
-        -   id: flake8
-            args: ["--jobs=1"]
+        -   id: pylint
+            args: ["--rcfile=pyproject.toml"]
 
-    # -   repo: https://github.com/PyCQA/pylint
-    #     rev: v2.17.5
-    #     hooks:
-    #     -   id: pylint
-    #         args: [
-    #             "--rcfile=.pylintrc",
-    #             "--disable=import-error",
-    #             "--ignore=tests"
-    #         ]
+    -   repo: local
+        hooks:
+        -   id: shellcheck
+            name: shellcheck
+            entry: shellcheck
+            language: python
+            types: [shell]

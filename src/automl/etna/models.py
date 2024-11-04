@@ -3,9 +3,12 @@
 import os
 import itertools
 
-from etna.auto import Auto
-from etna.datasets.tsdataset import TSDataset
-from etna.metrics import SMAPE
+try:
+    from etna.auto import Auto
+    from etna.datasets.tsdataset import TSDataset
+    from etna.metrics import SMAPE
+except ModuleNotFoundError as error:
+    raise ModuleNotFoundError('ETNA not installed') from error
 import numpy as np
 import pandas as pd
 
@@ -195,13 +198,13 @@ class ETNAForecaster(Forecaster):
             predictions.append(preds)
 
         # Flatten predictions
-        # print('-> len(predictions)', len(predictions))
+        # logger.debug(f'-> len(predictions): {len(predictions)}')
         try:
             predictions = np.concatenate([p.flatten() for p in predictions])
         except AttributeError:
             predictions = np.concatenate([p.values.flatten() for p in predictions])
         assert len(predictions) == len(X_test)
-        # print('-> predictions.shape', predictions.shape)
+        # logger.debug('-> predictions.shape', predictions.shape)
         # predictions = predictions[:len(X_test)] # Truncate if needed
-        # print('-> predictions.shape', predictions.shape)
+        # logger.debug('-> predictions.shape', predictions.shape)
         return predictions

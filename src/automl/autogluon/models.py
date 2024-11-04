@@ -1,4 +1,4 @@
-"""AutoGluon models"""
+"""AutoGluon models."""
 
 from __future__ import annotations
 
@@ -13,7 +13,7 @@ from src.automl.logs import logger
 from src.automl.TSForecasting.data_loader import FREQUENCY_MAP
 
 try:
-    from autogluon.timeseries import TimeSeriesDataFrame, TimeSeriesPredictor
+    from autogluon.timeseries import TimeSeriesDataFrame, TimeSeriesPredictor  # type: ignore
     from networkx.exception import NetworkXError
 except ModuleNotFoundError as e:
     logger.error('AutoGluon not found!')
@@ -47,7 +47,7 @@ class AutoGluonForecaster(Forecaster):
         tmp_dir: str | Path,
         nproc: int = 1,
         preset: str = 'fast_training',
-        target_name: str | None = None,
+        target: str | None = None,
         verbose: int = 1,
     ):
         """Perform time series forecasting using AutoGluon TimeSeriesPredictor
@@ -84,10 +84,10 @@ class AutoGluonForecaster(Forecaster):
 
         # Format univariate data
         if forecast_type == 'univariate':
-            target_name = 'target'
-            train_df.columns = [timestamp_column, target_name]
-            test_df.columns = [timestamp_column, target_name]
-            if 'ISEM_prices' in tmp_dir:
+            target = 'target'
+            train_df.columns = [timestamp_column, target]
+            test_df.columns = [timestamp_column, target]
+            if 'ISEM_prices' in str(tmp_dir):
                 ignore_time_index = False
             else:
                 ignore_time_index = True
@@ -115,7 +115,7 @@ class AutoGluonForecaster(Forecaster):
 
         # Drop irrelevant rows. This happens after the from_data_frame() calls as AutoGluon tries to (badly) impute
         # the missing values otherwise.
-        if forecast_type == 'univariate' and 'ISEM_prices' in tmp_dir:
+        if forecast_type == 'univariate' and 'ISEM_prices' in str(tmp_dir):
             test_df[timestamp_column] = pd.to_datetime(test_df[timestamp_column], errors='coerce')
             test_df = test_df[test_df[timestamp_column].dt.hour == 0]
 
@@ -128,6 +128,8 @@ class AutoGluonForecaster(Forecaster):
                 freq = 'S'  # based on Libra R repository.
             else:
                 freq = 'H'  # I-SEM
+        else:
+            raise ValueError(f'Unsupported forecast type: {forecast_type}')
 
         logger.debug('Index processing and imputation...')
         if train_data.freq is None:
@@ -156,7 +158,7 @@ class AutoGluonForecaster(Forecaster):
         predictor = TimeSeriesPredictor(
             prediction_length=horizon,
             path=tmp_dir,
-            target=target_name,
+            target=target,
             ignore_time_index=ignore_time_index,
             verbosity=0,
             cache_predictions=True,
@@ -193,14 +195,14 @@ class AutoGluonForecaster(Forecaster):
                 predictor, train_data, test_data, horizon, tmp_dir, column='mean'
             )
         except NetworkXError as error:
-            raise AutomlLibraryError('AutoGluon failed to fit/predict due to NetworkX', error)
+            raise AutomlLibraryError('AutoGluon failed to fit/predict due to NetworkX', error) from error
 
-        if forecast_type == 'univariate' and 'ISEM_prices' in tmp_dir:
+        if forecast_type == 'univariate' and 'ISEM_prices' in str(tmp_dir):
             # Re-use test_data indices for date filtering
             predictions = np.array(predictions)
             for i in range(len(predictions[0])):
                 test_data[f't+{i}'] = predictions[:, i]
-            test_data = test_data.drop(target_name, axis=1)
+            test_data = test_data.drop(target, axis=1)
 
             # Drop irrelevant predictions
             predictions = []
@@ -212,16 +214,16 @@ class AutoGluonForecaster(Forecaster):
 
         # Drop irrelevant rows
         if forecast_type == 'univariate':
-            # print('0 test_df.shape', test_df.shape)
-            # print('1 test_data.shape', test_data.shape)
-            # print('2 len(predictions)', len(predictions))
-            # print('3 predictions[0].shape', predictions[0].shape)
-            # print('4 flatten', np.concatenate([ p.flatten() for p in predictions ]).shape)
+            # logger.debug('0 test_df.shape', test_df.shape)
+            # logger.debug('1 test_data.shape', test_data.shape)
+            # logger.debug('2 len(predictions)', len(predictions))
+            # logger.debug('3 predictions[0].shape', predictions[0].shape)
+            # logger.debug('4 flatten', np.concatenate([ p.flatten() for p in predictions ]).shape)
             predictions = np.concatenate([p.flatten() for p in predictions])
             # predictions = np.concatenate([ p.flatten() for p in predictions ][::horizon])
-            # print('6 predictions.shape', predictions.shape)
+            # logger.debug('6 predictions.shape', predictions.shape)
             # predictions = predictions[:len(test_df)]
-            # print('7 predictions.shape', predictions.shape)
+            # logger.debug('7 predictions.shape', predictions.shape)
         else:
             raise NotImplementedError()
 

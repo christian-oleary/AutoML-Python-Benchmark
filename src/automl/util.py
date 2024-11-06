@@ -23,6 +23,7 @@ from sklearn.metrics import (
     r2_score,
 )
 from sktime.performance_metrics.forecasting import MeanAbsoluteScaledError
+
 try:
     from pandas.errors import IndexingError
 except ImportError:  # Older pandas

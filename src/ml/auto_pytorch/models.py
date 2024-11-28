@@ -9,8 +9,8 @@ except ModuleNotFoundError as error:
     raise ModuleNotFoundError('AutoPyTorch not installed') from error
 import pandas as pd
 
-from src.automl.base import Forecaster
-from src.automl.TSForecasting.data_loader import FREQUENCY_MAP
+from src.ml.base import Forecaster
+from src.ml.TSForecasting.data_loader import FREQUENCY_MAP
 
 
 class AutoPyTorchForecaster(Forecaster):

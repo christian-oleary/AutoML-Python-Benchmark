@@ -12,9 +12,9 @@ try:
 except ModuleNotFoundError as error:
     raise ModuleNotFoundError('AutoTS not installed') from error
 
-from src.automl.base import Forecaster
-from src.automl.errors import DatasetTooSmallError
-from src.automl.logs import logger
+from src.ml.base import Forecaster
+from src.ml.errors import DatasetTooSmallError
+from src.ml.logs import logger
 
 cmdstanpy_logger = logging.getLogger('cmdstanpy')
 cmdstanpy_logger.addHandler(logging.NullHandler())

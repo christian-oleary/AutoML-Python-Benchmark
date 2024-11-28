@@ -15,10 +15,10 @@ import pandas as pd
 from pandas import DataFrame
 from typing_extensions import Self
 
-from src.automl.frequencies import frequencies
-from src.automl.logs import logger
-from src.automl.TSForecasting.data_loader import convert_tsf_to_dataframe, FREQUENCY_MAP
-from src.automl.validation import Task
+from src.ml.frequencies import frequencies
+from src.ml.logs import logger
+from src.ml.TSForecasting.data_loader import convert_tsf_to_dataframe, FREQUENCY_MAP
+from src.ml.validation import Task
 
 
 class Dataset(metaclass=ABCMeta):

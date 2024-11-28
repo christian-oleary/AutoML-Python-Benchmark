@@ -26,7 +26,7 @@ from sklearn.preprocessing import MinMaxScaler
 from sklearn.svm import LinearSVR, NuSVR, SVR
 from sklearn.tree import DecisionTreeRegressor, ExtraTreeRegressor
 
-from src.automl.logs import logger
+from src.ml.logs import logger
 
 # Check for optional dependencies
 try:

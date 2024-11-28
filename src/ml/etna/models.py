@@ -12,10 +12,10 @@ except ModuleNotFoundError as error:
 import numpy as np
 import pandas as pd
 
-from src.automl.base import Forecaster
-from src.automl.errors import AutomlLibraryError
-from src.automl.logs import logger
-from src.automl.TSForecasting.data_loader import FREQUENCY_MAP
+from src.ml.base import Forecaster
+from src.ml.errors import AutomlLibraryError
+from src.ml.logs import logger
+from src.ml.TSForecasting.data_loader import FREQUENCY_MAP
 
 # Presets are every combination of the following:
 # tune_size = ['1', '2', '3', '4', '5', '10', '20', '30', '40', '50', '100', '200', '300', '400', '500']
@@ -64,7 +64,6 @@ class ETNAForecaster(Forecaster):
         :param int verbose: Verbosity, defaults to 1
         :return predictions: Numpy array of predictions
         """
-
         logger.debug('Preprocessing...')
         # May be useful for global forecasting:
         # def format_dataframe(df):
@@ -165,24 +164,22 @@ class ETNAForecaster(Forecaster):
         return predictions
 
     def estimate_initial_limit(self, time_limit, preset):
-        """Estimate initial limit to use for training models
+        """Estimate initial limit to use for training models.
 
         :param time_limit: Maximum amount of time allowed for forecast() (int)
         :param str preset: Unused. Included for API compatibility
         :return: Time limit in seconds (int)
         """
-
         return int(time_limit * self.initial_training_fraction)
 
     def rolling_origin_forecast(self, model, X_test, horizon, freq):
-        """Iteratively forecast over increasing dataset
+        """Iteratively forecast over increasing dataset.
 
         :param model: Forecasting model, must have predict()
         :param ts_dataset: A TSDataset of test feature data
         :param horizon: Forecast horizon (int)
         :return: Predictions (numpy array)
         """
-
         predictions = []
         for i in range(0, len(X_test), horizon):
             data = X_test.head(i)  # returns pd.DataFrame

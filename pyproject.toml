@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 dependencies = {file = ["requirements.txt"]}
 
 [project]
-name = "automl"
+name = "ml"
 authors = [
     { name="Christian O'Leary", email="christian.oleary@mtu.ie" },
 ]
@@ -47,7 +47,7 @@ torch = [
 xgboost = [
     "xgboost",
 ]
-all = ["automl[dev,docs,lightgbm,tensorflow,torch,xgboost]"]
+all = ["ml[dev,docs,lightgbm,tensorflow,torch,xgboost]"]
 
 [project.urls]
 Homepage = "https://github.com/christian-oleary/AutoML-Python-Benchmark"

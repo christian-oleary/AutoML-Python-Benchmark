@@ -10,7 +10,7 @@ mkdir -p ${repo_dir}
 
 # List of repository URLs
 repos=(
-    "https://github.com/tensorflow/adanet.git"
+    # "https://github.com/tensorflow/adanet.git"
     "https://github.com/automl/Auto-PyTorch.git"
     "https://github.com/automl/auto-sklearn"
     "https://github.com/awslabs/autogluon"
@@ -20,25 +20,30 @@ repos=(
     "https://github.com/alteryx/evalml"
     "https://github.com/nccr-itmo/FEDOT"
     "https://github.com/microsoft/FLAML"
-    "https://github.com/h2oai/h2o-3"
-    "https://github.com/hyperopt/hyperopt-sklearn"
-    "https://github.com/facebookresearch/Kats"
-    "https://github.com/AILab-MLTools/LightAutoML"
+    # "https://github.com/h2oai/h2o-3"
+    # "https://github.com/hyperopt/hyperopt-sklearn"
+    # "https://github.com/facebookresearch/Kats"
+    # "https://github.com/AILab-MLTools/LightAutoML"
     "https://github.com/ludwig-ai/ludwig"
-    "https://github.com/daochenzha/Meta-AAD"
-    "https://github.com/yzhao062/MetaOD"
-    "https://github.com/AxeldeRomblay/MLBox"
-    "https://github.com/mljar/mljar-supervised"
+    # "https://github.com/daochenzha/Meta-AAD"
+    # "https://github.com/yzhao062/MetaOD"
+    # "https://github.com/AxeldeRomblay/MLBox"
+    # "https://github.com/mljar/mljar-supervised"
     "https://github.com/pycaret/pycaret"
-    "https://github.com/datamllab/pyodds"
-    "https://github.com/epistasislab/tpot"
+    # "https://github.com/datamllab/pyodds"
+    # "https://github.com/epistasislab/tpot"
 )
 
 # Loop over repositories and clone or pull if already existing
 for repo_url in "${repos[@]}"; do
-    repo_name=$(basename ${repo_url} .git)
+    # Extract repository name
+    repo_name=$(basename "${repo_url}" .git)
+    # Convert to lowercase and replace hyphens with underscores
+    repo_name=$(echo "${repo_name}" | tr '[:upper:]' '[:lower:]' | tr '-' '_')
+    # Define repository path
     repo_path="${repo_dir}${repo_name}"
 
+    # Clone or pull repository
     if [ -d "${repo_path}" ]; then
         echo "Repository ${repo_name} already exists. Pulling latest changes..."
         git -C "${repo_path}" pull

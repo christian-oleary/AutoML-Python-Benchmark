@@ -14,28 +14,35 @@
 set -e
 
 # Functions to print messages with fancy formatting
+LIGHT_BLUE='\033[1;36m'
+YELLOW='\033[1;33m'
+GREEN='\033[1;32m'
+RESET='\033[0m'
+
 print_heading() {
     local message="  $1  "
-    local border=$(printf '%*s' "${#message}" '' | tr ' ' '=')
-    local color='\033[1;36m' # Light blue color
-    local reset='\033[0m'    # Reset color
-    echo -e "\n${color}${border}\n${message}\n${border}${reset}\n"
+    local border
+    border=$(printf '%*s' "${#message}" '' | tr ' ' '=')
+    echo -e "\n${LIGHT_BLUE}${border}\n${message}\n${border}${RESET}\n"
 }
 
 print_subheading() {
     local message="  $1  "
-    local border=$(printf '%*s' "${#message}" '' | tr ' ' '-')
-    local color='\033[1;33m' # Yellow color
-    local reset='\033[0m'    # Reset color
-    echo -e "\n${color}${border}\n${message}\n${border}${reset}"
+    local border
+    border=$(printf '%*s' "${#message}" '' | tr ' ' '-')
+    echo -e "\n${YELLOW}${border}\n${message}\n${border}${RESET}"
 }
 
 print_line() {
     local message=$1
-    local color='\033[1;32m' # Green color
-    local reset='\033[0m'    # Reset color
-    echo -e "${color}-> ${message}${reset}"
+    echo -e "${GREEN}-> ${message}${RESET}"
 }
+
+# Check if the script is running on Linux or WSL
+if [[ "$(uname -s)" != "Linux" && ! -f /proc/sys/fs/binfmt_misc/WSLInterop ]]; then
+    echo "This script can only be run on Linux or WSL."
+    exit 1
+fi
 
 ################################################################################
 # Environment Variables
@@ -102,6 +109,7 @@ fi
 # List all directories in REPOSITORIES_DIR (default: "repositories")
 ################################################################################
 repositories=$(find ./$REPOSITORIES_DIR -mindepth 1 -maxdepth 1 -type d)
+# repositories="./repositories/auto_pytorch"
 print_line "All repository directories found in '${REPOSITORIES_DIR}':\n$repositories"
 
 # print_heading "Deleting All Projects"
@@ -115,9 +123,10 @@ print_line "All repository directories found in '${REPOSITORIES_DIR}':\n$reposit
 #         "${API_URL}projects/delete?project=${project_key}"
 # done
 
-current_dir=$(pwd)
+# Create logs directory
+mkdir -p logs; mkdir -p logs/sca
 
-# Loop over each directory and analyse
+# Loop over each directory and analyze
 for repo_path in $repositories; do
     # Skip if not a directory
     if [ ! -d "$repo_path" ]; then
@@ -125,10 +134,14 @@ for repo_path in $repositories; do
         continue
     fi
 
+    # Create a working directory to store sonar-scanner outputs
+    OUTPUT_DIR="./results/sca/${repo_name}/"
+    mkdir -p $OUTPUT_DIR
+
     repo_name=$(basename "$repo_path")
+    OUTPUT_FILE="${OUTPUT_DIR}/measures.json"
 
     # Skip if output file already exists
-    OUTPUT_FILE="${OUTPUT_DIR}measures.json"
     if [ -f "$OUTPUT_FILE" ]; then
         print_line "Output file $OUTPUT_FILE already exists. Skipping ${repo_name}..."
         continue
@@ -136,10 +149,6 @@ for repo_path in $repositories; do
 
     # Establish the project name
     print_heading "Processing directory: $repo_path"
-
-    # Create a working directory to store sonar-scanner outputs
-    OUTPUT_DIR="./results/sca/.scannerwork/${repo_name}/"
-    mkdir -p $OUTPUT_DIR
 
     ############################################################################
     # Environment variables
@@ -149,6 +158,7 @@ for repo_path in $repositories; do
     export PROJECT_BRANCH="master"
     export PROJECT_NAME=$repo_name
     export PROJECTKEY=$PROJECT_NAME
+    export PROJECT_KEY=$PROJECT_NAME
     export SONAR_PROJECTKEY=$PROJECT_NAME
     export SONAR_PROJECT_KEY=$PROJECT_NAME
     export TARGET_DIR="${repo_path}/"
@@ -157,6 +167,7 @@ for repo_path in $repositories; do
     print_line "PROJECT_BRANCH=${PROJECT_BRANCH}"
     print_line "PROJECT_NAME=${PROJECT_NAME}"
     print_line "PROJECTKEY=${PROJECTKEY}"
+    print_line "PROJECT_KEY=${PROJECT_KEY}"
     print_line "SONAR_PROJECTKEY=${SONAR_PROJECTKEY}"
     print_line "SONAR_PROJECT_KEY=${SONAR_PROJECT_KEY}"
     print_line "TARGET_DIR=${TARGET_DIR}"
@@ -165,51 +176,24 @@ for repo_path in $repositories; do
     # Running Python tests
     ############################################################################
     print_subheading "Running Python Tests (project: $repo_name)"
-    cd $repo_path
 
     # Check if coverage.xml exists
-    if [ ! -f "coverage.xml" ]; then
-        # Create a new conda environment and install dependencies
-        if ! conda env list | grep -q "$repo_name"; then
-            print_line "Setting up conda environment..."
-            conda create -y -n $repo_name python=3.10
-        else
-            print_line "Conda environment $repo_name found"
-        fi
+    # if [ ! -f "$OUTPUT_DIR/coverage.xml" ]; then
+    # Remove irrelevant files that may be picked up by Sonar
+    rm -f coverage.xml report.xml
+    # Build Docker image including unit tests (timeout: 45 minutes)
+    docker build --build-arg run_tests=true --progress plain \
+        -t $repo_name -f ./src/ml/$repo_name/Dockerfile . 2>&1 | tee ./logs/sca/$repo_name.log
+    # &> ./logs/sca/$repo_name.log
+    # Fetch contents of relevant coverage xml file and save to output/target directories
+    docker run --rm --name $repo_name $repo_name bash -c "cat coverage.xml" > $OUTPUT_DIR/coverage.xml
+    cp $OUTPUT_DIR/coverage.xml $TARGET_DIR/coverage.xml
+    # else
+    #     print_line "coverage.xml already exists. Skipping test run..."
+    # fi
 
-        # Install dependencies from requirements.txt
-        # List of possible requirements files
-        requirements_files=(
-            "requirements.txt"
-            "requirements-dev.txt"
-            "requirements-test.txt"
-        )
-
-        # Install dependencies from each requirements file if it exists
-        for req_file in "${requirements_files[@]}"; do
-            if [ -f "$req_file" ]; then
-                print_line "Installing dependencies from $req_file..."
-                conda run -n $repo_name python -m pip install -r "$req_file"
-            fi
-        done
-
-        # Install pytest and pytest-cov
-        print_line "Installing pytest and pytest-cov..."
-        conda run -n $repo_name python -m pip install pytest pytest-cov
-
-        # Run tests
-        print_line "Running pytest..."
-        conda run -n $repo_name pytest --cov-report xml --cov=. || true
-        cp coverage.xml $OUTPUT_DIR
-
-        # print_line "Deleting conda environment..."
-        # conda remove -n $repo_name --all -y
-        conda run -n $repo_name pytest --cov-report xml --cov=. || true
-    else
-        print_line "coverage.xml found. Skipping tests..."
-    fi
-
-    cd $current_dir
+    # continue
+    break
 
     ############################################################################
     # Create/replace user access token
@@ -243,7 +227,8 @@ for repo_path in $repositories; do
     # Create sonar-project.properties file
     ############################################################################
     print_subheading "Updating sonar-project.properties file (project: $repo_name)"
-    ABSOLUTE_PATH=$(realpath $TARGET_DIR)
+    # ABSOLUTE_PATH=$(realpath $TARGET_DIR)
+    ABSOLUTE_PATH=$TARGET_DIR
     cat <<EOL >$OUTPUT_DIR/sonar-project.properties
 sonar.projectKey=$SONAR_PROJECT_KEY
 sonar.projectName=$SONAR_PROJECT_KEY
@@ -253,10 +238,10 @@ sonar.login=$SONAR_LOGIN
 sonar.password=$SONAR_PASSWORD
 sonar.token=$SONAR_TOKEN
 sonar.language=py
-sonar.python.coverage.reportPaths=coverage.xml
+sonar.python.coverage.reportPaths=coverage.xml,$OUTPUT_DIR/coverage.xml,$ABSOLUTE_PATH/coverage.xml
 sonar.scm.disabled=true
-sonar.working.directory=$OUTPUT_DIR
 EOL
+    # sonar.working.directory=$OUTPUT_DIR
     cat "$OUTPUT_DIR/sonar-project.properties"
     # sonar.python.version=3.x
     # sonar.sourceEncoding=UTF-8
@@ -276,15 +261,19 @@ EOL
         "${API_URL}projects/create?name=${PROJECT_NAME}&project=${PROJECT_NAME}&projectKey=${PROJECT_KEY}&token=${SONAR_TOKEN}&branch=${BRANCH}"
     printf "\n"
 
-    # List projects
-    print_line "Projects in SonarQube:\n"
-    curl -u ${SONAR_LOGIN}:${SONAR_PASSWORD} -s \
-        -X POST "${API_URL}components/search?qualifiers=TRK" | python -m json.tool
+    # # List projects
+    # print_line "Projects in SonarQube:\n"
+    # curl -u ${SONAR_LOGIN}:${SONAR_PASSWORD} -s \
+    #     -X POST "${API_URL}components/search?qualifiers=TRK" | python -m json.tool
 
     ############################################################################
     # Run SonarScanner
     ############################################################################
     print_subheading "Running SonarScanner (project: $repo_name)"
+
+    # Remove irrelevant files
+    rm -f coverage.xml
+    rm -f report.xml
 
     # Run SonarScanner CLI tool
     if [ "${DOCKER}" = "false" ]; then
@@ -304,9 +293,9 @@ EOL
             -e PROJECT_SETTINGS=$OUTPUT_DIR/sonar-project.properties \
             -e SONAR_PROJECT_SETTINGS=$OUTPUT_DIR/sonar-project.properties \
             -v "${TARGET_DIR}:/usr/src" \
-            -v "${OUTPUT_DIR}:/usr/src" \
-            -v "${OUTPUT_DIR}:/usr/src/.scannerwork" \
             sonarsource/sonar-scanner-cli:4 -X
+        # -v "${OUTPUT_DIR}:/usr/src/.scannerwork" \
+        # -v "${OUTPUT_DIR}:/usr/src" \
         # -v .scannerwork/${PROJECT_NAME}/:/usr/src/.scannerwork/ \
     fi
 
@@ -323,9 +312,7 @@ EOL
     # Loop over each measure and fetch metrics
     for measure in $measures; do
         print_line "Fetching metrics for measure: $measure"
-        curl -u ${SONAR_LOGIN}:${SONAR_PASSWORD} -s -X GET \
-            "${API_URL}measures/component?component=${PROJECT_NAME}&metricKeys=${measure}" \
-            >> $OUTPUT_FILE
+        curl -u ${SONAR_LOGIN}:${SONAR_PASSWORD} -s -X GET "${API_URL}measures/component?component=${PROJECT_NAME}&metricKeys=${measure}" >> $OUTPUT_FILE
         printf "\n" >> $OUTPUT_FILE
         tail -n 1 $OUTPUT_FILE
     done

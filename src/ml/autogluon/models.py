@@ -10,10 +10,10 @@ import numpy as np
 import pandas as pd
 from networkx.exception import NetworkXError
 
-from src.automl.base import Forecaster
-from src.automl.errors import AutomlLibraryError
-from src.automl.logs import logger
-from src.automl.TSForecasting.data_loader import FREQUENCY_MAP
+from src.ml.base import Forecaster
+from src.ml.errors import AutomlLibraryError
+from src.ml.logs import logger
+from src.ml.TSForecasting.data_loader import FREQUENCY_MAP
 
 
 class AutoGluonForecaster(Forecaster):

@@ -10,9 +10,9 @@ try:
 except ModuleNotFoundError as error:
     raise ModuleNotFoundError('PyCaret not installed') from error
 
-from src.automl.base import Forecaster
-from src.automl.logs import logger
-from src.automl.TSForecasting.data_loader import FREQUENCY_MAP
+from ml.base import Forecaster
+from ml.logs import logger
+from ml.TSForecasting.data_loader import FREQUENCY_MAP
 
 
 class PyCaretForecaster(Forecaster):
@@ -39,7 +39,7 @@ class PyCaretForecaster(Forecaster):
         target_name: str | None = None,
         verbose: int = 1,
     ):
-        """Perform time series forecasting
+        """Perform time series forecasting.
 
         :param pd.DataFrame train_df: Dataframe of training data
         :param pd.DataFrame test_df: Dataframe of test data
@@ -53,7 +53,6 @@ class PyCaretForecaster(Forecaster):
         :param str target_name: Name of target variable for multivariate forecasting, defaults to None
         :return predictions: Numpy array of predictions
         """
-
         if forecast_type == 'global':
             freq = FREQUENCY_MAP[frequency].replace('1', '')
             train_df.index = pd.to_datetime(train_df.index).to_period(freq)
@@ -111,17 +110,16 @@ class PyCaretForecaster(Forecaster):
         return predictions
 
     def estimate_initial_limit(self, time_limit, preset):
-        """Estimate initial limit to use for training models
+        """Estimate initial limit to use for training models.
 
         :param time_limit: Maximum amount of time allowed for forecast() (int)
         :param str preset: Model configuration to use
         :return: Time limit in minutes (int)
         """
-
         return int((time_limit / 60) * self.initial_training_fraction)
 
     def rolling_origin_forecast(self, exp, model, X_train, X_test, horizon, freq, column=None):
-        """Iteratively forecast over increasing dataset
+        """Iteratively forecast over increasing dataset.
 
         :param model: Forecasting model, must have predict()
         :param X_train: Training feature data (pandas DataFrame)
@@ -130,13 +128,12 @@ class PyCaretForecaster(Forecaster):
         :param column: Specifies forecast column if dataframe outputted, defaults to None
         :return: Predictions (numpy array)
         """
-
         # Make predictions
-        preds = exp.predict_model(model, X=X_train, fh=horizon)
+        predicted = exp.predict_model(model, X=X_train, fh=horizon)
         if column is not None:
-            preds = preds[column].values[-horizon:]
-        # logger.debug('0 preds.shape', preds.shape)
-        predictions = [preds]
+            predicted = predicted[column].values[-horizon:]
+        # logger.debug(f'predicted.shape: {predicted.shape}')
+        predictions = [predicted]
 
         data = X_train
         for s in X_test.iterrows():
@@ -152,11 +149,11 @@ class PyCaretForecaster(Forecaster):
             # data.index = pd.date_range(start=data.index.min(), freq='H', periods=len(data)).to_period(freq)
 
             # logger.debug('data', data, type(data), data.shape)
-            preds = exp.predict_model(model, X=data, fh=horizon)
+            predicted = exp.predict_model(model, X=data, fh=horizon)
             if column is not None:
-                preds = preds[column].values[-horizon:]
+                predicted = predicted[column].values[-horizon:]
 
-            predictions.append(preds)
+            predictions.append(predicted)
 
         # Flatten predictions and truncate if needed
         # logger.debug('len(predictions)', len(predictions))

@@ -1,4 +1,4 @@
-"""Main application entrypoint"""
+"""Call the main function of the module from the command line."""
 
 import argparse
 from datetime import datetime, timedelta
@@ -12,13 +12,16 @@ from sklearn.exceptions import ConvergenceWarning
 # import needed for IterativeImputer
 from sklearn.experimental import enable_iterative_imputer  # pylint: disable=W0611  # noqa: F401
 
-from src.automl.datasets import DatasetFormatter
-from src.automl.forecasting import Forecasting
-from src.automl.logs import logger, LogLevel, set_log_dir
-from src.automl.validation import Library, Task, Validator
+from src.ml.datasets import DatasetFormatter
+from src.ml.forecasting import Forecasting
+from src.ml.logs import logger, LogLevel, set_log_dir
+from src.ml.validation import Library, Task, Validator
 
 
-if __name__ == '__main__':  # Needed for any multiprocessing
+def run():
+    """Run the main function of the module."""
+    logger.info('Starting application')
+
     warnings.simplefilter('ignore', category=ConvergenceWarning)
 
     def options_as_str(param_options: list):
@@ -237,3 +240,9 @@ if __name__ == '__main__':  # Needed for any multiprocessing
     logger.info(f'Finished at {datetime.now().strftime("%d-%m-%y %H:%M:%S")}')
     duration = timedelta(seconds=time.perf_counter() - start_time)
     logger.debug(f'Total time: {duration}')
+
+    logger.info('Exiting application')
+
+
+if __name__ == "__main__":
+    run()

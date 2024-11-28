@@ -3,7 +3,7 @@
 import importlib
 import os
 
-from src.automl.logs import BaseEnum, logger
+from src.ml.logs import BaseEnum, logger
 
 
 class Task(BaseEnum):

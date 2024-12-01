@@ -24,28 +24,12 @@ RUN python --version; python3 --version
 # Install the required dependencies
 RUN python3 -m pip install git+https://github.com/keras-team/keras-tuner.git
 RUN python3 -m pip install --upgrade pip
-# RUN ls -la && pwd && python3 -m pip install .
-# RUN ls -la && pwd && python3 -m pip install .[tests]
 RUN ls -la && pwd && python3 -m pip install -e .[tests]
 
-# RUN python3 -m pytest --cov-report xml:coverage.xml --cov=. --cov-fail-under=1  # FAILS
-RUN python3 -m pytest --cov-report xml:coverage.xml --cov=. || ls coverage.xml
+RUN python3 -m pytest --cov-report xml:coverage.xml --cov=. --cov-fail-under=1
+# RUN python3 -m pytest --cov-report xml:coverage.xml --cov=. --cov-fail-under=1 || ls coverage.xml
 
 # Ensure the coverage.xml file is created and some lines are covered
-RUN cat coverage.xml | grep "hits=" | grep -Eo '[0-9]+' | grep -v '^0$'
-
-# # Run tests if the run_tests is set to "true"
-# ARG run_tests
-# RUN if [ "$run_tests" = "true" ]; then \
-#         echo "Installing test dependencies..." && \
-#         python3 -m pip install -e .[tests] coverage pytest pytest-cov && \
-#         echo "Running unit tests..." && \
-#         python3 -m pytest ./test/ --cov-report xml:coverage.xml --cov=. --cov-fail-under=1 && \
-#         ls coverage.xml && \
-#         echo "Tests complete"; \
-#     else \
-#         echo "Skipping tests"; \
-#     fi
-#         # python3 -m pytest ./test/ --cov-report xml:coverage.xml --cov=. --disable-warnings && \
+RUN cat coverage.xml | grep "hits=" | grep -Eo '[0-9]+' | grep -v '^0$' | wc -l
 
 RUN python -c "import tensorflow as tf;print('GPU STATUS:',tf.test.is_built_with_cuda())"

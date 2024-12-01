@@ -3,13 +3,18 @@
 import logging
 
 import pandas as pd
-from ludwig.api import LudwigModel
-from ludwig.utils.data_utils import add_sequence_feature_column
 
-from src.base import Forecaster
+from ml.base import Forecaster
+
+try:
+    from ludwig.api import LudwigModel  # type: ignore
+    from ludwig.utils.data_utils import add_sequence_feature_column  # type: ignore
+except ModuleNotFoundError:
+    raise ModuleNotFoundError('Ludwig is not installed')
 
 
 class LudwigForecaster(Forecaster):
+    """Ludwig forecaster"""
 
     name = 'Ludwig'
 
@@ -46,7 +51,6 @@ class LudwigForecaster(Forecaster):
         :param int verbose: Verbosity, defaults to 1
         :return predictions: Numpy array of predictions
         """
-
         # IGNORE. Produces scaled predictions...
         # Ludwig examples indicate scaling must be done separately: https://ludwig.ai/latest/examples/weather/
         # train_df[target_name] = ((train_df[target_name]-train_df[target_name].mean()) / train_df[target_name].std())
@@ -131,7 +135,6 @@ class LudwigForecaster(Forecaster):
         :param str preset: Model configuration to use
         :return: Time limit in seconds (int)
         """
-
         return int(time_limit * self.initial_training_fraction)
 
     def rolling_origin_forecast(self, model, X_train, X_test, horizon, column=None):
@@ -144,7 +147,6 @@ class LudwigForecaster(Forecaster):
         :param column: Specifies forecast column if dataframe outputted, defaults to None
         :return: Predictions (numpy array)
         """
-
         # # Split test set
         # from util import Utils
         # test_splits = Utils.split_test_set(X_test, horizon)

@@ -7,7 +7,7 @@ import unittest
 
 import pandas as pd
 
-from src.ml.datasets import ISEM2020Dataset
+from ml.datasets import ISEM2020Dataset
 
 
 class TestDataset(unittest.TestCase):

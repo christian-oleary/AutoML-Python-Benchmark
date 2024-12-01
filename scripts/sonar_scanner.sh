@@ -181,12 +181,13 @@ for repo_path in $repositories; do
     # if [ ! -f "$OUTPUT_DIR/coverage.xml" ]; then
     # Remove irrelevant files that may be picked up by Sonar
     rm -f coverage.xml report.xml
+
     # Build Docker image including unit tests (timeout: 45 minutes)
     docker build --build-arg run_tests=true --progress plain \
         -t $repo_name -f ./src/ml/$repo_name/Dockerfile . 2>&1 | tee ./logs/sca/$repo_name.log
-    # &> ./logs/sca/$repo_name.log
+
     # Fetch contents of relevant coverage xml file and save to output/target directories
-    docker run --rm --name $repo_name $repo_name bash -c "cat coverage.xml" > $OUTPUT_DIR/coverage.xml
+    docker run --gpus all --rm --name $repo_name $repo_name bash -c "cat coverage.xml" > $OUTPUT_DIR/coverage.xml
     cp $OUTPUT_DIR/coverage.xml $TARGET_DIR/coverage.xml
     # else
     #     print_line "coverage.xml already exists. Skipping test run..."

@@ -58,9 +58,6 @@ results/
 # Other
 ###########################
 
-# AWS
-*.pem
-
 # Generated
 bin
 cache/
@@ -71,6 +68,10 @@ share
 
 # GCC
 .stackdump
+
+# Keys
+*.pem
+gpgkey
 
 # LaTeX
 *.aux

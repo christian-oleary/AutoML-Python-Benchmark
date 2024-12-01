@@ -1,19 +1,21 @@
 """AutoGluon models."""
 
+from __future__ import annotations
 from pathlib import Path
 
-try:
-    from autogluon.timeseries import TimeSeriesDataFrame, TimeSeriesPredictor
-except ModuleNotFoundError as error:
-    raise ModuleNotFoundError('AutoGluon not installed') from error
 import numpy as np
 import pandas as pd
 from networkx.exception import NetworkXError
 
-from src.ml.base import Forecaster
-from src.ml.errors import AutomlLibraryError
-from src.ml.logs import logger
-from src.ml.TSForecasting.data_loader import FREQUENCY_MAP
+from ml.base import Forecaster
+from ml.errors import AutomlLibraryError
+from ml.logs import logger
+from ml.TSForecasting.data_loader import FREQUENCY_MAP
+
+try:
+    from autogluon.timeseries import TimeSeriesDataFrame, TimeSeriesPredictor  # type: ignore
+except ModuleNotFoundError as error:
+    raise ModuleNotFoundError('AutoGluon not installed') from error
 
 
 class AutoGluonForecaster(Forecaster):
@@ -46,7 +48,7 @@ class AutoGluonForecaster(Forecaster):
         target_name: str | None = None,
         verbose: int = 1,
     ):
-        """Perform time series forecasting using AutoGluon TimeSeriesPredictor
+        """Perform time series forecasting using AutoGluon TimeSeriesPredictor.
 
         :param pd.DataFrame train_df: Dataframe of training data
         :param pd.DataFrame test_df: Dataframe of test data
@@ -60,7 +62,6 @@ class AutoGluonForecaster(Forecaster):
         :param str target_name: Name of target variable for multivariate forecasting, defaults to None
         :return np.array: Predictions
         """
-
         logger.debug('Formatting indices...')
 
         # Done after from_data_frame() calls instead (below)
@@ -192,7 +193,7 @@ class AutoGluonForecaster(Forecaster):
         except NetworkXError as error:
             raise AutomlLibraryError('AutoGluon failed to fit/predict due to NetworkX', error)
 
-        if forecast_type == 'univariate' and 'ISEM_prices' in tmp_dir:
+        if forecast_type == 'univariate' and 'ISEM_prices' in str(tmp_dir):
             # Re-use test_data indices for date filtering
             predictions = np.array(predictions)
             for i in range(len(predictions[0])):
@@ -225,17 +226,16 @@ class AutoGluonForecaster(Forecaster):
         return predictions
 
     def estimate_initial_limit(self, time_limit, preset):
-        """Estimate initial time limit to use for TimeSeriesPredictor fit()
+        """Estimate initial time limit to use for TimeSeriesPredictor fit().
 
         :param time_limit: Maximum time allowed for AutoGluonForecaster.forecast() (int)
         :param str preset: Model configuration to use
         :return: Estimated time limit (int)
         """
-
         return int(time_limit * self.initial_training_fraction)
 
     def rolling_origin_forecast(self, model, X_train, X_test, horizon, tmp_dir, column=None):
-        """Iteratively forecast over increasing dataset
+        """Iteratively forecast over increasing dataset.
 
         :param model: Forecasting model, must have predict()
         :param X_train: Training feature data (Autogluon DataFrame)
@@ -244,7 +244,6 @@ class AutoGluonForecaster(Forecaster):
         :param column: Specifies forecast column if dataframe outputted, defaults to None
         :return: Predictions (numpy array)
         """
-
         # Make predictions
         data = X_train[-horizon:]
         preds = model.predict(data)

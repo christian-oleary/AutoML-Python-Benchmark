@@ -1,18 +1,23 @@
-"""FEDOT models"""
+"""FEDOT models."""
 
-from fedot.api.main import Fedot
-from fedot.core.pipelines.node import PrimaryNode, SecondaryNode
-from fedot.core.pipelines.pipeline import Pipeline
-from fedot.core.repository.tasks import Task, TaskTypesEnum, TsForecastingParams
-from fedot.utilities.ts_gapfilling import ModelGapFiller
 import numpy as np
 import pandas as pd
 
-from src.base import Forecaster
-from src.logs import logger
+from ml.base import Forecaster
+from ml.logs import logger
+
+try:
+    from fedot.api.main import Fedot  # type: ignore
+    from fedot.core.pipelines.node import PrimaryNode, SecondaryNode  # type: ignore
+    from fedot.core.pipelines.pipeline import Pipeline  # type: ignore
+    from fedot.core.repository.tasks import Task, TaskTypesEnum, TsForecastingParams  # type: ignore
+    from fedot.utilities.ts_gapfilling import ModelGapFiller  # type: ignore
+except ModuleNotFoundError as error:
+    raise ModuleNotFoundError('FEDOT not installed') from error
 
 
 class FEDOTForecaster(Forecaster):
+    """FEDOT forecaster."""
 
     name = 'FEDOT'
 
@@ -42,7 +47,7 @@ class FEDOTForecaster(Forecaster):
         preset='fast_train',
         target_name=None,
     ):
-        """Perform time series forecasting
+        """Perform time series forecasting.
 
         :param pd.DataFrame train_df: Dataframe of training data
         :param pd.DataFrame test_df: Dataframe of test data
@@ -56,7 +61,6 @@ class FEDOTForecaster(Forecaster):
         :param str target_name: Name of target variable for multivariate forecasting, defaults to None
         :return predictions: Numpy array of predictions
         """
-
         if forecast_type == 'univariate':
             target_name = 'target'
             train_df.columns = [target_name]
@@ -117,17 +121,16 @@ class FEDOTForecaster(Forecaster):
         return predictions
 
     def estimate_initial_limit(self, time_limit, preset):
-        """Estimate initial limit to use for training models
+        """Estimate initial limit to use for training models.
 
         :param time_limit: Maximum amount of time allowed for forecast() (int)
         :param str preset: Model configuration to use
         :return: Time limit in minutes (int)
         """
-
         return int((time_limit / 60) * self.initial_training_fraction)
 
     def rolling_origin_forecast(self, model, X_train, X_test, horizon):
-        """Iteratively forecast over increasing dataset
+        """Iteratively forecast over increasing dataset.
 
         :param model: Forecasting model, must have predict()
         :param X_train: Training feature data (pandas DataFrame)
@@ -135,7 +138,6 @@ class FEDOTForecaster(Forecaster):
         :param horizon: Forecast horizon (int)
         :return: Predictions (numpy array)
         """
-
         # Make predictions
         data = X_train
         preds = model.predict(data, in_sample=False)

@@ -6,7 +6,7 @@ FROM tensorflow/tensorflow:latest-gpu
 ENV DEBIAN_FRONTEND=noninteractive
 
 # Install the git and AutoTS dependencies
-RUN apt-get install -y git || (apt-get update --fix-missing && apt-get install -y git)
+RUN apt-get update --fix-missing && apt-get install -y git
 
 # Clone the AutoTS repository which contains source code and tests
 RUN rm -rf /src/autots && git clone https://github.com/winedarksea/AutoTS.git /src/autots
@@ -24,7 +24,7 @@ RUN if [ "$run_tests" = "true" ]; then \
         echo "Installing test dependencies..." && \
         python3 -m pip install -e .['additional'] coverage pytest pytest-cov && \
         echo "Running unit tests..." && \
-        python3 -m pytest ./test/ --cov-report xml:coverage.xml --cov=. && \
+        python3 -m pytest ./tests/ --cov-report xml:coverage.xml --cov=. && \
         ls coverage.xml && \
         echo "Tests complete"; \
     else \

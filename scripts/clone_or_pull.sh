@@ -16,7 +16,7 @@ repos=(
     "https://github.com/awslabs/autogluon"
     "https://github.com/keras-team/autokeras.git"
     "https://github.com/winedarksea/AutoTS"
-    "https://github.com/tinkoff-ai/etna"
+    # "https://github.com/tinkoff-ai/etna"  # ETNA has been archived by owner
     "https://github.com/alteryx/evalml"
     "https://github.com/nccr-itmo/FEDOT"
     "https://github.com/microsoft/FLAML"

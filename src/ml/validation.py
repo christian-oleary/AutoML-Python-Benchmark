@@ -3,7 +3,7 @@
 import importlib
 import os
 
-from src.ml.logs import BaseEnum, logger
+from ml.logs import BaseEnum, logger
 
 
 class Task(BaseEnum):
@@ -28,13 +28,13 @@ class Task(BaseEnum):
 
 
 class Library(BaseEnum):
-    """AutoML Libraries"""
+    """AutoML Libraries."""
 
     AutoGluon = 'autogluon'
     AutoKeras = 'autokeras'
     AutoTS = 'autots'
     AutoPyTorch = 'autopytorch'
-    ETNA = 'etna'
+    # ETNA = 'etna'  # ETNA has been archived by owner
     EvalML = 'evalml'
     FEDOT = 'fedot'
     FLAML = 'flaml'
@@ -43,14 +43,13 @@ class Library(BaseEnum):
 
 
 class Validator:
-    """Class for validating parameters"""
+    """Class for validating parameters."""
 
     def validate_inputs(self, args):
-        """Validate CLI arguments
+        """Validate CLI arguments.
 
         :param argparse.Namespace args: arguments from command line
         """
-
         # Task
         if args.task in ['multivariate', 'global']:
             raise NotImplementedError('multivariate forecasting not implemented')
@@ -116,7 +115,7 @@ class Validator:
         args.libraries = []
         for library in [lib.value for lib in Library]:
             try:
-                importlib.import_module(f'src.{library}.models', __name__)
+                importlib.import_module(f'ml.automl.{library}.models', __name__)
                 args.libraries.append(library)
                 logger.debug(f'Imported {library}')
             except ModuleNotFoundError:

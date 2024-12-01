@@ -83,8 +83,9 @@ directory = "./docs/coverage_html_report"
 # MYPY
 [tool.mypy]
 exclude = ["tests", "docs", "repositories", "**/TSForecasting/*"]
+explicit_package_bases = true
 ignore_missing_imports = true
-namespace_packages = false
+namespace_packages = true
 
 ################################################################################
 # PYDOCSTYLE

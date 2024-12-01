@@ -1,10 +1,10 @@
 """Call the main function of the module from the command line."""
 
+from __future__ import annotations
 import argparse
 from datetime import datetime, timedelta
 import os
 import time
-from typing import Any
 import warnings
 
 from sklearn.exceptions import ConvergenceWarning
@@ -12,10 +12,10 @@ from sklearn.exceptions import ConvergenceWarning
 # import needed for IterativeImputer
 from sklearn.experimental import enable_iterative_imputer  # pylint: disable=W0611  # noqa: F401
 
-from src.ml.datasets import DatasetFormatter
-from src.ml.forecasting import Forecasting
-from src.ml.logs import logger, LogLevel, set_log_dir
-from src.ml.validation import Library, Task, Validator
+from ml.datasets import DatasetFormatter
+from ml.forecasting import Forecasting
+from ml.logs import logger, LogLevel, set_log_dir
+from ml.validation import Library, Task, Validator
 
 
 def run():
@@ -60,7 +60,7 @@ def run():
         'none',  # No experiments (just other functions)
         *Library.get_options(),
     ]
-    default: Any = 'installed'
+    default: str | None = 'installed'
     parser.add_argument(
         '--libraries',
         '-L',

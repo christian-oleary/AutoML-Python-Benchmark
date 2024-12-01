@@ -1,13 +1,18 @@
 """EvalML models"""
 
 import pandas as pd
-from evalml.automl import AutoMLSearch
 
-from src.base import Forecaster
-from src.errors import DatasetTooSmallError
+from ml.base import Forecaster
+from ml.errors import DatasetTooSmallError
+
+try:
+    from evalml.automl import AutoMLSearch  # type: ignore
+except ModuleNotFoundError as error:
+    raise ModuleNotFoundError('EvalML not installed') from error
 
 
 class EvalMLForecaster(Forecaster):
+    """EvalML forecaster."""
 
     name = 'EvalML'
 
@@ -105,19 +110,18 @@ class EvalMLForecaster(Forecaster):
         return predictions
 
     def estimate_initial_limit(self, time_limit, preset):
-        """Estimate initial limit to use for training models
+        """Estimate initial limit to use for training models.
 
         :param time_limit: Maximum amount of time allowed for forecast() (int)
         :param str preset: Model configuration to use
         :return: Time limit in seconds (int)
         """
-
         return int(time_limit * self.initial_training_fraction)
 
     def rolling_origin_forecast(
         self, model, train_X, test_X, y_train, horizon, forecast_type, tmp_dir
     ):
-        """Iteratively forecast over increasing dataset
+        """Iteratively forecast over increasing dataset.
 
         :param model: Forecasting model, must have predict()
         :param train_X: Training feature data (pandas DataFrame)

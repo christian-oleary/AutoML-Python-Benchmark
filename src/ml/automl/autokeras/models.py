@@ -1,32 +1,37 @@
-"""AutoKeras models"""
+"""AutoKeras models."""
 
 import itertools
 import os
 from pathlib import Path
 import shutil
 
-import autokeras as ak
 import numpy as np
 import pandas as pd
 from sklearn.model_selection import train_test_split
-from tensorflow.keras.callbacks import EarlyStopping
+from tensorflow.keras.callbacks import EarlyStopping  # type: ignore
 
-from src.ml.base import Forecaster
-from src.ml.errors import AutomlLibraryError
-from src.ml.logs import logger
-from src.ml.util import Utils
-from src.ml.validation import Task
+from ml.base import Forecaster
+from ml.errors import AutomlLibraryError
+from ml.logs import logger
+from ml.util import Utils
+from ml.validation import Task
+
+try:
+    import autokeras as ak  # type: ignore
+except ModuleNotFoundError:
+    raise AutomlLibraryError('AutoKeras is not installed', ModuleNotFoundError())
 
 # Presets are every combination of the following:
 optimizers = ['hyperband', 'greedy', 'bayesian', 'random']
 min_delta = ['0', '1', '2', '4', '8', '16', '32', '64', '128', '256']  # 0 = no early stopping
 num_epochs = ['1000']  # default
 num_trials = ['100']  # default
-presets = list(itertools.product(num_trials, num_epochs, optimizers, min_delta))
-presets = ['_'.join(p) for p in presets]
+presets_ = list(itertools.product(num_trials, num_epochs, optimizers, min_delta))
+presets = ['_'.join(p) for p in presets_]
 
 
 class AutoKerasForecaster(Forecaster):
+    """AutoKeras forecaster."""
 
     name = 'AutoKeras'
 
@@ -44,10 +49,10 @@ class AutoKerasForecaster(Forecaster):
         tmp_dir: str | Path,
         nproc: int = 1,
         preset: str = 'greedy_32_60',
-        target_name: str = None,
+        target_name: str | None = None,
         verbose: int = 1,
     ):
-        """Perform time series forecasting
+        """Perform time series forecasting.
 
         :param pd.DataFrame train_df: Dataframe of training data
         :param pd.DataFrame test_df: Dataframe of test data
@@ -62,7 +67,6 @@ class AutoKerasForecaster(Forecaster):
         :param int verbose: Verbosity, defaults to 1
         :return predictions: Numpy array of predictions
         """
-
         # Cannot use tmp_dir due to internal bugs with AutoKeras
         original_tmp_dir = tmp_dir
         tmp_dir = 'time_series_forecaster'
@@ -157,7 +161,7 @@ class AutoKerasForecaster(Forecaster):
         return predictions
 
     def estimate_initial_limit(self, time_limit, preset):
-        """Included for API compatibility
+        """Included for API compatibility.
 
         :param time_limit: Maximum amount of time allowed for forecast() (int)
         :param str preset: Model configuration to use
@@ -167,7 +171,7 @@ class AutoKerasForecaster(Forecaster):
         return time_limit
 
     def rolling_origin_forecast(self, model, X_train, X_test, horizon, forecast_type, tmp_dir):
-        """Iteratively forecast over increasing dataset
+        """Iteratively forecast over increasing dataset.
 
         :param model: Forecasting model, must have predict()
         :param X_train: Training feature data (pandas DataFrame)
@@ -175,7 +179,6 @@ class AutoKerasForecaster(Forecaster):
         :param horizon: Forecast horizon (int)
         :return: Predictions (numpy array)
         """
-
         # Split test set
         # if forecast_type == 'univariate' and 'ISEM_prices' in tmp_dir:
         #     X_test['autokeras_datetime'] = X_test.index
@@ -188,24 +191,24 @@ class AutoKerasForecaster(Forecaster):
 
         # Make predictions
         data = X_train
-        preds = model.predict(data)[-1]
-        assert len(preds.flatten()) > 0
-        predictions = [preds]
+        predicted = model.predict(data)[-1]
+        assert len(predicted.flatten()) > 0
+        predictions = [predicted]
 
         for i, s in enumerate(test_splits):
             logger.debug(f'{i+1} of {len(test_splits)}')
             data = pd.concat([data, s])
-            preds = model.predict(data, verbose=0)
+            predicted = model.predict(data, verbose=0)
 
             # AutoKeras can produce empty predictions on first inference (?)
             # Update: Only occurs trials = 1 and epochs = 1
             # if len(preds.flatten()) == 0:
             #     preds = model.predict(data)
 
-            if len(preds) > horizon:
-                preds = preds[-horizon:]
+            if len(predicted) > horizon:
+                predicted = predicted[-horizon:]
 
-            predictions.append(preds)
+            predictions.append(predicted)
 
         # Flatten predictions and truncate if needed
         try:

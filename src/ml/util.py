@@ -29,7 +29,7 @@ try:
 except ImportError:  # Older pandas
     from pandas.core.indexing import IndexingError
 
-from src.ml.logs import logger
+from ml.logs import logger
 
 
 class Utils:

@@ -1,18 +1,23 @@
-"""FLAML models"""
+"""FLAML models."""
 
 import os
 
-from flaml import AutoML
 import numpy as np
 import pandas as pd
 
-from src.base import Forecaster
-from src.errors import DatasetTooSmallError
-from src.logs import logger
-from src.util import Utils
+from ml.base import Forecaster
+from ml.errors import DatasetTooSmallError
+from ml.logs import logger
+from ml.util import Utils
+
+try:
+    from flaml import AutoML
+except ModuleNotFoundError:
+    raise ModuleNotFoundError('FLAML not installed')
 
 
 class FLAMLForecaster(Forecaster):
+    """FLAML Forecaster"""
 
     name = 'FLAML'
 
@@ -34,7 +39,7 @@ class FLAMLForecaster(Forecaster):
         preset='auto',
         target_name=None,
     ):
-        """Perform time series forecasting
+        """Perform time series forecasting.
 
         :param pd.DataFrame train_df: Dataframe of training data
         :param pd.DataFrame test_df: Dataframe of test data
@@ -48,7 +53,6 @@ class FLAMLForecaster(Forecaster):
         :param str target_name: Name of target variable for multivariate forecasting, defaults to None
         :return predictions: Numpy array of predictions
         """
-
         if len(test_df) <= horizon + 1:  # 4 = lags
             raise DatasetTooSmallError('Dataset too small for FLAML', ValueError())
 
@@ -110,17 +114,16 @@ class FLAMLForecaster(Forecaster):
         return predictions
 
     def estimate_initial_limit(self, time_limit, preset):
-        """Estimate initial limit to use for training models
+        """Estimate initial limit to use for training models.
 
         :param time_limit: Maximum amount of time allowed for forecast() (int)
         :param str preset: Model configuration to use
         :return: Time limit in seconds (int)
         """
-
         return int(time_limit * self.initial_training_fraction)
 
     def rolling_origin_forecast(self, model, X_train, X_test, horizon):
-        """Iteratively forecast over increasing dataset
+        """Iteratively forecast over increasing dataset.
 
         :param model: Forecasting model, must have predict()
         :param X_train: Training feature data (pandas DataFrame)

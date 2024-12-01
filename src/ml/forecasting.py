@@ -10,12 +10,12 @@ import time
 import numpy as np
 import pandas as pd
 
-from src.ml.base import Forecaster
-from src.ml.datasets import Dataset, DatasetFormatter
-from src.ml.errors import AutomlLibraryError, DatasetTooSmallError
-from src.ml.logs import logger
-from src.ml.util import Utils
-from src.ml.validation import Task
+from ml.base import Forecaster
+from ml.datasets import Dataset, DatasetFormatter
+from ml.errors import AutomlLibraryError, DatasetTooSmallError
+from ml.logs import logger
+from ml.util import Utils
+from ml.validation import Task
 
 
 class Forecasting:
@@ -318,43 +318,43 @@ class Forecasting:
             forecaster = Forecaster()
 
         elif forecaster_name == 'autogluon':
-            from src.ml.autogluon.models import AutoGluonForecaster
+            from ml.automl.autogluon.models import AutoGluonForecaster
             forecaster = AutoGluonForecaster()
 
         elif forecaster_name == 'autokeras':
-            from src.ml.autokeras.models import AutoKerasForecaster
+            from ml.automl.autokeras.models import AutoKerasForecaster
             forecaster = AutoKerasForecaster()
 
         elif forecaster_name == 'autots':
-            from src.ml.autots.models import AutoTSForecaster
+            from ml.automl.autots.models import AutoTSForecaster
             forecaster = AutoTSForecaster()
 
         elif forecaster_name == 'autopytorch':
-            from src.ml.autopytorch.models import AutoPyTorchForecaster
+            from ml.automl.auto_pytorch.models import AutoPyTorchForecaster
             forecaster = AutoPyTorchForecaster()
 
-        elif forecaster_name == 'etna':
-            from src.ml.etna.models import ETNAForecaster
-            forecaster = ETNAForecaster()
+        # elif forecaster_name == 'etna':  # ETNA has been archived by owner
+        #     from ml.archived.etna.models import ETNAForecaster
+        #     forecaster = ETNAForecaster()
 
         elif forecaster_name == 'evalml':
-            from src.ml.evalml.models import EvalMLForecaster
+            from ml.automl.evalml.models import EvalMLForecaster
             forecaster = EvalMLForecaster()
 
         elif forecaster_name == 'fedot':
-            from src.ml.fedot.models import FEDOTForecaster
+            from ml.automl.fedot.models import FEDOTForecaster
             forecaster = FEDOTForecaster()
 
         elif forecaster_name == 'flaml':
-            from src.ml.flaml.models import FLAMLForecaster
+            from ml.automl.flaml.models import FLAMLForecaster
             forecaster = FLAMLForecaster()
 
         elif forecaster_name == 'ludwig':
-            from src.ml.ludwig.models import LudwigForecaster
+            from ml.automl.ludwig.models import LudwigForecaster
             forecaster = LudwigForecaster()
 
         elif forecaster_name == 'pycaret':
-            from src.ml.pycaret.models import PyCaretForecaster
+            from ml.automl.pycaret.models import PyCaretForecaster
             forecaster = PyCaretForecaster()
         else:
             raise ValueError(f'Unknown forecaster {forecaster_name}')

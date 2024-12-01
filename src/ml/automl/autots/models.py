@@ -1,5 +1,6 @@
 """AutoTS models"""
 
+from __future__ import annotations
 import itertools
 import logging
 from pathlib import Path
@@ -7,14 +8,14 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
+from ml.base import Forecaster
+from ml.errors import DatasetTooSmallError
+from ml.logs import logger
+
 try:
-    from autots import AutoTS, create_regressor
+    from autots import AutoTS, create_regressor  # type: ignore
 except ModuleNotFoundError as error:
     raise ModuleNotFoundError('AutoTS not installed') from error
-
-from src.ml.base import Forecaster
-from src.ml.errors import DatasetTooSmallError
-from src.ml.logs import logger
 
 cmdstanpy_logger = logging.getLogger('cmdstanpy')
 cmdstanpy_logger.addHandler(logging.NullHandler())
@@ -24,11 +25,12 @@ cmdstanpy_logger.setLevel(logging.CRITICAL)
 # Presets are every combination of the following:
 configs = ['superfast', 'fast', 'fast_parallel', 'default', 'all']
 time_limits = ['60', '120', '240', '480', '960', '1920']  # Minutes: 1, 2, 4, 8, 16, 32
-presets = list(itertools.product(configs, time_limits))
-presets = ['__'.join(p) for p in presets]
+presets_ = list(itertools.product(configs, time_limits))
+presets = ['__'.join(p) for p in presets_]
 
 
 class AutoTSForecaster(Forecaster):
+    """AutoTS Forecaster"""
 
     name = 'AutoTS'
 
@@ -49,7 +51,7 @@ class AutoTSForecaster(Forecaster):
         target_name: str | None = None,
         verbose: int = 1,
     ):
-        """Perform time series forecasting
+        """Perform time series forecasting.
 
         :param pd.DataFrame train_df: Dataframe of training data
         :param pd.DataFrame test_df: Dataframe of test data
@@ -64,7 +66,6 @@ class AutoTSForecaster(Forecaster):
         :param int verbose: Verbosity, defaults to 1
         :return np.ndarray predictions: Model predictions
         """
-
         logger.debug('Preparing data...')
         if forecast_type == 'global':
             raise NotImplementedError()
@@ -82,7 +83,7 @@ class AutoTSForecaster(Forecaster):
             if target_name is None:
                 target_name = 'target'
 
-            if 'ISEM_prices' in tmp_dir:
+            if 'ISEM_prices' in str(tmp_dir):
                 train_df.index = pd.to_datetime(train_df.index, format='%d/%m/%Y %H:%M')
                 test_df.index = pd.to_datetime(test_df.index, format='%d/%m/%Y %H:%M')
             else:
@@ -107,8 +108,9 @@ class AutoTSForecaster(Forecaster):
             raise DatasetTooSmallError('Time series is too short for AutoTS', ValueError())
 
         limit = int(limit)
-        # Max generations and generation timeout (if converted back to seconds) should approxiamtely equal the limit
-        # It can be slightly off due to rounding and the 0.95 modifier that accounts for miscellaneous processing
+        # Max generations and generation timeout (if converted back to seconds)
+        # should approximately equal the limit It can be slightly off due to
+        # rounding and the 0.95 modifier that accounts for miscellaneous processing
         max_generations = int(round((limit / int(preset.split('__')[1])) * 0.95, 0))
         generation_timeout = int(round((limit / max_generations) / 60, 0))  # In minutes
         logger.debug(
@@ -159,7 +161,7 @@ class AutoTSForecaster(Forecaster):
 
         predictions = np.concatenate([p.flatten()[:horizon] for p in predictions][::horizon])
         if forecast_type == 'univariate':
-            if 'ISEM_prices' not in tmp_dir:
+            if 'ISEM_prices' not in str(tmp_dir):
                 predictions = predictions[: len(test_regressors)]
 
         # # predictions = self.rolling_origin_forecast(model, test_df, test_regressors, horizon)
@@ -174,7 +176,7 @@ class AutoTSForecaster(Forecaster):
         return predictions
 
     def estimate_initial_limit(self, time_limit, preset):
-        """Estimate initial limit to use for training models
+        """Estimate initial limit to use for training models.
 
         :param time_limit: Maximum amount of time allowed for forecast() (int)
         :param str preset: Model configuration to use
@@ -195,7 +197,7 @@ class AutoTSForecaster(Forecaster):
         return time_limit
 
     def rolling_origin_forecast(self, model, test_X, test_regressors, horizon):
-        """DEPRECATED. Iteratively forecast over increasing dataset
+        """DEPRECATED. Iteratively forecast over increasing dataset.
 
         :param model: Forecasting model, must have predict()
         :param test_X: Test feature data (pandas DataFrame)

@@ -1,19 +1,22 @@
-"""AutoPyTorch models"""
+"""AutoPyTorch models."""
 
+from __future__ import annotations
 import copy
 from pathlib import Path
 
-try:
-    from autoPyTorch.api.time_series_forecasting import TimeSeriesForecastingTask
-except ModuleNotFoundError as error:
-    raise ModuleNotFoundError('AutoPyTorch not installed') from error
 import pandas as pd
 
-from src.ml.base import Forecaster
-from src.ml.TSForecasting.data_loader import FREQUENCY_MAP
+from ml.base import Forecaster
+from ml.TSForecasting.data_loader import FREQUENCY_MAP
+
+try:
+    from autoPyTorch.api.time_series_forecasting import TimeSeriesForecastingTask  # type: ignore
+except ModuleNotFoundError as error:
+    raise ModuleNotFoundError('AutoPyTorch not installed') from error
 
 
 class AutoPyTorchForecaster(Forecaster):
+    """AutoPyTorch Forecaster."""
 
     name = 'AutoPyTorch'
 
@@ -33,10 +36,10 @@ class AutoPyTorchForecaster(Forecaster):
         tmp_dir: str | Path,
         nproc: int = 1,
         preset: str = '20',
-        target_name: str = None,
+        target_name: str | None = None,
         verbose: int = 1,
     ):
-        """Perform time series forecasting
+        """Perform time series forecasting.
 
         :param pd.DataFrame train_df: Dataframe of training data
         :param pd.DataFrame test_df: Dataframe of test data
@@ -51,7 +54,6 @@ class AutoPyTorchForecaster(Forecaster):
         :param int verbose: Verbosity, defaults to 1
         :return predictions: Numpy array of predictions
         """
-
         if forecast_type == 'univariate':
             freq = FREQUENCY_MAP[frequency].replace('1', '').replace('min', 'T')
             target_name = 'target'
@@ -62,7 +64,7 @@ class AutoPyTorchForecaster(Forecaster):
                 train_df, test_df, horizon, target_name, tabular_y=False, lag=lag
             )
 
-            if 'ISEM_prices' in tmp_dir:
+            if 'ISEM_prices' in str(tmp_dir):
                 train_df.index = pd.to_datetime(train_df.index, format='%d/%m/%Y %H:%M')
                 test_df.index = pd.to_datetime(test_df.index, format='%d/%m/%Y %H:%M')
             else:
@@ -107,5 +109,4 @@ class AutoPyTorchForecaster(Forecaster):
         :param str preset: Model configuration to use
         :return: Estimated time limit (int)
         """
-
         return int(time_limit * self.initial_training_fraction)

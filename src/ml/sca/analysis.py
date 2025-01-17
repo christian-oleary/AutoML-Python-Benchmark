@@ -233,7 +233,8 @@ class Analysis:
                 json.dump(pylint_output, f, indent=4)
             logger.info(f'Pylint output saved to {results_file}')
 
-        os.remove(pylint_file)
+        if pylint_file.is_file():
+            os.remove(pylint_file)
         return frequencies
 
     def git_analysis(self, repo: GitRepo, verbose: bool = False) -> dict:

@@ -31,6 +31,9 @@ except ImportError:  # Older pandas
 
 from ml.logs import logger
 
+# SRC is not normally distributed
+PRIORITY_METRICS = ['GM-MAE-SR', 'MAE', 'MASE', 'MSE', 'RMSE']  # SRC removed
+
 
 class Utils:
     """Utility functions."""
@@ -636,16 +639,20 @@ class Utils:
                 Utils.plot_test_scores(all_scores, stats_dir, plots)
 
     @staticmethod
-    def save_heatmap(df: pd.DataFrame, csv_path: str, png_path: str):
-        """Save Pearson Correlation Matrix of metrics
+    def save_heatmap(
+        df: pd.DataFrame, csv_path: str, png_path: str, columns: str | list[str] = PRIORITY_METRICS
+    ) -> pd.DataFrame:
+        """Save Pearson correlation matrix of metrics.
 
         :param pd.DataFrame df: Results
         :param str csv_path: Path to CSV file
         :param str png_path: Path to PNG file
+        :param list[str] columns: Columns to include, defaults to PRIORITY_METRICS. Accepts 'all'.
+        :return pd.DataFrame: Correlation matrix
         """
         # Save Pearson correlation heatmap of metrics as an indication of agreement.
-        # columns = ['GM-MAE-SR', 'MAE', 'MASE', 'MSE', 'RMSE', 'SRC']  # SRC is not normally distributed
-        columns = ['GM-MAE-SR', 'MAE', 'MASE', 'MSE', 'RMSE']  # SRC removed
+        if columns == 'all':
+            columns = df.columns.tolist()
         df[columns].to_csv('variables.csv')
         heatmap = df[columns].corr(method='pearson')
 
@@ -680,3 +687,5 @@ class Utils:
         # axes.set_yticklabels(columns, fontsize=11, rotation=45, va='top')
         plt.tight_layout()
         Utils.save_plot('Pearson Correlation Heatmap', save_path=png_path)
+
+        return heatmap

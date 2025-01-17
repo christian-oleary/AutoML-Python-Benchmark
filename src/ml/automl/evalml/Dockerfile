@@ -14,15 +14,19 @@ RUN rm -rf /src/evalml && git clone https://github.com/alteryx/evalml.git /src/e
 # Set the working directory to the EvalML source code
 WORKDIR /src/evalml/
 
-# Set the test timeout
-ENV TIMEOUT=3600
+# Install the required dependencies
+ARG run_tests
+RUN if [ "$run_tests" = "true" ]; then make installdeps-dev; fi
+RUN if [ "$run_tests" = "true" ]; then make installdeps-prophet; fi
+RUN if [ "$run_tests" = "true" ]; then make installdeps-test; fi
 
-# ARG run_tests
-# RUN if [ "$run_tests" = "true" ]; then make installdeps-dev; fi
-# RUN if [ "$run_tests" = "true" ]; then make installdeps-prophet; fi
-# RUN if [ "$run_tests" = "true" ]; then make installdeps-test; fi
-
-# # RUN if [ "$run_tests" = "true" ]; then pip freeze && (TIMEOUT=$TIMEOUT make test); fi
+# Run tests
+# RUN if [ "$run_tests" = "true" ]; then pip freeze && (TIMEOUT=$TIMEOUT make test); fi
 # RUN if [ "$run_tests" = "true" ]; then pip freeze && make test; fi
+RUN if [ "$run_tests" = "true" ]; then \
+        pip freeze && \
+        (pytest evalml/ --doctest-modules --doctest-continue-on-failure  --timeout 3600 --cov-report xml:coverage.xml --cov=. --cov-fail-under=1 || ls coverage.xml) && \
+        (cat coverage.xml | grep "hits=" | grep -Eo '[0-9]+' | grep -v '^0$' | wc -l || (echo "FAILED" && exit 1)) \
+    ; fi
 
-# RUN python -c "import torch;print('GPU STATUS:',torch.cuda.is_available())"
+RUN python -c "import tensorflow as tf;print('GPU STATUS:',tf.config.list_physical_devices('GPU'))"

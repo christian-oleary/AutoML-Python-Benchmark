@@ -1,7 +1,5 @@
 #!/bin/bash
 
-# Usage: ./shell/pull_repos.sh
-
 echo Cloning repositories...
 
 # Create directory for repositories
@@ -20,18 +18,19 @@ repos=(
     "https://github.com/alteryx/evalml"
     "https://github.com/nccr-itmo/FEDOT"
     "https://github.com/microsoft/FLAML"
-    # "https://github.com/h2oai/h2o-3"
-    # "https://github.com/hyperopt/hyperopt-sklearn"
-    # "https://github.com/facebookresearch/Kats"
-    # "https://github.com/AILab-MLTools/LightAutoML"
+    "https://github.com/openml-labs/gama"
+    "https://github.com/h2oai/h2o-3"
+    "https://github.com/hyperopt/hyperopt-sklearn"
+    "https://github.com/facebookresearch/Kats"
+    "https://github.com/AILab-MLTools/LightAutoML"
     "https://github.com/ludwig-ai/ludwig"
     # "https://github.com/daochenzha/Meta-AAD"
     # "https://github.com/yzhao062/MetaOD"
-    # "https://github.com/AxeldeRomblay/MLBox"
-    # "https://github.com/mljar/mljar-supervised"
+    "https://github.com/AxeldeRomblay/MLBox"
+    "https://github.com/mljar/mljar-supervised"
     "https://github.com/pycaret/pycaret"
-    # "https://github.com/datamllab/pyodds"
-    # "https://github.com/epistasislab/tpot"
+    "https://github.com/datamllab/pyodds"
+    "https://github.com/epistasislab/tpot"
 )
 
 # Loop over repositories and clone or pull if already existing

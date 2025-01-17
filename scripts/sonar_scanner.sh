@@ -1,19 +1,26 @@
 #!/bin/bash
 
+################################################################################
+# This program sets up SonarQube and runs a scan on the project.
+################################################################################
+
 # shellcheck disable=SC2086
 
+# Exit on error
+set -e
+
+################################################################################
 # Usage:
+################################################################################
 # (ensure python and conda are installed)
 # sudo apt-get install zip unzip
 # ./shell/sonar_scanner.sh
 
 ################################################################################
-# This program sets up SonarQube and runs a scan on the project.
+# LOGGING FUNCTIONS
 ################################################################################
-# Exit on error
-set -e
 
-# Functions to print messages with fancy formatting
+# ANSI color codes
 LIGHT_BLUE='\033[1;36m'
 YELLOW='\033[1;33m'
 GREEN='\033[1;32m'
@@ -38,7 +45,9 @@ print_line() {
     echo -e "${GREEN}-> ${message}${RESET}"
 }
 
-# Check if the script is running on Linux or WSL
+################################################################################
+# ENSURE SCRIPT IS RUN ON LINUX OR WSL
+################################################################################
 if [[ "$(uname -s)" != "Linux" && ! -f /proc/sys/fs/binfmt_misc/WSLInterop ]]; then
     echo "This script can only be run on Linux or WSL."
     exit 1
@@ -48,12 +57,28 @@ fi
 # Environment Variables
 ################################################################################
 print_heading "Environment Variables"
+
+# Delete and replace existing projects in SonarQube
+export DELETE_EXISTING_PROJECTS=${DELETE_EXISTING_PROJECTS:-"false"}
+
+# Skip building existing docker images
+export SKIP_EXISTING_IMAGES=${SKIP_EXISTING_IMAGES:-"false"}
+
+# Skip running sonar scanner if results already exist
+export SKIP_EXISTING_RESULTS=${SKIP_EXISTING_RESULTS:-"false"}
+
+# Run SonarScanner using Docker
 export DOCKER=${DOCKER:-"false"}
+
+# Path to the repositories directory
 export REPOSITORIES_DIR=${REPOSITORIES_DIR:-"repositories"}
+
+# SonarQube server
 export SONAR_HOST_URL=${SONAR_HOST_URL:-"http://localhost:9000"}
 export SONAR_LOGIN=${SONAR_LOGIN:-"admin"}
 export SONAR_PASSWORD=${SONAR_PASSWORD:-"2c71d75bcs4hq934tdjqngtsojxercm"}
 API_URL="${SONAR_HOST_URL}/api/"
+
 print_line "DOCKER=${DOCKER}"
 print_line "REPOSITORIES_DIR=${REPOSITORIES_DIR}"
 print_line "SONAR_HOST_URL=${SONAR_HOST_URL}"
@@ -62,11 +87,13 @@ print_line "SONAR_PASSWORD=${SONAR_PASSWORD}"
 print_line "API_URL=${API_URL}"
 
 ################################################################################
-# Change the default SonarQube server admin password
+# CHANGE ADMIN PASSWORD (if not using Docker)
 ################################################################################
 print_heading "Setting admin password"
+
 curl -u ${SONAR_LOGIN}:${SONAR_LOGIN} -X POST \
     "${API_URL}users/change_password?login=${SONAR_LOGIN}&previousPassword=${SONAR_LOGIN}&password=${SONAR_PASSWORD}"
+
 printf "Done\n"
 
 ################################################################################
@@ -74,11 +101,14 @@ printf "Done\n"
 ################################################################################
 print_heading "SonarScanner CLI Tool Setup"
 
+# Skip if using Docker
 if [ "$DOCKER" = "false" ]; then
-    # Download SonarScanner if it does not exist
+    # Check if SonarScanner exists
     TOOL="sonar-scanner-cli"
     if [ ! -d $TOOL ]; then
+        #######################
         # Download SonarScanner
+        #######################
         print_line "Downloading $TOOL..."
         URL="https://binaries.sonarsource.com/Distribution/${TOOL}/${TOOL}"
         if [ "$(uname)" = "Linux" ]; then
@@ -88,18 +118,24 @@ if [ "$DOCKER" = "false" ]; then
         fi
         curl --clobber -sL "${scanner_url}" -o $TOOL.zip
 
+        ########################################
         # Unzip SonarScanner and remove zip file
+        ########################################
         print_line "Download finished. Unzipping..."
         unzip -q $TOOL.zip
         rm $TOOL.zip
 
+        ###############################
         # Rename SonarScanner directory
+        ###############################
         mv sonar-scanner-* $TOOL
         print_line "SonarScanner downloaded to $(realpath .)/${TOOL}"
     else
         print_line "${TOOL} already exists"
     fi
+    ##########################
     # Add SonarScanner to PATH
+    ##########################
     PATH=$PATH:$(realpath .)/${TOOL}/bin
 else
     print_line "Using SonarScanner Docker Image. Skipping download..."
@@ -108,10 +144,18 @@ fi
 ################################################################################
 # List all directories in REPOSITORIES_DIR (default: "repositories")
 ################################################################################
+print_heading "Repositories in '${REPOSITORIES_DIR}'"
+
+##########################################
+# Find all directories in REPOSITORIES_DIR
+##########################################
 repositories=$(find ./$REPOSITORIES_DIR -mindepth 1 -maxdepth 1 -type d)
 # repositories="./repositories/auto_pytorch"
-print_line "All repository directories found in '${REPOSITORIES_DIR}':\n$repositories"
+print_line "Repository directories found:\n$repositories"
 
+##################################
+# Delete all projects in SonarQube
+##################################
 # print_heading "Deleting All Projects"
 # # Fetch all project keys
 # project_keys=$(curl -u ${SONAR_LOGIN}:${SONAR_PASSWORD} -s \
@@ -123,35 +167,45 @@ print_line "All repository directories found in '${REPOSITORIES_DIR}':\n$reposit
 #         "${API_URL}projects/delete?project=${project_key}"
 # done
 
-# Create logs directory
-mkdir -p logs; mkdir -p logs/sca
+#########################
+# Create logs directories
+#########################
+mkdir -p logs; mkdir -p logs/sca/sonar/
 
-# Loop over each directory and analyze
+################################################################################
+# LOOP OVER EACH REPOSITORY
+################################################################################
 for repo_path in $repositories; do
-    # Skip if not a directory
+    # Get the name of the repository from directory path
+    repo_name=$(basename "$repo_path")
+
+    print_heading "Processing directory: ${repo_path} (${repo_name})"
+
+    ############################################################################
+    # SKIP IF NOT A DIRECTORY
+    ############################################################################
     if [ ! -d "$repo_path" ]; then
         echo "Skipping $repo_path (not a directory)"
         continue
     fi
 
-    # Create a working directory to store sonar-scanner outputs
-    OUTPUT_DIR="./results/sca/${repo_name}/"
+    ############################################################################
+    # CREATE OUTPUT DIRECTORY
+    ############################################################################
+    OUTPUT_DIR="./results/sca/sonar/${repo_name}"
     mkdir -p $OUTPUT_DIR
-
-    repo_name=$(basename "$repo_path")
     OUTPUT_FILE="${OUTPUT_DIR}/measures.json"
 
-    # Skip if output file already exists
-    if [ -f "$OUTPUT_FILE" ]; then
+    ############################################################################
+    # Skip if output file already exists and SKIP_EXISTING_RESULTS is true
+    ############################################################################
+    if [ -f "${OUTPUT_FILE}" ] && [ "${SKIP_EXISTING_RESULTS}" = "true" ]; then
         print_line "Output file $OUTPUT_FILE already exists. Skipping ${repo_name}..."
         continue
     fi
 
-    # Establish the project name
-    print_heading "Processing directory: $repo_path"
-
     ############################################################################
-    # Environment variables
+    # ENVIRONMENT VARIABLES
     ############################################################################
     print_subheading "Environment Variables (project: $repo_name)"
 
@@ -172,61 +226,92 @@ for repo_path in $repositories; do
     print_line "SONAR_PROJECT_KEY=${SONAR_PROJECT_KEY}"
     print_line "TARGET_DIR=${TARGET_DIR}"
 
-    ############################################################################
-    # Running Python tests
-    ############################################################################
+    ################################################################################################
+    # RUN PYTHON TESTS
+    ################################################################################################
     print_subheading "Running Python Tests (project: $repo_name)"
 
-    # Check if coverage.xml exists
-    # if [ ! -f "$OUTPUT_DIR/coverage.xml" ]; then
     # Remove irrelevant files that may be picked up by Sonar
     rm -f coverage.xml report.xml
 
-    # Build Docker image including unit tests (timeout: 45 minutes)
-    docker build --build-arg run_tests=true --progress plain \
-        -t $repo_name -f ./src/ml/$repo_name/Dockerfile . 2>&1 | tee ./logs/sca/$repo_name.log
+    ###########################################################################
+    # Build Docker image if not SKIP_EXISTING_IMAGES or if image does not exist
+    ###########################################################################
+    if [[ "$SKIP_EXISTING_IMAGES" == "false" || "$(docker images -q $repo_name 2> /dev/null)" == "" ]]; then
+        (docker build --build-arg run_tests=true --progress plain -t $repo_name \
+            -f ./src/ml/automl/$repo_name/Dockerfile . 2>&1 | tee ./logs/sca/sonar/$repo_name.log) || exit 1
+    else
+        print_line "Docker image ${repo_name} already exists. Skipping build..."
+    fi
+    # break
 
-    # Fetch contents of relevant coverage xml file and save to output/target directories
+    ##########################################
+    # Copy contents of relevant coverage files
+    ##########################################
+    rm -f coverage.xml report.xml
+
+    print_line "Reading coverage.xml from Docker container..."
     docker run --gpus all --rm --name $repo_name $repo_name bash -c "cat coverage.xml" > $OUTPUT_DIR/coverage.xml
-    cp $OUTPUT_DIR/coverage.xml $TARGET_DIR/coverage.xml
-    # else
-    #     print_line "coverage.xml already exists. Skipping test run..."
-    # fi
+
+    # print_line "Misses: $(cat $OUTPUT_DIR/coverage.xml | grep "hits=\"0\"" | wc -l)"
+    # print_line "Hits: $(cat $OUTPUT_DIR/coverage.xml | grep "hits=\"1\"" | wc -l)"
+    # print_line "Total: $(cat $OUTPUT_DIR/coverage.xml | grep "hits=" | wc -l)"
+    print_line "Misses: $(cat $OUTPUT_DIR/coverage.xml | grep -c "hits=\"0\"")"
+    print_line "Hits: $(cat $OUTPUT_DIR/coverage.xml | grep -c "hits=\"1\"")"
+    print_line "Total: $(cat $OUTPUT_DIR/coverage.xml | grep -c "hits=")"
+
+    print_line "Reading .coverage from Docker container..."
+    docker run --gpus all --rm --name $repo_name $repo_name bash -c "cat .coverage" > $OUTPUT_DIR/.coverage
+    docker run --gpus all --rm --name $repo_name $repo_name bash -c "ls -la" > $repo_name.log
+
+    # Copy coverage.xml to target directory for SonarScanner
+    cp $OUTPUT_DIR/{coverage.xml,.coverage} $TARGET_DIR
+    ls $TARGET_DIR/coverage.xml $TARGET_DIR/.coverage || (echo "missing files" && exit 1)
 
     # continue
-    break
+    # break
 
-    ############################################################################
-    # Create/replace user access token
-    ############################################################################
+    ################################################################################################
+    # CREATE/REPLACE USER ACCESS TOKEN
+    ################################################################################################
     print_subheading "Generating user access token (project: $repo_name)"
 
+    ###############################
     # Revoke old token if it exists
+    ###############################
     print_line "Revoking old token..."
     curl -u ${SONAR_LOGIN}:${SONAR_PASSWORD} -s -X POST \
         "${API_URL}user_tokens/revoke?name=${PROJECT_NAME}&login=${SONAR_LOGIN}"
 
+    ################################
     # Remove token.json if it exists
+    ################################
     rm -f token.json
 
+    ####################
     # Generate new token
+    ####################
     print_line "Generating new user access token..."
     curl -u ${SONAR_LOGIN}:${SONAR_PASSWORD} -s \
         -X POST "${API_URL}user_tokens/generate?name=${PROJECT_NAME}&login=${SONAR_LOGIN}" -o token.json
 
+    ###############################################
     # Read token from file and export as a variable
+    ###############################################
     SONAR_TOKEN=$(grep -oP '(?<="token":")[^"]*' token.json)
     export SONAR_TOKEN
     print_line "SONAR_TOKEN: $SONAR_TOKEN"
 
+    #############
     # List tokens
+    #############
     # print_line "User tokens in SonarQube:\n"
     # curl -u ${SONAR_LOGIN}:${SONAR_PASSWORD} \
     #     -X POST "${API_URL}user_tokens/search"  | python -m json.tool
 
-    ############################################################################
-    # Create sonar-project.properties file
-    ############################################################################
+    ################################################################################################
+    # CREATE sonar-project.properties FILE
+    ################################################################################################
     print_subheading "Updating sonar-project.properties file (project: $repo_name)"
     # ABSOLUTE_PATH=$(realpath $TARGET_DIR)
     ABSOLUTE_PATH=$TARGET_DIR
@@ -239,45 +324,62 @@ sonar.login=$SONAR_LOGIN
 sonar.password=$SONAR_PASSWORD
 sonar.token=$SONAR_TOKEN
 sonar.language=py
-sonar.python.coverage.reportPaths=coverage.xml,$OUTPUT_DIR/coverage.xml,$ABSOLUTE_PATH/coverage.xml
+sonar.python.coverage.reportPaths=coverage.xml,$TARGET_DIR/coverage.xml,$TARGET_DIR/**/coverage.xml,$OUTPUT_DIR/coverage.xml,$ABSOLUTE_PATH/coverage.xml
 sonar.scm.disabled=true
 EOL
+    # sonar.python.coverage.reportPaths=coverage.xml,$TARGET_DIR/**/coverage.xml,$OUTPUT_DIR/coverage.xml,$ABSOLUTE_PATH/coverage.xml
+
     # sonar.working.directory=$OUTPUT_DIR
     cat "$OUTPUT_DIR/sonar-project.properties"
     # sonar.python.version=3.x
     # sonar.sourceEncoding=UTF-8
 
-    ############################################################################
+    ################################################################################################
     # Create projects. Delete old projects if they already exists.
-    ############################################################################
-    print_subheading "Set Up Projects (project: $repo_name)"
+    ################################################################################################
+    print_subheading "Set Up Project (project: $repo_name)"
 
+    #####################################
+    # Exit if coverage.xml does not exist
+    #####################################
+    ls $TARGET_DIR/coverage.xml || (echo "coverage.xml not found in $TARGET_DIR" && exit 1)
+
+    #####################################
     # Delete project if it already exists
-    print_line "Deleting old project..."
-    curl -u ${SONAR_LOGIN}:${SONAR_PASSWORD} -s -X POST "${API_URL}projects/delete?project=${PROJECT_NAME}&branch=${PROJECT_BRANCH}"
+    #####################################
+    if [ "$DELETE_EXISTING_PROJECTS" = "true" ]; then
+        print_line "Deleting old project..."
+        curl -u ${SONAR_LOGIN}:${SONAR_PASSWORD} -s -X POST \
+            "${API_URL}projects/delete?project=${PROJECT_NAME}&branch=${PROJECT_BRANCH}"
+    fi
 
+    ####################
     # Create new project
+    ####################
     print_line "Creating new project..."
     curl -u ${SONAR_LOGIN}:${SONAR_PASSWORD} -s -X POST \
         "${API_URL}projects/create?name=${PROJECT_NAME}&project=${PROJECT_NAME}&projectKey=${PROJECT_KEY}&token=${SONAR_TOKEN}&branch=${BRANCH}"
     printf "\n"
 
+    # ###############
     # # List projects
+    # ###############
     # print_line "Projects in SonarQube:\n"
     # curl -u ${SONAR_LOGIN}:${SONAR_PASSWORD} -s \
     #     -X POST "${API_URL}components/search?qualifiers=TRK" | python -m json.tool
 
-    ############################################################################
-    # Run SonarScanner
-    ############################################################################
+    ################################################################################################
+    # RUN SONAR SCANNER
+    ################################################################################################
     print_subheading "Running SonarScanner (project: $repo_name)"
 
     # Remove irrelevant files
-    rm -f coverage.xml
-    rm -f report.xml
+    rm -f coverage.xml report.xml
 
-    # Run SonarScanner CLI tool
     if [ "${DOCKER}" = "false" ]; then
+        ###########################
+        # Run SonarScanner CLI tool
+        ###########################
         # Run downloaded binary
         print_line "Running downloaded SonarScanner CLI tool..."
         # Alias sonar-scanner to the correct binary
@@ -288,8 +390,10 @@ EOL
         fi
         sonar_scanner -X -Dproject.settings=$OUTPUT_DIR/sonar-project.properties
     else
-        print_line "Running SonarScanner Docker image..."
+        ###############################
         # Run SonarScanner Docker image
+        ###############################
+        print_line "Running SonarScanner Docker image..."
         docker run --network=host --rm \
             -e PROJECT_SETTINGS=$OUTPUT_DIR/sonar-project.properties \
             -e SONAR_PROJECT_SETTINGS=$OUTPUT_DIR/sonar-project.properties \
@@ -300,20 +404,30 @@ EOL
         # -v .scannerwork/${PROJECT_NAME}/:/usr/src/.scannerwork/ \
     fi
 
+    ####################################################
+    # Remove used files to prevent false positives later
+    ####################################################
+    rm -f "${TARGET_DIR}/coverage.xml" "${TARGET_DIR}/report.xml"
+
     ################################################################################
-    # Export results from SonarQube to file
+    # EXPORT SONARQUBE RESULTS TO FILE
     ################################################################################
     print_subheading "Exporting SonarQube Results to File (project: $repo_name)"
 
+    #############################
     # List all available measures
+    #############################
     print_line "Listing all available measures..."
     measures=$(curl -u ${SONAR_LOGIN}:${SONAR_PASSWORD} -s -X GET \
         "${API_URL}metrics/search" | grep -oP '(?<="key":")[^"]*')
 
+    ##########################################
     # Loop over each measure and fetch metrics
+    ##########################################
     for measure in $measures; do
         print_line "Fetching metrics for measure: $measure"
-        curl -u ${SONAR_LOGIN}:${SONAR_PASSWORD} -s -X GET "${API_URL}measures/component?component=${PROJECT_NAME}&metricKeys=${measure}" >> $OUTPUT_FILE
+        curl -u ${SONAR_LOGIN}:${SONAR_PASSWORD} -s -X GET \
+            "${API_URL}measures/component?component=${PROJECT_NAME}&metricKeys=${measure}" >> $OUTPUT_FILE
         printf "\n" >> $OUTPUT_FILE
         tail -n 1 $OUTPUT_FILE
     done

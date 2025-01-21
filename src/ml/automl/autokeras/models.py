@@ -18,11 +18,6 @@ from ml.validation import Task
 
 try:
     import autokeras as ak  # type: ignore
-except ModuleNotFoundError:
-    raise AutomlLibraryError('AutoKeras is not installed', ModuleNotFoundError())
-
-try:
-    import autokeras as ak  # type: ignore
 except ImportError as e:
     raise ImportError('Failed to import AutoKeras') from e
 

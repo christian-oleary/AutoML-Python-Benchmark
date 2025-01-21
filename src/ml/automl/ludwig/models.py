@@ -12,8 +12,8 @@ from ml.base import Forecaster
 try:
     from ludwig.api import LudwigModel  # type: ignore
     from ludwig.utils.data_utils import add_sequence_feature_column  # type: ignore
-except ModuleNotFoundError:
-    raise ModuleNotFoundError('Ludwig is not installed')
+except ModuleNotFoundError as e:
+    raise ModuleNotFoundError('Ludwig is not installed') from e
 
 
 class LudwigForecaster(Forecaster):

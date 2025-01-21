@@ -20,4 +20,4 @@ jobs:
                     pip install .[dev]
                     pip install pylint
             -   name: Analysing the code with pylint
-                run: pylint src --rcfile=.pylintrc
+                run: pylint src --rcfile=pyproject.toml

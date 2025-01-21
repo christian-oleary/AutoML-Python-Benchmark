@@ -54,11 +54,11 @@ repos:
         -   id: ruff
             args: ["--fix"]
 
-    -   repo: https://github.com/PyCQA/pydocstyle
-        rev: 6.1.1
-        hooks:
-        -   id: pydocstyle
-            additional_dependencies: ['toml']
+    # -   repo: https://github.com/PyCQA/pydocstyle  # Deprecated
+    #     rev: 6.1.1
+    #     hooks:
+    #     -   id: pydocstyle
+    #         additional_dependencies: ['toml']
 
     -   repo: https://github.com/PyCQA/pylint
         rev: v2.17.5

@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 dependencies = {file = ["requirements.txt"]}
 
 [project]
-name = "automl"
+name = "ml"
 authors = [
     { name="Christian O'Leary", email="christian.oleary@mtu.ie" },
 ]
@@ -20,39 +20,86 @@ classifiers = [
 ]
 
 [project.optional-dependencies]
+# Development
 dev = [
     "setuptools",
-    "coverage==7.4.4",
-    "pytest==8.2.2",
-    "pytest-cov==5.0.0",
-    "pre-commit==3.7.1",
+    "coverage==7.4.4",    # Code coverage
+    "pytest==8.2.2",      # Testing
+    "pytest-cov==5.0.0",  # Pytest with Coverage
+    "pre-commit==3.7.1",  # Git hooks
 ]
+
+# Documentation
 docs = [
-    "Sphinx==5.3.0",
-    "sphinx_mdinclude==0.6.0",
-    "sphinx-rtd-theme==2.0.0",
-    "docxbuilder==1.2.0",
-    "docxbuilder[math]",
+    "Sphinx==5.3.0",            # Documentation generator
+    "sphinx_mdinclude==0.6.0",  # Markdown include for Sphinx
+    "sphinx-rtd-theme==2.0.0",  # Read the Docs theme
+    "docxbuilder==1.2.0",       # Word document builder
+    "docxbuilder[math]",        # Math support
 ]
-lightgbm = [
-    "lightgbm"
+
+# Source code analysis.
+sca = [
+    "autoflake",     # Removes unused imports/variables
+    "autopep8",      # Code formatting
+    "bandit",        # Security checks
+    "black",         # Code formatting
+    "codespell",     # Spelling checks  # Check how to use multiple dictionaries?
+    "coverage",      # Code coverage
+    "dead",          # Dead code detection
+    "doc8",          # Documentation style checking
+    "docformatter",  # Documentation style checking
+    "isort",         # Import sorting
+    "it",            # InspectorTiger. Code quality checks
+    "lint",          # Linter
+    "mypy",          # Type checking
+    "outdated",      # Outdated dependency checks
+    "radon[toml]",   # Code metrics
+    "rope",          # Refactoring
+    "rstcheck[sphinx,toml]", # ReStructuredText checks
+    "ruff",          # Code formatting
+    "safety",        # Security checks
+    "uncalled",      # Finds uncalled code
+    # "tox",         # To be considered...
+    "yapf",          # Code formatting
+    ### Flake8 ###
+    "flake8", "flake8-bugbear", "flake8-docstrings", "flake8-import-order",
+    "mccabe",       # Complexity
+    "pycodestyle",  # Code style
+    # "pydocstyle",   # Docstring style  # Officially deprecated
+    "pyflakes",     # Static analysis
+    ### Prospector ###
+    "dodgy",      # Finds "dodgy" code
+    "prospector", # Code quality checks
+    "pyroma",     # Checks package installation "friendliness"
+    "vulture",    # Finds unused code
+    ### Pylint ###
+    "astroid",    # Static analysis of Python code
+    "pylint", "pylint-celery", "pylint-django",
+    "pylint-flask", "pylint-mccabe", "pylint-pytest",
+    ##############
+    # Deprecated: "frosted"
+    # Redundant: "hacking", "unimport", "zimports"
 ]
-tensorflow = [
-    "tensorflow==2.10.1",
-    "protobuf==3.19.5",
-]
-torch = [
-    "torch==2.3.1",
-]
-xgboost = [
-    "xgboost",
-]
-ml = ["automl[lightgbm,tensorflow,torch,xgboost]"]
-all = ["automl[dev,docs,lightgbm,tensorflow,torch,xgboost]"]
+
+# Machine learning
+lightgbm = ["lightgbm"]
+tensorflow = ["tensorflow==2.10.1", "protobuf==3.19.5"]
+torch = ["torch==2.3.1"]
+xgboost = ["xgboost"]
+ai = ["ml[lightgbm,tensorflow,torch,xgboost]"]
+
+# All dependencies except SCA
+all = ["ml[dev,docs,sca,lightgbm,tensorflow,torch,xgboost]"]
 
 [project.urls]
 Homepage = "https://github.com/christian-oleary/AutoML-Python-Benchmark"
 Issues = "https://github.com/christian-oleary/AutoML-Python-Benchmark/issues"
+
+################################################################################
+# BANDIT
+[tool.bandit]
+exclude = ["tests", "docs", "repositories", "**/TSForecasting/*"]
 
 ################################################################################
 # BLACK
@@ -84,8 +131,9 @@ directory = "./docs/coverage_html_report"
 # MYPY
 [tool.mypy]
 exclude = ["tests", "docs", "repositories", "**/TSForecasting/*"]
+explicit_package_bases = true
 ignore_missing_imports = true
-namespace_packages = false
+namespace_packages = true
 
 ################################################################################
 # PYDOCSTYLE

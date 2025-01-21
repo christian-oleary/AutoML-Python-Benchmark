@@ -58,9 +58,6 @@ results/
 # Other
 ###########################
 
-# AWS
-*.pem
-
 # Generated
 bin
 cache/
@@ -68,6 +65,13 @@ share
 *.dll
 *.exe
 *.dot
+
+# GCC
+.stackdump
+
+# Keys
+*.pem
+gpgkey
 
 # LaTeX
 *.aux
@@ -128,7 +132,6 @@ __pycache__/
 
 # C extensions
 *.so
-
 # CatBoost
 catboost_info
 

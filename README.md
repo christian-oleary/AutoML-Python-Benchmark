@@ -130,6 +130,27 @@ rm .coverage
 
 ## SonarQube
 
+This requires Docker.
+
+Allow Docker containers to access GPUs:
+
+```bash
+# Required to install nvidia packages
+wget https://nvidia.github.io/nvidia-docker/gpgkey --no-check-certificate
+sudo apt-key add gpgkey
+sudo apt-get update
+
+distribution=$(. /etc/os-release;echo $ID$VERSION_ID) && curl -s -L https://nvidia.github.io/nvidia-docker/gpgkey | sudo apt-key add -
+curl -s -L https://nvidia.github.io/nvidia-docker/$distribution/nvidia-docker.list | sudo tee /etc/apt/sources.list.d/nvidia-docker.list
+sudo apt-get update
+sudo apt-get install -y nvidia-docker2
+
+# Install nvidia package
+sudo apt-get install nvidia-container-runtime nvidia-container-toolkit
+```
+
+Set up SonarQube server via docker-compose:
+
 ```bash
 # Start server
 docker-compose up --timeout 300 -d --build --force-recreate

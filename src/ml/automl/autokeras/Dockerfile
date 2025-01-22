@@ -23,6 +23,8 @@ RUN python3 -m pip install git+https://github.com/keras-team/keras-tuner.git
 RUN python3 -m pip install --upgrade pip
 RUN python3 -m pip install -e .[tests]
 
+# Run tests if the run_tests is set to "true"
+ARG run_tests
 RUN if [ "$run_tests" = "true" ]; then \
         (python3 -m pytest --cov-report xml:coverage.xml --cov=. --cov-fail-under=1 || ls coverage.xml) && \
         (cat coverage.xml | grep "hits=" | grep -Eo '[0-9]+' | grep -v '^0$' | wc -l || (echo "FAILED" && exit 1)) \

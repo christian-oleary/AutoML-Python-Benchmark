@@ -327,7 +327,7 @@ sonar.language=py
 sonar.python.coverage.reportPaths=coverage.xml,$TARGET_DIR/coverage.xml,$TARGET_DIR/**/coverage.xml,$OUTPUT_DIR/coverage.xml,$ABSOLUTE_PATH/coverage.xml
 sonar.scm.disabled=true
 EOL
-    # sonar.python.coverage.reportPaths=coverage.xml,$TARGET_DIR/**/coverage.xml,$OUTPUT_DIR/coverage.xml,$ABSOLUTE_PATH/coverage.xml
+    # sonar.python.coverage.reportPaths=coverage.xml,$TARGET_DIR/coverage.xml,$TARGET_DIR/**/coverage.xml,$OUTPUT_DIR/coverage.xml,$ABSOLUTE_PATH/coverage.xml
 
     # sonar.working.directory=$OUTPUT_DIR
     cat "$OUTPUT_DIR/sonar-project.properties"

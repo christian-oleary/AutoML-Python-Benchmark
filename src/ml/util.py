@@ -640,19 +640,22 @@ class Utils:
 
     @staticmethod
     def save_heatmap(
-        df: pd.DataFrame, csv_path: str, png_path: str, columns: str | list[str] = PRIORITY_METRICS
+        df: pd.DataFrame, csv_path: str, png_path: str, columns: str | list[str] | None = None
     ) -> pd.DataFrame:
         """Save Pearson correlation matrix of metrics.
 
         :param pd.DataFrame df: Results
         :param str csv_path: Path to CSV file
         :param str png_path: Path to PNG file
-        :param list[str] columns: Columns to include, defaults to PRIORITY_METRICS. Accepts 'all'.
+        :param str | list[str] columns: Columns to include, defaults to PRIORITY_METRICS. Accepts 'all'.
         :return pd.DataFrame: Correlation matrix
         """
-        # Save Pearson correlation heatmap of metrics as an indication of agreement.
-        if columns == 'all':
+        if columns is None:
+            columns = PRIORITY_METRICS
+        elif columns == 'all':
             columns = df.columns.tolist()
+
+        # Save Pearson correlation heatmap of metrics as an indication of agreement.
         df[columns].to_csv('variables.csv')
         heatmap = df[columns].corr(method='pearson')
 

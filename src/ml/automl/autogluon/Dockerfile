@@ -84,9 +84,10 @@ RUN sed -i 's/--junitxml=results.xml/--cov-report xml:coverage.xml --cov=. --cov
 RUN sed -i 's/--junitxml=results.xml/--cov-report xml:coverage.xml --cov=. --cov-fail-under=1/g' $CI_DIR/test_tabular.sh && \
     $CI_DIR/test_tabular.sh && (ls tabular/.coverage || exit)
 
-# Combine coverage.xml files
+# Combine .coverage files
 RUN ls && echo "--------" && python -m coverage combine ./*/.coverage
 
+# Generate the coverage report
 RUN ls && echo "--------" && python -m coverage xml -o coverage.xml && ls
 
 # Print the number of lines with non-zero coverage

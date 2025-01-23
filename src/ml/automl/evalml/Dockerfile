@@ -1,6 +1,7 @@
 # Dockerfile for EvalML
 
-FROM tensorflow/tensorflow:latest-gpu
+# FROM tensorflow/tensorflow:latest-gpu
+FROM python:3.10
 
 # Set non-interactive mode for apt-get to avoid prompts
 ENV DEBIAN_FRONTEND=noninteractive
@@ -29,4 +30,6 @@ RUN if [ "$run_tests" = "true" ]; then \
         (cat coverage.xml | grep "hits=" | grep -Eo '[0-9]+' | grep -v '^0$' | wc -l || (echo "FAILED" && exit 1)) \
     ; fi
 
-RUN python -c "import tensorflow as tf;print('GPU STATUS:',tf.config.list_physical_devices('GPU'))"
+RUN cat coverage.xml | grep "hits=" | grep -Eo '[0-9]+' | grep -v '^0$' | wc -l || (echo "FAILED" && exit 1)
+
+# RUN python -c "import tensorflow as tf;print('GPU STATUS:',tf.config.list_physical_devices('GPU'))"

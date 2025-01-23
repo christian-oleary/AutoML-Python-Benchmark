@@ -7,8 +7,8 @@ import pytest
 from sklearn.datasets import fetch_openml
 from sklearn.experimental import enable_iterative_imputer  # pylint: disable=W0611  # noqa: F401
 
-# from src.automl.forecasting import Forecasting
-from src.automl.validation import Library, Task
+# from src.ml.forecasting import Forecasting
+from src.ml.validation import Library, Task
 
 
 class TestDataset:

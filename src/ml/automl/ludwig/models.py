@@ -1,4 +1,4 @@
-"""Ludwig models"""
+"""Ludwig models."""
 
 from __future__ import annotations
 
@@ -17,13 +17,12 @@ except ModuleNotFoundError as e:
 
 
 class LudwigForecaster(Forecaster):
-    """Ludwig forecaster"""
+    """Ludwig forecaster."""
 
     name: str = 'Ludwig'
 
-    initial_training_fraction: float = (
-        0.95  # Use 95% of max. time for training in initial experiment
-    )
+    # Use 95% of max. time for training in initial experiment
+    initial_training_fraction: float = 0.95
 
     presets: list[int] = [10, 50, 100, 150, 200, 1000]
 
@@ -95,7 +94,7 @@ class LudwigForecaster(Forecaster):
         }
 
         # Drop irrelevant rows
-        if forecast_type == 'univariate' and 'ISEM_prices' in tmp_dir:
+        if forecast_type == 'univariate' and 'ISEM_prices' in str(tmp_dir):
             test_df['ludwig_datetime'] = test_df.index
             test_df['ludwig_datetime'] = pd.to_datetime(test_df['ludwig_datetime'], errors='coerce')
             test_df = test_df[test_df['ludwig_datetime'].dt.hour == 0]

@@ -13,19 +13,13 @@ from ml.TSForecasting.data_loader import FREQUENCY_MAP
 
 try:
     from autogluon.timeseries import TimeSeriesDataFrame, TimeSeriesPredictor  # type: ignore
-except ModuleNotFoundError as error:
-    raise ModuleNotFoundError('AutoGluon not installed') from error
-
-try:
-    from autogluon.timeseries import TimeSeriesDataFrame, TimeSeriesPredictor  # type: ignore
     from networkx.exception import NetworkXError
 except ModuleNotFoundError as e:
-    logger.error('AutoGluon not found!')
-    raise e
+    raise ModuleNotFoundError('AutoGluon not installed') from e
 
 
 class AutoGluonForecaster(Forecaster):
-    """Forecasting using AutoGluon"""
+    """Forecasting using AutoGluon."""
 
     name = 'AutoGluon'
 
@@ -199,9 +193,7 @@ class AutoGluonForecaster(Forecaster):
                 predictor, train_data, test_data, horizon, tmp_dir, column='mean'
             )
         except NetworkXError as error:
-            raise AutomlLibraryError(
-                'AutoGluon failed to fit/predict due to NetworkX', error
-            ) from error
+            raise AutomlLibraryError('AutoGluon failed due to NetworkX', error) from error
 
         if forecast_type == 'univariate' and 'ISEM_prices' in str(tmp_dir):
             # Re-use test_data indices for date filtering

@@ -315,7 +315,7 @@ class Forecasting:
         # pylint: disable=C0415:import-outside-toplevel
         # fmt: off
         if forecaster_name == 'test':
-            forecaster = Forecaster
+            forecaster = Forecaster()
         elif forecaster_name == 'autogluon':
             from ml.automl.autogluon.models import AutoGluonForecaster
             forecaster = AutoGluonForecaster()
@@ -358,4 +358,4 @@ class Forecasting:
         else:
             raise ValueError(f'Unknown forecaster {forecaster_name}')
         # fmt: on
-        return forecaster()
+        return forecaster

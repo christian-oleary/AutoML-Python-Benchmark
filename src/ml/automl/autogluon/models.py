@@ -5,7 +5,6 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
-from networkx.exception import NetworkXError
 
 from ml.base import Forecaster
 from ml.errors import AutomlLibraryError
@@ -14,8 +13,9 @@ from ml.TSForecasting.data_loader import FREQUENCY_MAP
 
 try:
     from autogluon.timeseries import TimeSeriesDataFrame, TimeSeriesPredictor  # type: ignore
-except ModuleNotFoundError as error:
-    raise ModuleNotFoundError('AutoGluon not installed') from error
+    from networkx.exception import NetworkXError
+except ModuleNotFoundError as e:
+    raise ModuleNotFoundError('AutoGluon not installed') from e
 
 
 class AutoGluonForecaster(Forecaster):
@@ -45,7 +45,7 @@ class AutoGluonForecaster(Forecaster):
         tmp_dir: str | Path,
         nproc: int = 1,
         preset: str = 'fast_training',
-        target_name: str | None = None,
+        target: str | None = None,
         verbose: int = 1,
     ):
         """Perform time series forecasting using AutoGluon TimeSeriesPredictor.
@@ -82,9 +82,9 @@ class AutoGluonForecaster(Forecaster):
 
         # Format univariate data
         if forecast_type == 'univariate':
-            target_name = 'target'
-            train_df.columns = [timestamp_column, target_name]
-            test_df.columns = [timestamp_column, target_name]
+            target = 'target'
+            train_df.columns = [timestamp_column, target]
+            test_df.columns = [timestamp_column, target]
             if 'ISEM_prices' in str(tmp_dir):
                 ignore_time_index = False
             else:
@@ -126,6 +126,8 @@ class AutoGluonForecaster(Forecaster):
                 freq = 'S'  # based on Libra R repository.
             else:
                 freq = 'H'  # I-SEM
+        else:
+            raise ValueError(f'Unsupported forecast type: {forecast_type}')
 
         logger.debug('Index processing and imputation...')
         if train_data.freq is None:
@@ -154,7 +156,7 @@ class AutoGluonForecaster(Forecaster):
         predictor = TimeSeriesPredictor(
             prediction_length=horizon,
             path=tmp_dir,
-            target=target_name,
+            target=target,
             ignore_time_index=ignore_time_index,
             verbosity=0,
             cache_predictions=True,
@@ -191,14 +193,14 @@ class AutoGluonForecaster(Forecaster):
                 predictor, train_data, test_data, horizon, tmp_dir, column='mean'
             )
         except NetworkXError as error:
-            raise AutomlLibraryError('AutoGluon failed to fit/predict due to NetworkX', error)
+            raise AutomlLibraryError('AutoGluon failed due to NetworkX', error) from error
 
         if forecast_type == 'univariate' and 'ISEM_prices' in str(tmp_dir):
             # Re-use test_data indices for date filtering
             predictions = np.array(predictions)
             for i in range(len(predictions[0])):
                 test_data[f't+{i}'] = predictions[:, i]
-            test_data = test_data.drop(target_name, axis=1)
+            test_data = test_data.drop(target, axis=1)
 
             # Drop irrelevant predictions
             predictions = []

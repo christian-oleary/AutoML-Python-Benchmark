@@ -3,10 +3,12 @@
 echo Cloning repositories...
 
 # Create directory for repositories
+print_heading "Creating repositories directory..."
 repo_dir=./repositories/
 mkdir -p ${repo_dir}
 
 # List of repository URLs
+print_heading Cloning repositories...
 repos=(
     # "https://github.com/tensorflow/adanet.git"
     "https://github.com/automl/Auto-PyTorch.git"
@@ -32,6 +34,7 @@ repos=(
     "https://github.com/datamllab/pyodds"
     "https://github.com/epistasislab/tpot"
 )
+echo "Repositories to clone: ${repos[*]}"
 
 # Loop over repositories and clone or pull if already existing
 for repo_url in "${repos[@]}"; do
@@ -52,4 +55,4 @@ for repo_url in "${repos[@]}"; do
     fi
 done
 
-echo "Repositories ready"
+print_heading "Repositories ready"

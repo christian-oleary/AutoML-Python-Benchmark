@@ -1,0 +1,24 @@
+
+# Read instructions in README.md
+# The following may not work:
+
+autots==0.5.7
+autots[additional]
+fredapi
+gluonts
+greykite
+holidays
+lightgbm
+mxnet
+neuralprophet
+prophet
+psutil
+pytorch-forecasting
+# autots[additional] does not seem to install the following:
+requests
+scipy
+tensorflow-probability
+xgboost
+# Versions of arch require Cython and IPython
+# Cython
+# arch

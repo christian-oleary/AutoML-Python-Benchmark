@@ -1,6 +1,9 @@
 """Base Classes."""
 
+from __future__ import annotations
+
 from pathlib import Path
+from typing import Any
 
 import numpy as np
 import pandas as pd
@@ -32,18 +35,18 @@ from ml.logs import logger
 try:
     from lightgbm import LGBMRegressor
 except ImportError:
-    LGBMRegressor = None
+    LGBMRegressor = None  # type: ignore
     logger.warning('lightgbm not installed, ignoring...')
 
 try:
     from xgboost import XGBRegressor
 except ImportError:
-    XGBRegressor = None
+    XGBRegressor = None  # type: ignore
     logger.warning('xgboost not installed, ignoring...')
 
 
 # fmt: off
-regression_models = {
+regression_models: dict[str, tuple[Any, dict]] = {
     BayesianRidge.__name__: (BayesianRidge, {
         'tol': [1e-2, 1e-3, 1e-4],
         'alpha_1': [1e-5, 1e-6, 1e-7],
@@ -192,7 +195,7 @@ if XGBRegressor is not None:
         'subsample': np.arange(0.1, 1.1, 0.1),
         'colsample_bytree': np.arange(0.1, 1.1, 0.1),
     }
-    regression_models[XGBRegressor.__name__] = (XGBRegressor, _search_space)
+    regression_models[LGBMRegressor.__name__] = (XGBRegressor, _search_space)
 
 
 class Forecaster:
@@ -267,18 +270,27 @@ class Forecaster:
             )
         return predictions
 
-    def train_model(self, X_train, y_train, X_test, forecast_type, nproc, tmp_dir, model_name):
+    def train_model(
+        self,
+        X_train: pd.DataFrame,
+        y_train: np.ndarray,
+        X_test: pd.DataFrame,
+        forecast_type: str,
+        nproc: int,
+        tmp_dir: str | Path,
+        model_name: str,
+    ) -> np.ndarray:
         """Train machine learning model
 
         :param pd.DataFrame X_train: Training features
-        :param np.array y_train: Training target values
+        :param np.ndarray y_train: Training target values
         :param pd.DataFrame X_test: Test features
         :param str forecast_type: Type of forecasting (univariate, multivariate or global)
         :param int nproc: Number of processes
         :param str tmp_dir: Dir to store any temporary files
         :param str model_name: Name of model
         :raises NotImplementedError: Unsupported forecasting methods
-        :return np.array: Forecast predictions
+        :return np.ndarray: Forecast predictions
         """
         # Scale data
         scaler = MinMaxScaler()
@@ -289,9 +301,9 @@ class Forecaster:
         hyperparameters = {f'estimator__{k}': v for k, v in hyperparameters.items()}
 
         try:
-            model = constructor(n_jobs=nproc)
+            model = constructor(n_jobs=nproc)  # type: ignore
         except TypeError:
-            model = constructor()
+            model = constructor()  # type: ignore
 
         model = MultiOutputRegressor(model)
         model = RandomizedSearchCV(
@@ -308,7 +320,7 @@ class Forecaster:
         # Generate predictions
         if forecast_type == 'univariate':
             # Drop irrelevant rows
-            if 'I-SEM' in tmp_dir or 'ISEM' in tmp_dir:
+            if 'I-SEM' in str(tmp_dir) or 'ISEM' in str(tmp_dir):
                 X_test['base_datetime'] = X_test.index
                 X_test['base_datetime'] = pd.to_datetime(X_test['base_datetime'], errors='coerce')
                 X_test = X_test[X_test['base_datetime'].dt.hour == 0]

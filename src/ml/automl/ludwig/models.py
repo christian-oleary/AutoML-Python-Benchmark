@@ -1,6 +1,9 @@
-"""Ludwig models"""
+"""Ludwig models."""
 
-import logging
+from __future__ import annotations
+
+from logging import WARNING
+from pathlib import Path
 
 import pandas as pd
 
@@ -9,18 +12,19 @@ from ml.base import Forecaster
 try:
     from ludwig.api import LudwigModel  # type: ignore
     from ludwig.utils.data_utils import add_sequence_feature_column  # type: ignore
-except ModuleNotFoundError:
-    raise ModuleNotFoundError('Ludwig is not installed')
+except ModuleNotFoundError as e:
+    raise ModuleNotFoundError('Ludwig is not installed') from e
 
 
 class LudwigForecaster(Forecaster):
-    """Ludwig forecaster"""
+    """Ludwig forecaster."""
 
-    name = 'Ludwig'
+    name: str = 'Ludwig'
 
-    initial_training_fraction = 0.95  # Use 95% of max. time for training in initial experiment
+    # Use 95% of max. time for training in initial experiment
+    initial_training_fraction: float = 0.95
 
-    presets = [10, 50, 100, 150, 200, 1000]
+    presets: list[int] = [10, 50, 100, 150, 200, 1000]
 
     def forecast(
         self,
@@ -30,13 +34,13 @@ class LudwigForecaster(Forecaster):
         horizon: int,
         limit: int,
         frequency: str | int,
-        tmp_dir: str,
+        tmp_dir: str | Path,
         nproc: int = 1,
         preset: int = 10,
         target_name: str | None = None,
         verbose: int = 1,
     ):
-        """Perform time series forecasting
+        """Perform time series forecasting.
 
         :param pd.DataFrame train_df: Dataframe of training data
         :param pd.DataFrame test_df: Dataframe of test data
@@ -90,14 +94,14 @@ class LudwigForecaster(Forecaster):
         }
 
         # Drop irrelevant rows
-        if forecast_type == 'univariate' and 'ISEM_prices' in tmp_dir:
+        if forecast_type == 'univariate' and 'ISEM_prices' in str(tmp_dir):
             test_df['ludwig_datetime'] = test_df.index
             test_df['ludwig_datetime'] = pd.to_datetime(test_df['ludwig_datetime'], errors='coerce')
             test_df = test_df[test_df['ludwig_datetime'].dt.hour == 0]
             test_df = test_df.drop('ludwig_datetime', axis=1)
 
         # Constructs Ludwig model from config dictionary
-        model = LudwigModel(config, logging_level=logging.WARNING)
+        model = LudwigModel(config, logging_level=WARNING)
 
         model.train(
             dataset=train_df,
@@ -129,7 +133,7 @@ class LudwigForecaster(Forecaster):
         return predictions
 
     def estimate_initial_limit(self, time_limit, preset):
-        """Estimate initial limit to use for training models
+        """Estimate initial limit to use for training models.
 
         :param time_limit: Maximum amount of time allowed for forecast() (int)
         :param str preset: Model configuration to use
@@ -138,7 +142,7 @@ class LudwigForecaster(Forecaster):
         return int(time_limit * self.initial_training_fraction)
 
     def rolling_origin_forecast(self, model, X_train, X_test, horizon, column=None):
-        """DEPRECATED Iteratively forecast over increasing dataset
+        """DEPRECATED Iteratively forecast over increasing dataset.
 
         :param model: Forecasting model, must have predict()
         :param X_train: Training feature data (pandas DataFrame)

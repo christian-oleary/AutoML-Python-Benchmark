@@ -1,12 +1,14 @@
 """PyCaret models"""
 
+from __future__ import annotations
+
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
 
 try:
-    from pycaret.time_series import TSForecastingExperiment
+    from pycaret.time_series import TSForecastingExperiment  # type: ignore
 except ModuleNotFoundError as error:
     raise ModuleNotFoundError('PyCaret not installed') from error
 

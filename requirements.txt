@@ -2,7 +2,6 @@
 matplotlib              # Plots
 numpy                   # Data manipulation
 pandas==1.4.1           # Data manipulation
-pre-commit==3.7.1       # Pre-commit hooks
 seaborn                 # Plots
 setuptools              # Package setup
 shellcheck_py==0.10.0.1 # Shell script linting

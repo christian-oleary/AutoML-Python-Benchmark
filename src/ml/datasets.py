@@ -109,7 +109,7 @@ class Dataset(metaclass=ABCMeta):
 
     @classmethod
     def load_dataset(cls, name: str, path_or_url: str | Path | None = None, **kwargs) -> Self:
-        """Load a dataset by name or file path
+        """Load a dataset by name or file path.
 
         :param str name: Dataset name
         :param str | Path | None path_or_url: Dataset path, defaults to None
@@ -145,7 +145,7 @@ class Dataset(metaclass=ABCMeta):
 
 
 class ISEMDataset(Dataset):
-    """I-SEM dataset"""
+    """I-SEM dataset."""
 
     aliases: list[str] = ['isem']
     frequency: str = '24H'
@@ -170,7 +170,7 @@ class ISEMDataset(Dataset):
 
 
 class ISEM2020Dataset(ISEMDataset):
-    """I-SEM 2020 dataset"""
+    """I-SEM 2020 dataset."""
 
     aliases: list[str] = ['isem2020']
     train_set_start_time: str = '2019/12/31 23:00:00'

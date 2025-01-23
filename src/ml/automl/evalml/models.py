@@ -1,14 +1,13 @@
-"""EvalML models"""
+"""EvalML models."""
 
+try:
+    from evalml.automl import AutoMLSearch  # type: ignore
+except ImportError as e:
+    raise ImportError('EvalML is not installed') from e
 import pandas as pd
 
 from ml.base import Forecaster
 from ml.errors import DatasetTooSmallError
-
-try:
-    from evalml.automl import AutoMLSearch  # type: ignore
-except ModuleNotFoundError as error:
-    raise ModuleNotFoundError('EvalML not installed') from error
 
 
 class EvalMLForecaster(Forecaster):

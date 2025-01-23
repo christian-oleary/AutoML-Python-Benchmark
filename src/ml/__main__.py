@@ -8,8 +8,6 @@ import time
 import warnings
 
 from sklearn.exceptions import ConvergenceWarning
-
-# import needed for IterativeImputer
 from sklearn.experimental import enable_iterative_imputer  # pylint: disable=W0611  # noqa: F401
 
 from ml.datasets import DatasetFormatter

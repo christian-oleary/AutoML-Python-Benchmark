@@ -12,13 +12,14 @@ Primary Python version: 3.10.14
 ## Table of Contents
 
 1. [Publications](#publications)
-2. [Datasets](#datasets)
-3. [CUDA](#cuda)
-4. [Installation](#installation)
-5. [Experiments](#experiments)
-6. [Development](#development)
-7. [Contact](#contact)
-8. [Citation](#citation)
+2. [Installation](#installation)
+3. [Datasets](#datasets)
+4. [CUDA](#cuda)
+5. [Installation](#installation)
+6. [Experiments](#experiments)
+7. [Development](#development)
+8. [Contact](#contact)
+9. [Citation](#citation)
 
 ## Publications
 
@@ -30,7 +31,28 @@ A Comparative Analysis of Automated Machine Learning Libraries for Electricity P
 
 ## Installation
 
-Removed. To be redrafted.
+- Step 1: Install conda via Miniconda or Anaconda. Then create environment with:
+
+```bash
+# Create the environment if it does not exist
+conda info --envs | grep automl || conda create -n automl -y python=3.10.14
+
+# Activate environment
+conda activate automl
+
+# Install dependencies. Pick at least one:
+pip install -e .             # Bare minimum. Includes sklearn.
+pip install -e .[lightgbm]   # LightGBM
+pip install -e .[tensorflow] # TensorFlow
+pip install -e .[torch]      # PyTorch
+pip install -e .[xgboost]    # XGBoost
+pip install -e .[ml]         # All ML libraries
+pip install -e .[dev,docs]   # Unit tests, docs
+pip install -e .[all]        # Everything
+
+# Optionally for development:
+conda install pre-commit
+```
 
 ### CUDA
 
@@ -39,13 +61,11 @@ To run this code, you will need to install CUDA for TensorFlow and PyTorch.
 - CUDA compatibilities for TensorFlow are listed [here](https://www.tensorflow.org/install/source_windows).
 - CUDA compatibilities for PyTorch are listed [here](https://pytorch.org/blog/deprecation-cuda-python-support/)
 
-To be redrafted.
-
 ## Datasets
 
 Removed. To be redrafted.
 
-Before running the code, datasets and repositories must be downloaded
+<!-- Before running the code, datasets and repositories must be downloaded -->
 
 ## Experiments
 

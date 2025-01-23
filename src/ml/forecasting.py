@@ -316,7 +316,6 @@ class Forecasting:
         # fmt: off
         if forecaster_name == 'test':
             forecaster = Forecaster()
-
         elif forecaster_name == 'autogluon':
             from ml.automl.autogluon.models import AutoGluonForecaster
             forecaster = AutoGluonForecaster()

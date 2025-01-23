@@ -9,6 +9,7 @@ import platform
 import time
 import warnings
 from pathlib import Path
+from typing import Any
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -50,7 +51,12 @@ PRIORITY_METRICS = ['GM-MAE-SR', 'MAE', 'MASE', 'MSE', 'RMSE']  # SRC removed
 class Utils:
     """Utility functions."""
 
+    # Ignored AutoML library presets
     ignored_presets: list[str] = []
+
+    # Optional imports
+    imported_status: dict[str, bool] = {}
+    imported_package: dict[str, Any] = {}
 
     @staticmethod
     def regression_scores(
@@ -152,7 +158,7 @@ class Utils:
 
     @staticmethod
     def geometric_mean_mae_sr(actual: np.ndarray, predicted: np.ndarray) -> np.ndarray:
-        """Calculates the geometric mean of MAE and a Spearman correlation score.
+        """Calculate geometric mean of MAE and a Spearman correlation score.
 
         :param np.ndarray actual: Real values
         :param np.ndarray predicted: Predicted values
@@ -164,7 +170,7 @@ class Utils:
 
     @staticmethod
     def correlation(actual, predicted, method='pearson'):
-        """Wrapper to extract correlations and p-values from scipy
+        """Wrapper to extract correlations and p-values from scipy.
 
         :param np.array actual: Actual values
         :param np.array predicted: Predicted values
@@ -190,21 +196,21 @@ class Utils:
 
     @staticmethod
     def mae_over(actual, predicted):
-        """Overestimated predictions (from Grimes et al. 2014)"""
+        """Overestimated predictions (from Grimes et al. 2014)."""
         errors = predicted - actual
         positive_errors = np.clip(errors, 0, errors.max())
         return np.mean(positive_errors)
 
     @staticmethod
     def mae_under(actual, predicted):
-        """Underestimated predictions (from Grimes et al. 2014)"""
+        """Underestimated predictions (from Grimes et al. 2014)."""
         errors = predicted - actual
         negative_errors = np.clip(errors, errors.min(), 0)
         return np.absolute(np.mean(negative_errors))
 
     @staticmethod
     def smape(actual, predicted):
-        """Implementation of sMAPE"""
+        """Implementation of sMAPE."""
         totals = np.abs(actual) + np.abs(predicted)
         differences = np.abs(predicted - actual)
         return 100 / len(actual) * np.sum(2 * differences / totals)

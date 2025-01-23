@@ -5,10 +5,10 @@ from __future__ import annotations
 import csv
 import math
 import os
-from pathlib import Path
 import platform
 import time
 import warnings
+from pathlib import Path
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -18,8 +18,8 @@ from scipy.stats import ConstantInputWarning, gmean, pearsonr, spearmanr
 from sklearn.metrics import (
     mean_absolute_error,
     mean_absolute_percentage_error,
-    median_absolute_error,
     mean_squared_error,
+    median_absolute_error,
     r2_score,
 )
 from sktime.performance_metrics.forecasting import MeanAbsoluteScaledError
@@ -30,6 +30,18 @@ except ImportError:  # Older pandas
     from pandas.core.indexing import IndexingError
 
 from ml.logs import logger
+
+# Metrics
+CORR = 'Correlation'
+P_VALUE = 'P-value'
+
+GM_MAE_SRC = 'GM-MAE-SRC'
+GM_MASE_SRC = 'GM-MASE-SRC'
+
+PC = 'Pearson Correlation'
+PP = 'Pearson P-value'
+SRC = f'Spearman {CORR}'
+SP = f'Spearman {P_VALUE}'
 
 # SRC is not normally distributed
 PRIORITY_METRICS = ['GM-MAE-SR', 'MAE', 'MASE', 'MSE', 'RMSE']  # SRC removed
@@ -49,17 +61,17 @@ class Utils:
         forecaster_name: str | None = None,
         multioutput: str = 'uniform_average',
         **kwargs,
-    ):
+    ) -> dict:
         """Calculate forecasting metrics and optionally save results.
 
         :param np.ndarray actual: Original time series values
         :param np.ndarray predicted: Predicted time series values
         :param np.ndarray y_train: Training values (required for MASE)
         :param str scores_dir: Path to file to record scores (str or None), defaults to None
-        :param str forecaster_name: Name of model
+        :param str forecaster_name: Name of forecaster
         :param str multioutput: 'raw_values', 'uniform_average', defaults to 'uniform_average'
         :raises TypeError: If forecaster_name is not provided when saving results to file
-        :return results: Dictionary of results
+        :return dict: Dictionary of forecasting metrics
         """
         # Convert pd.Series to NumPy Array
         if predicted.shape == (actual.shape[0], 1) and not pd.core.frame.DataFrame:
@@ -86,37 +98,41 @@ class Utils:
             'MASE': mase(actual, predicted, y_train=y_train),
             'ME': np.mean(actual - predicted),
             'MSE': mean_squared_error(actual, predicted, multioutput=multioutput),
-            'Pearson Correlation': pearson[0],
-            'Pearson P-value': pearson[1],
+            PC: pearson[0],
+            PP: pearson[1],
             'R2': r2_score(actual, predicted, multioutput=multioutput),
             'RMSE': math.sqrt(mean_squared_error(actual, predicted, multioutput=multioutput)),
             'sMAPE': Utils.smape(actual, predicted),
-            'Spearman Correlation': spearman[0],
-            'Spearman P-value': spearman[1],
+            SRC: spearman[0],
+            SP: spearman[1],
         }
 
-        # Grimes calls for "maximizing the geometric mean of (−MAE) and average daily Spearman correlation"
-        # This must be an error, as you cannot calculate geometric mean with negative numbers. This uses
-        # geometric mean of MAE and (1-SRC) with the intention of minimizing the metric.
-        results['GM-MAE-SR'] = Utils.geometric_mean(results['MAE'], results['Spearman Correlation'])
-        results['GM-MASE-SR'] = Utils.geometric_mean(
-            results['MASE'], results['Spearman Correlation']
-        )
+        # Grimes: "maximizing the geometric mean of (−MAE) and average daily Spearman correlation"
+        # This may be an error, as you cannot calculate geometric mean with negative numbers. This
+        # uses geometric mean of MAE and (1-SRC) with the intention of minimizing the metric.
+        results[GM_MAE_SRC] = Utils.geometric_mean(results['MAE'], results[SRC])
+        results[GM_MASE_SRC] = Utils.geometric_mean(results['MASE'], results[SRC])
 
+        # Record duration if provided
         if 'duration' in kwargs:
             results['duration'] = kwargs['duration']
 
+        # Save scores to file
         if scores_dir is not None:
+            # Ensure forecaster name is provided
             if forecaster_name is None:
                 raise TypeError('Forecaster name required to save scores')
+
+            # Create directory if it does not exist
             os.makedirs(scores_dir, exist_ok=True)
 
+            # Add environment and device information
             results = {
                 **results,
                 'environment': f'python_{platform.python_version()}-os_{platform.system()}',
                 'device': f'node_{platform.node()}-pro_{platform.processor()}',
             }
-
+            # Save results to file
             Utils.write_to_csv(os.path.join(scores_dir, f'{forecaster_name}.csv'), results)
 
         return results
@@ -135,16 +151,16 @@ class Utils:
         return gmean([error_score, 1 - rank_correlation_score])
 
     @staticmethod
-    def geometric_mean_MAE_SR(actual: np.ndarray, predicted: np.ndarray) -> np.ndarray:
+    def geometric_mean_mae_sr(actual: np.ndarray, predicted: np.ndarray) -> np.ndarray:
         """Calculates the geometric mean of MAE and a Spearman correlation score.
 
         :param np.ndarray actual: Real values
         :param np.ndarray predicted: Predicted values
         :return float: Geometric mean of MAE and SRC
         """
-        MAE = mean_absolute_error(actual, predicted, multioutput='uniform_average')
-        SRC = Utils.correlation(actual, predicted, method='spearman')[0]
-        return Utils.geometric_mean(MAE, SRC)  # type: ignore
+        mae_score = mean_absolute_error(actual, predicted, multioutput='uniform_average')
+        src_score = Utils.correlation(actual, predicted, method='spearman')[0]
+        return Utils.geometric_mean(mae_score, src_score)  # type: ignore
 
     @staticmethod
     def correlation(actual, predicted, method='pearson'):
@@ -640,7 +656,10 @@ class Utils:
 
     @staticmethod
     def save_heatmap(
-        df: pd.DataFrame, csv_path: str, png_path: str, columns: str | list[str] | None = None
+        df: pd.DataFrame,
+        csv_path: str,
+        png_path: str,
+        columns: str | list[str] | None = None,
     ) -> pd.DataFrame:
         """Save Pearson correlation matrix of metrics.
 
@@ -648,8 +667,9 @@ class Utils:
         :param str csv_path: Path to CSV file
         :param str png_path: Path to PNG file
         :param str | list[str] columns: Columns to include, defaults to PRIORITY_METRICS. Accepts 'all'.
-        :return pd.DataFrame: Correlation matrix
+        :return pd.DataFrame: Correlation matrix if successful
         """
+        # Filter columns
         if columns is None:
             columns = PRIORITY_METRICS
         elif columns == 'all':
@@ -659,19 +679,20 @@ class Utils:
         df[columns].to_csv('variables.csv')
         heatmap = df[columns].corr(method='pearson')
 
-        # Save correlations and corresponding p-values as CSV
+        # Save correlations as CSV
         heatmap.to_csv(csv_path)  # Save correlations as CSV
-        # heatmap.to_latex(csv_path.replace('.csv', '.tex')) # Save correlations as .tex
         heatmap.style.to_latex(csv_path.replace('.csv', '.tex'))  # Save correlations as .tex
-        try:
-            df[columns].corr(method=lambda x, y: pearsonr(x, y)[1]).to_csv(
-                csv_path.replace('.csv', '_pvalues.csv')
-            )
-        # older scipy versions return a tuple instead of an object
-        except AttributeError:
-            df[columns].corr(method=lambda x, y: pearsonr(x, y)[1]).to_csv(
-                csv_path.replace('.csv', '_pvalues.csv')
-            )
+
+        # Save p-values as CSV
+        def p_value(x, y):
+            if x.shape == (1,) or y.shape == (1,):
+                p_value = float('nan')
+            else:
+                p_value = pearsonr(x, y)[1]
+            return p_value
+
+        p_path = csv_path.replace('.csv', '_pvalues.csv')
+        df[columns].corr(method=p_value).to_csv(p_path)  # type: ignore
 
         # Save correlation heatmap as image
         axes = sns.heatmap(

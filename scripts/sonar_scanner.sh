@@ -248,25 +248,26 @@ for repo_path in $repositories; do
     ##########################################
     # Copy contents of relevant coverage files
     ##########################################
-    rm -f coverage.xml report.xml
+    rm -f .coverage coverage.xml report.xml
 
+    # coverage.xml
     print_line "Reading coverage.xml from Docker container..."
     docker run --gpus all --rm --name $repo_name $repo_name bash -c "cat coverage.xml" > $OUTPUT_DIR/coverage.xml
-
-    # print_line "Misses: $(cat $OUTPUT_DIR/coverage.xml | grep "hits=\"0\"" | wc -l)"
-    # print_line "Hits: $(cat $OUTPUT_DIR/coverage.xml | grep "hits=\"1\"" | wc -l)"
-    # print_line "Total: $(cat $OUTPUT_DIR/coverage.xml | grep "hits=" | wc -l)"
     print_line "Misses: $(cat $OUTPUT_DIR/coverage.xml | grep -c "hits=\"0\"")"
     print_line "Hits: $(cat $OUTPUT_DIR/coverage.xml | grep -c "hits=\"1\"")"
     print_line "Total: $(cat $OUTPUT_DIR/coverage.xml | grep -c "hits=")"
 
+    # .coverage
     print_line "Reading .coverage from Docker container..."
     docker run --gpus all --rm --name $repo_name $repo_name bash -c "cat .coverage" > $OUTPUT_DIR/.coverage
-    docker run --gpus all --rm --name $repo_name $repo_name bash -c "ls -la" > $repo_name.log
 
-    # Copy coverage.xml to target directory for SonarScanner
+    # Copy coverage files to target directory for SonarScanner
     cp $OUTPUT_DIR/{coverage.xml,.coverage} $TARGET_DIR
     ls $TARGET_DIR/coverage.xml $TARGET_DIR/.coverage || (echo "missing files" && exit 1)
+
+    # Report
+    print_line "Coverage Report:"
+    docker run --gpus all --rm --name $repo_name $repo_name bash -c "coverage report" > $OUTPUT_DIR/report.txt
 
     # continue
     # break
@@ -325,6 +326,7 @@ sonar.password=$SONAR_PASSWORD
 sonar.token=$SONAR_TOKEN
 sonar.language=py
 sonar.python.coverage.reportPaths=coverage.xml,$TARGET_DIR/coverage.xml,$TARGET_DIR/**/coverage.xml,$OUTPUT_DIR/coverage.xml,$ABSOLUTE_PATH/coverage.xml
+sonar.python.coverage.itReportPath=$TARGET_DIR/.coverage
 sonar.scm.disabled=true
 EOL
     # sonar.python.coverage.reportPaths=coverage.xml,$TARGET_DIR/coverage.xml,$TARGET_DIR/**/coverage.xml,$OUTPUT_DIR/coverage.xml,$ABSOLUTE_PATH/coverage.xml

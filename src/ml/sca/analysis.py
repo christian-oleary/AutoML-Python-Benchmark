@@ -166,30 +166,32 @@ class Analysis:
             self.save_results(self.output_dir)
         return self.results
 
-    def analyze_repo(self, target_dir: str | Path) -> dict:
+    def analyze_repo(self, target_dir: str | Path, skip_existing: bool = True) -> dict:
         """Analyze a single Git repository in the specified directory.
 
         :param str | Path target_dir: Path to the Git repository.
+        :param bool skip_existing: Whether to skip existing results, defaults to True.
         :return dict: The analysis of the Git repository.
         """
         logger.info(f'Analyzing {target_dir}...')
         repo = GitRepo(target_dir)
 
         # Run analysis on the repository
-        sonar_results = self.parse_sonar_scanner_json(repo, self.output_dir)
+        sonar_results = self.parse_sonar_scanner_json(repo, self.output_dir, skip_existing)
         results = {
             'name': repo.name,
             'path': repo.path,
             **{f'git__{k}': v for k, v in self.git_analysis(repo).items()},
             **{f'sonar__{k}': v for k, v in sonar_results.items()},
-            **{f'pylint__{k}': v for k, v in self.run_pylint(repo).items()},
+            **{f'pylint__{k}': v for k, v in self.run_pylint(repo, skip_existing).items()},
         }
         return results
 
-    def run_pylint(self, repo: GitRepo) -> dict:
+    def run_pylint(self, repo: GitRepo, skip_existing: bool = True) -> dict:
         """Run pylint on the specified directory.
 
         :param GitRepo repo: The Git repository object.
+        :param bool skip_existing: Whether to skip existing results, defaults to True.
         :return dict: The frequencies of pylint errors.
         """
         logger.debug(f'Running pylint on {repo.name}...')
@@ -201,7 +203,7 @@ class Analysis:
         if self.output_dir:
             results_file = Path(self.output_dir, 'pylint', pylint_file)
             # Load the pylint output from a file if possible
-            if results_file and results_file.exists():
+            if skip_existing and results_file and results_file.exists():
                 logger.debug(f'Output file already exists: {results_file}')
                 frequencies = json.loads(results_file.read_text(encoding='utf-8'))
                 return frequencies
@@ -261,11 +263,14 @@ class Analysis:
             }
         return analysis
 
-    def parse_sonar_scanner_json(self, repo: GitRepo, output_dir: str | Path | None):
+    def parse_sonar_scanner_json(
+        self, repo: GitRepo, output_dir: str | Path | None, skip_existing: bool = True
+    ) -> dict:
         """Parse the JSON output from SonarScanner.
 
         :param GitRepo repo: The Git repository object.
         :param str | Path | None output_dir: Output directory, defaults to None.
+        :param bool skip_existing: Whether to skip existing results, defaults to True.
         :return dict: The SonarScanner analysis results.
         """
         if output_dir is None:  # No sonar scanner files specified
@@ -285,7 +290,7 @@ class Analysis:
 
         # Load and return parsed measures if available
         parsed_measures_file = Path(output_dir, 'sonar_parsed', f'sonar_{repo.name}.json')
-        if parsed_measures_file.exists():
+        if skip_existing and parsed_measures_file.exists():
             logger.debug(f'Loading parsed measures from {parsed_measures_file}')
             return json.loads(parsed_measures_file.read_text(encoding='utf-8'))
 
@@ -298,29 +303,45 @@ class Analysis:
         # Iterate through the lines of measures
         for line in lines:
             # Parse the JSON line and extract the measures
-            measures = json.loads(line)['component']['measures']
-
-            # Filter out ignored metrics
-            measures = [m for m in measures if m['metric'] not in IGNORED_SONAR_METRICS]
-
-            # Record the measures as floats
-            for measure in measures:
-                # Handle ncloc_language_distribution
-                if measure['metric'] == 'ncloc_language_distribution':
-                    measure['value'] = self.calculate_python_percentage(measure['value'])
-
-                # Record last_commit_date as int
-                if measure['metric'] == 'last_commit_date':
-                    results[measure['metric']] = int(measure['value'])
-                else:
-                    # Record the measure as a float
-                    results[measure['metric']] = float(measure['value'])
+            if 'component' in line:
+                measures = json.loads(line)['component']['measures']
+                results = self.parse_line(measures, results)
+            elif 'errors' in line:
+                results['errors'] = len(json.loads(line)['errors'])
+            else:
+                raise ValueError(f'Could not parse line: {line}')
 
         # Save the parsed measures to a file
         parsed_measures_file.parent.mkdir(parents=True, exist_ok=True)
         with open(parsed_measures_file, 'w', encoding='utf-8') as f:
             json.dump(results, f, indent=4)
 
+        return results
+
+    def parse_line(self, measures: list[dict], results: dict[str, float | int]) -> dict:
+        """Parse a line of measures from SonarScanner output.
+
+        :param list[dict] measures: The measures from SonarScanner output.
+        :param dict[str, float | int] results: The results to update.
+        :raises ValueError: If the measure cannot be parsed.
+        :return dict: The updated results.
+        """
+        # Filter out ignored metrics
+        measures = [m for m in measures if m['metric'] not in IGNORED_SONAR_METRICS]
+
+        # Record the measures as floats
+        for measure in measures:
+            # Handle ncloc_language_distribution
+            if measure['metric'] == 'ncloc_language_distribution':
+                measure['value'] = self.calculate_python_percentage(measure['value'])
+
+            # Record last_commit_date as int
+            if measure['metric'] == 'last_commit_date':
+                results[measure['metric']] = int(measure['value'])
+            elif 'value' not in measure['metric'] and 'periods' in measure:
+                results[measure['metric']] = float(len(measure['periods']))
+            else:
+                results[measure['metric']] = float(measure['value'])
         return results
 
     def calculate_python_percentage(self, language_distribution: str):

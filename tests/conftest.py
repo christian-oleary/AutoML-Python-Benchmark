@@ -7,6 +7,8 @@ from pathlib import Path
 import pandas as pd
 from sklearn.datasets import fetch_openml
 
+from ml.logs import logger
+
 
 def download_bike_sharing(
     row_limit: int | None = None,
@@ -53,24 +55,44 @@ def attempt_download(dataset_name: str, version: int) -> pd.DataFrame:
         'as_frame': True,
         # 'data_home': data_home,
     }
+
+    data = None
+
+    try:
+        data = fetch_openml(**kwargs)
+    except Exception:
+        logger.critical('Failed A')
+
+    try:
+        if data is None:
+            data = fetch_openml(**kwargs, cache=False)
+    except Exception:
+        logger.critical('Failed B')
+
+    try:
+        if data is None:
+            data = fetch_openml(**kwargs, parser='auto')
+    except Exception:
+        logger.critical('Failed C')
+
     # shutil.rmtree(data_home)
     # Try to download the dataset
-    try:
-        data = fetch_openml(**kwargs, parser='auto')
-    except ValueError:
-        data = fetch_openml(**kwargs, cache=False)
-        # # Checksum error
-        # if 'md5 checksum' in str(e):
-        #     # Delete the cached dataset
-        #     # shutil.rmtree(data_home)
-        #     # Try to download the dataset again
-        #     data = fetch_openml(**kwargs, cache=False)
-        #     data = fetch_openml(**kwargs, cache=False)
-        # else:
-        #     raise e
-    except TypeError:
-        # Newer versions of scikit-learn
-        data = fetch_openml(**kwargs)
+    # try:
+    #     data = fetch_openml(**kwargs, parser='auto')
+    # except ValueError:
+    #     data = fetch_openml(**kwargs, cache=False)
+    #     # # Checksum error
+    #     # if 'md5 checksum' in str(e):
+    #     #     # Delete the cached dataset
+    #     #     # shutil.rmtree(data_home)
+    #     #     # Try to download the dataset again
+    #     #     data = fetch_openml(**kwargs, cache=False)
+    #     #     data = fetch_openml(**kwargs, cache=False)
+    #     # else:
+    #     #     raise e
+    # except TypeError:
+    #     # Newer versions of scikit-learn
+    #     data = fetch_openml(**kwargs)
     # Get the dataset as a pandas DataFrame
     df = data.frame
     return df

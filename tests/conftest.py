@@ -6,8 +6,6 @@ from pathlib import Path
 import pandas as pd
 from sklearn.datasets import fetch_openml
 
-from src.ml.logs import logger
-
 
 def download_bike_sharing(
     row_limit: int | None = None,
@@ -27,13 +25,13 @@ def download_bike_sharing(
     try:
         bike_sharing = bike_sharing = download(parser='auto')
     # Checksum error
-    except ValueError as error:
-        text = error.args[0]
-        if 'checksum' in text:
-            logger.warning(text)
-            bike_sharing = download(cache=False)
-        else:
-            raise error
+    except ValueError:
+        # text = error.args[0]
+        # if 'checksum' in text:
+        #     logger.warning(text)
+        bike_sharing = download(cache=False)
+        # else:
+        #     raise error
     # Newer versions of scikit-learn
     except TypeError:
         bike_sharing = download()

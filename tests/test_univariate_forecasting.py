@@ -5,9 +5,8 @@ from pathlib import Path
 
 import pandas as pd
 import pytest
+from sklearn.datasets import make_regression
 from sklearn.experimental import enable_iterative_imputer  # pylint: disable=W0611  # noqa: F401
-
-from tests.conftest import download_bike_sharing
 
 # from ml.forecasting import Forecasting
 from ml.validation import Library, Task
@@ -38,22 +37,14 @@ class TestDataset:
         forecasting_test_path = Path(config.data_dir, 'forecasting_data.csv')
 
         if overwrite or not forecasting_test_path.exists():
-            # Download bike sharing dataset
-            df = download_bike_sharing(200, forecasting_test_path)
-            # Create metadata DataFrame
-            metadata = {
-                'horizon': 6,
-                'has_nans': False,
-                'equal_length': False,
-                'num_rows': df.shape[0],
-                'num_cols': df.shape[1],
-            }
-            metadata['frequency'] = 48
-            metadata['file'] = 'forecasting_data.csv'
-            metadata = pd.DataFrame([metadata])
-            # Save metadata
-            metadata_path = Path(config.data_dir, '0_metadata.csv')
-            metadata.to_csv(metadata_path, index=False)
+            # Create a time series dataset
+            frequency = 24
+            X, y = make_regression(n_samples=frequency * 10, n_features=1, random_state=1)
+            df = pd.DataFrame(X, columns=['feature'])
+            df['target'] = y
+            df['timestamp'] = pd.date_range(start='2000-01-01 00:00:00', periods=len(df), freq='H')
+            df.set_index('timestamp', inplace=True)
+            df.to_csv(forecasting_test_path, index=False)
 
         return config
 

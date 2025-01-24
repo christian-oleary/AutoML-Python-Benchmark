@@ -60,20 +60,23 @@ def attempt_download(dataset_name: str, version: int) -> pd.DataFrame:
 
     try:
         data = fetch_openml(**kwargs)
+        return data.frame
     except Exception:
         logger.critical('Failed A')
 
     try:
-        if data is None:
-            data = fetch_openml(**kwargs, cache=False)
+        data = fetch_openml(**kwargs, cache=False)
+        return data.frame
     except Exception:
         logger.critical('Failed B')
 
     try:
-        if data is None:
-            data = fetch_openml(**kwargs, parser='auto')
+        data = fetch_openml(**kwargs, parser='auto')
+        return data.frame
     except Exception:
         logger.critical('Failed C')
+
+    raise ValueError('Failed to download dataset')
 
     # shutil.rmtree(data_home)
     # Try to download the dataset

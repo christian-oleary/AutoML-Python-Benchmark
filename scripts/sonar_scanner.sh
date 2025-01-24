@@ -65,7 +65,7 @@ export DELETE_EXISTING_PROJECTS=${DELETE_EXISTING_PROJECTS:-"false"}
 export SKIP_EXISTING_IMAGES=${SKIP_EXISTING_IMAGES:-"false"}
 
 # Skip running sonar scanner if results already exist
-export SKIP_EXISTING_RESULTS=${SKIP_EXISTING_RESULTS:-"false"}
+export SKIP_EXISTING_RESULTS=${SKIP_EXISTING_RESULTS:-"true"}
 
 # Run SonarScanner using Docker
 export DOCKER=${DOCKER:-"false"}
@@ -260,6 +260,12 @@ for repo_path in $repositories; do
     # .coverage
     print_line "Reading .coverage from Docker container..."
     docker run --gpus all --rm --name $repo_name $repo_name bash -c "cat .coverage" > $OUTPUT_DIR/.coverage
+
+    # If fedot, delete first 3 lines of coverage.xml
+    if [ "$repo_name" = "fedot" ]; then
+        sed -i '1,3d' $OUTPUT_DIR/coverage.xml
+        sed -i '1,3d' $OUTPUT_DIR/.coverage
+    fi
 
     # Copy coverage files to target directory for SonarScanner
     cp $OUTPUT_DIR/{coverage.xml,.coverage} $TARGET_DIR

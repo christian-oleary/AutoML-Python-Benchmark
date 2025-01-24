@@ -31,7 +31,7 @@ def download_bike_sharing(
         text = error.args[0]
         if 'checksum' in text:
             logger.warning(text)
-            bike_sharing = download()
+            bike_sharing = download(cache=False)
         else:
             raise error
     # Newer versions of scikit-learn

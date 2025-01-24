@@ -48,32 +48,44 @@ def attempt_download(dataset_name: str, version: int) -> pd.DataFrame:
     :param int version: Version of the dataset.
     :return pd.DataFrame df: Dataset.
     """
-    # data_home = os.path.join('tests', 'data', 'openml')
     kwargs = {
         'name': dataset_name,
         'version': version,
         'as_frame': True,
-        # 'data_home': data_home,
     }
 
     data = None
 
+    def clear_cache():
+        """Clear the OpenML cache."""
+        import shutil
+
+        cache_dir = Path('~', '.openml', 'cache').expanduser()
+        shutil.rmtree(cache_dir)
+
     try:
         data = fetch_openml(**kwargs)
         return data.frame
-    except Exception:
+    except Exception as e:
+        logger.warning(e)
         logger.critical('Failed A')
+
+    clear_cache()
 
     try:
         data = fetch_openml(**kwargs, cache=False)
         return data.frame
-    except Exception:
+    except Exception as e:
+        logger.warning(e)
         logger.critical('Failed B')
+
+    clear_cache()
 
     try:
         data = fetch_openml(**kwargs, parser='auto')
         return data.frame
-    except Exception:
+    except Exception as e:
+        logger.warning(e)
         logger.critical('Failed C')
 
     raise ValueError('Failed to download dataset')

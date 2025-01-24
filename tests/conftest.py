@@ -60,6 +60,10 @@ def attempt_download(dataset_name: str, version: int) -> pd.DataFrame:
         """Clear the OpenML cache."""
         import shutil
 
+        import os
+
+        logger.warning(os.listdir('~/'))
+        logger.warning(os.listdir('~/.openml'))
         cache_dir = Path('~', '.openml', 'cache').expanduser()
         shutil.rmtree(cache_dir)
 

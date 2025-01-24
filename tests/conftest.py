@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import os
 from pathlib import Path
 
 import pandas as pd
@@ -47,22 +46,28 @@ def attempt_download(dataset_name: str, version: int) -> pd.DataFrame:
     :param int version: Version of the dataset.
     :return pd.DataFrame df: Dataset.
     """
-    kwargs = {'name': dataset_name, 'version': version, 'as_frame': True}
+    # data_home = os.path.join('tests', 'data', 'openml')
+    kwargs = {
+        'name': dataset_name,
+        'version': version,
+        'as_frame': True,
+        # 'data_home': data_home,
+    }
+    # shutil.rmtree(data_home)
     # Try to download the dataset
     try:
         data = fetch_openml(**kwargs, parser='auto')
-    except ValueError as e:
-        # Checksum error
-        if 'md5 checksum' in str(e):
-            # Clear the cache and retry download
-            cache_path = os.path.expanduser('~/scikit_learn_data')
-            if os.path.exists(cache_path):
-                for root, _, files in os.walk(cache_path):
-                    for file in files:
-                        os.remove(os.path.join(root, file))
-            data = fetch_openml(**kwargs, cache=True)
-        else:
-            raise e
+    except ValueError:
+        data = fetch_openml(**kwargs, cache=False)
+        # # Checksum error
+        # if 'md5 checksum' in str(e):
+        #     # Delete the cached dataset
+        #     # shutil.rmtree(data_home)
+        #     # Try to download the dataset again
+        #     data = fetch_openml(**kwargs, cache=False)
+        #     data = fetch_openml(**kwargs, cache=False)
+        # else:
+        #     raise e
     except TypeError:
         # Newer versions of scikit-learn
         data = fetch_openml(**kwargs)

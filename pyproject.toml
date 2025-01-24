@@ -100,6 +100,7 @@ Issues = "https://github.com/christian-oleary/AutoML-Python-Benchmark/issues"
 # BANDIT
 [tool.bandit]
 exclude = ["tests", "docs", "repositories", "**/TSForecasting/*"]
+exclude_dirs = ["tests", "docs", "repositories", "**/TSForecasting/*"]
 
 ################################################################################
 # BLACK

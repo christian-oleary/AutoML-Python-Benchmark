@@ -1,14 +1,16 @@
 """Tests for univariate forecasting."""
 
 import os
+from pathlib import Path
 
 import pandas as pd
 import pytest
-from sklearn.datasets import fetch_openml
 from sklearn.experimental import enable_iterative_imputer  # pylint: disable=W0611  # noqa: F401
 
-# from src.ml.forecasting import Forecasting
-from src.ml.validation import Library, Task
+from tests.conftest import download_bike_sharing
+
+# from ml.forecasting import Forecasting
+from ml.validation import Library, Task
 
 
 class TestDataset:
@@ -33,26 +35,12 @@ class TestDataset:
 
         # Create test dataset for forecasting
         os.makedirs(config.data_dir, exist_ok=True)
-        forecasting_test_path = os.path.join(config.data_dir, 'forecasting_data.csv')
+        forecasting_test_path = Path(config.data_dir, 'forecasting_data.csv')
 
-        if overwrite or not os.path.exists(forecasting_test_path):
-            try:
-                bike_sharing = fetch_openml(
-                    'Bike_Sharing_Demand', version=2, as_frame=True, parser='auto'
-                )
-            except TypeError:  # Newer versions
-                bike_sharing = fetch_openml('Bike_Sharing_Demand', version=2, as_frame=True)
-
-            df = bike_sharing.frame
-            df = df.head(200)
-            df = df[['temp', 'feel_temp', 'humidity', 'windspeed']]
-            timestamps = pd.date_range(start='2012-1-1 00:00:00', periods=len(df), freq='30T')
-
-            df['applicable_date'] = timestamps
-            df = df[['applicable_date', 'temp']]
-            df.to_csv(forecasting_test_path, index=False)
-
-            metadata_path = os.path.join(config.data_dir, '0_metadata.csv')
+        if overwrite or not forecasting_test_path.exists():
+            # Download bike sharing dataset
+            df = download_bike_sharing(200, forecasting_test_path)
+            # Create metadata DataFrame
             metadata = {
                 'horizon': 6,
                 'has_nans': False,
@@ -60,15 +48,17 @@ class TestDataset:
                 'num_rows': df.shape[0],
                 'num_cols': df.shape[1],
             }
-
             metadata['frequency'] = 48
             metadata['file'] = 'forecasting_data.csv'
             metadata = pd.DataFrame([metadata])
+            # Save metadata
+            metadata_path = Path(config.data_dir, '0_metadata.csv')
             metadata.to_csv(metadata_path, index=False)
+
         return config
 
-    def test_forecasting_libraries(self, setup):
-        """Test forecasting on a small dataset"""
+    def test_forecasting_libraries(self, setup):  # pylint: disable=unused-argument
+        """Test forecasting on a small dataset."""
         forecasters = Library.get_options()
         if len(forecasters) == 0:
             raise ValueError('No forecasters found')

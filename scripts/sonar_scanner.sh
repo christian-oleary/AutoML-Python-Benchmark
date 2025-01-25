@@ -42,7 +42,7 @@ print_subheading() {
 
 print_line() {
     local message=$1
-    echo -e "${GREEN}-> ${message}${RESET}"
+    echo -e "${GREEN}$0:${BASH_LINENO[0]}: -> ${message}\n${RESET}"
 }
 
 ################################################################################
@@ -178,8 +178,9 @@ mkdir -p logs; mkdir -p logs/sca/sonar/
 for repo_path in $repositories; do
     # Get the name of the repository from directory path
     repo_name=$(basename "$repo_path")
+    image_name="christianoleary/${repo_name}"
 
-    print_heading "Processing directory: ${repo_path} (${repo_name})"
+    print_heading "Processing directory: ${repo_path} (${repo_name} - ${image_name})"
 
     ############################################################################
     # SKIP IF NOT A DIRECTORY
@@ -234,16 +235,32 @@ for repo_path in $repositories; do
     # Remove irrelevant files that may be picked up by Sonar
     rm -f coverage.xml report.xml
 
-    ###########################################################################
-    # Build Docker image if not SKIP_EXISTING_IMAGES or if image does not exist
-    ###########################################################################
-    if [[ "$SKIP_EXISTING_IMAGES" == "false" || "$(docker images -q $repo_name 2> /dev/null)" == "" ]]; then
-        (docker build --build-arg run_tests=true --progress plain -t $repo_name \
-            -f ./src/ml/automl/$repo_name/Dockerfile . 2>&1 | tee ./logs/sca/sonar/$repo_name.log) || exit 1
+    ###################################################################################
+    # Pull or build Docker image if not SKIP_EXISTING_IMAGES or if image does not exist
+    ###################################################################################
+    # if docker image exists
+    if [ "$(docker images -q "${image_name}" 2> /dev/null)" != "" ]; then
+        print_line "Docker image ${image_name} available to pull"
+        docker pull ${image_name} || (echo "Pull failed!" && docker image ls)
     else
-        print_line "Docker image ${repo_name} already exists. Skipping build..."
+        print_line "Docker image not yet pushed"
+        # Build Docker image
+        if [ "$SKIP_EXISTING_IMAGES" == "false" ]; then
+            print_line "Building Docker image ${image_name}..."
+
+            # Build image with tests enabled and save logs to file
+            (docker build --build-arg run_tests=true --progress plain -t "${image_name}" \
+                -f ./src/ml/automl/$repo_name/Dockerfile . 2>&1 | tee ./logs/sca/sonar/$repo_name.log) || exit 1
+
+            print_line "Docker image ${image_name} built successfully."
+        else
+            # Skip building image
+            print_line "Docker image ${image_name} already exists. Skipping build..."
+        fi
+        # Push built image
+        print_line "Pushing image..."
+        docker push "${image_name}" &
     fi
-    # break
 
     ##########################################
     # Copy contents of relevant coverage files
@@ -252,19 +269,19 @@ for repo_path in $repositories; do
 
     # coverage.xml
     print_line "Reading coverage.xml from Docker container..."
-    docker run --gpus all --rm --name $repo_name $repo_name bash -c "cat coverage.xml" > $OUTPUT_DIR/coverage.xml
+    docker run --gpus all --rm --name $repo_name "${image_name}" bash -c "cat coverage.xml" > $OUTPUT_DIR/coverage.xml
     print_line "Misses: $(cat $OUTPUT_DIR/coverage.xml | grep -c "hits=\"0\"")"
     print_line "Hits: $(cat $OUTPUT_DIR/coverage.xml | grep -c "hits=\"1\"")"
     print_line "Total: $(cat $OUTPUT_DIR/coverage.xml | grep -c "hits=")"
 
     # .coverage
     print_line "Reading .coverage from Docker container..."
-    docker run --gpus all --rm --name $repo_name $repo_name bash -c "cat .coverage" > $OUTPUT_DIR/.coverage
+    docker run --gpus all --rm --name $repo_name "${image_name}" bash -c "cat .coverage" > $OUTPUT_DIR/.coverage
 
     # If fedot, delete first 3 lines of coverage.xml
     if [ "$repo_name" = "fedot" ]; then
-        sed -i '1,3d' $OUTPUT_DIR/coverage.xml
-        sed -i '1,3d' $OUTPUT_DIR/.coverage
+        sed -i '1,4d' $OUTPUT_DIR/coverage.xml
+        sed -i '1,4d' $OUTPUT_DIR/.coverage
     fi
 
     # Copy coverage files to target directory for SonarScanner
@@ -273,7 +290,7 @@ for repo_path in $repositories; do
 
     # Report
     print_line "Coverage Report:"
-    docker run --gpus all --rm --name $repo_name $repo_name bash -c "coverage report" > $OUTPUT_DIR/report.txt
+    docker run --gpus all --rm --name $repo_name "${image_name}" bash -c "coverage report" > $OUTPUT_DIR/report.txt
 
     # continue
     # break

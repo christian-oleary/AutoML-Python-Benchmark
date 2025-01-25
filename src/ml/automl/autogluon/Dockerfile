@@ -54,43 +54,35 @@ RUN rm -rf ./**/results.xml ./**/coverage.xml ./**/.coverage
 
 # Run the test scripts
 # Common
-RUN $CI_DIR/test_common.sh && (ls common/.coverage || exit)
-# RUN sed -i 's/--junitxml=results.xml/--cov-report xml:coverage.xml --cov=. --cov-fail-under=1/g' $CI_DIR/test_common.sh && \
-#     $CI_DIR/test_common.sh && (ls common/.coverage || exit)
+RUN sed -i 's/--junitxml=results.xml/--cov-report xml:coverage.xml --cov=. --cov-fail-under=1/g' $CI_DIR/test_common.sh && \
+    $CI_DIR/test_common.sh && (ls common/.coverage || exit)
     #  && (cp common/.coverage .coverage.common || exit)
     # $CI_DIR/test_common.sh && (cp common/.coverage .coverage.common || exit)
 
 # Core
-# RUN sed -i 's/--junitxml=results.xml/--cov-report xml:coverage.xml --cov=. --cov-fail-under=1/g' $CI_DIR/test_core.sh && \
-#     $CI_DIR/test_core.sh && (ls core/.coverage || exit)
-RUN $CI_DIR/test_core.sh && (ls core/.coverage || exit)
+RUN sed -i 's/--junitxml=results.xml/--cov-report xml:coverage.xml --cov=. --cov-fail-under=1/g' $CI_DIR/test_core.sh && \
+    $CI_DIR/test_core.sh && (ls core/.coverage || exit)
 
 # EDA
 # test_eda.sh fails. It is commented out in their CI.
 # RUN sed -i 's/--junitxml=results.xml/--cov-report xml:coverage.xml --cov=. --cov-fail-under=1/g' $CI_DIR/test_eda.sh && \
 #     $CI_DIR/test_eda.sh && (ls eda/.coverage || exit)
-# RUN $CI_DIR/test_eda.sh && (ls eda/.coverage || exit)
 
 # Features
-# RUN sed -i 's/--junitxml=results.xml/--cov-report xml:coverage.xml --cov=. --cov-fail-under=1/g' $CI_DIR/test_features.sh && \
-#     $CI_DIR/test_features.sh && (ls features/.coverage || exit)
-RUN $CI_DIR/test_features.sh && (ls features/.coverage || exit)
+RUN sed -i 's/--junitxml=results.xml/--cov-report xml:coverage.xml --cov=. --cov-fail-under=1/g' $CI_DIR/test_features.sh && \
+    $CI_DIR/test_features.sh && (ls features/.coverage || exit)
 
 # Time series
-# RUN sed -i 's/--junitxml=results.xml/--cov-report xml:coverage.xml --cov=. --cov-fail-under=1/g' $CI_DIR/test_timeseries.sh && \
-#     $CI_DIR/test_timeseries.sh && (ls timeseries/.coverage || exit)
-RUN $CI_DIR/test_timeseries.sh && (ls timeseries/.coverage || exit)
+RUN sed -i 's/--junitxml=results.xml/--cov-report xml:coverage.xml --cov=. --cov-fail-under=1/g' $CI_DIR/test_timeseries.sh && \
+    $CI_DIR/test_timeseries.sh && (ls timeseries/.coverage || exit)
 
 # Multimodal
-# RUN sed -i 's/--junitxml=results.xml/--cov-report xml:coverage.xml --cov=. --cov-fail-under=1/g' $CI_DIR/test_multimodal.sh && \
-#     $CI_DIR/test_multimodal.sh && (ls multimodal/.coverage || exit)
-RUN $CI_DIR/test_multimodal.sh && (ls multimodal/.coverage || exit)
+RUN sed -i 's/--junitxml=results.xml/--cov-report xml:coverage.xml --cov=. --cov-fail-under=1/g' $CI_DIR/test_multimodal.sh && \
+    $CI_DIR/test_multimodal.sh && (ls multimodal/.coverage || exit)
 
 # Tabular
-# RUN sed -i 's/--junitxml=results.xml/--cov-report xml:coverage.xml --cov=. --cov-fail-under=1/g' $CI_DIR/test_tabular.sh && \
-#     $CI_DIR/test_tabular.sh && (ls tabular/.coverage || exit)
-RUN $CI_DIR/test_tabular.sh && (ls tabular/.coverage || exit)
-
+RUN sed -i 's/--junitxml=results.xml/--cov-report xml:coverage.xml --cov=. --cov-fail-under=1/g' $CI_DIR/test_tabular.sh && \
+    $CI_DIR/test_tabular.sh && (ls tabular/.coverage || exit)
 
 # Combine .coverage files
 RUN ls && echo "--------" && python -m coverage combine ./*/.coverage

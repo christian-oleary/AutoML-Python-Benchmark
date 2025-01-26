@@ -9,12 +9,12 @@
 # Exit on error
 set -e
 
-################################################################################
+########
 # Usage:
-################################################################################
+########
 # (ensure python and conda are installed)
 # sudo apt-get install zip unzip
-# ./shell/sonar_scanner.sh
+# ./scripts/sonar_scanner.sh
 
 ################################################################################
 # LOGGING FUNCTIONS
@@ -54,7 +54,7 @@ if [[ "$(uname -s)" != "Linux" && ! -f /proc/sys/fs/binfmt_misc/WSLInterop ]]; t
 fi
 
 ################################################################################
-# Environment Variables
+# ENVIRONMENT VARIABLES
 ################################################################################
 print_heading "Environment Variables"
 
@@ -87,7 +87,7 @@ print_line "SONAR_PASSWORD=${SONAR_PASSWORD}"
 print_line "API_URL=${API_URL}"
 
 ################################################################################
-# CHANGE ADMIN PASSWORD (if not using Docker)
+# CHANGE ADMIN PASSWORD
 ################################################################################
 print_heading "Setting admin password"
 
@@ -97,7 +97,7 @@ curl -u ${SONAR_LOGIN}:${SONAR_LOGIN} -X POST \
 printf "Done\n"
 
 ################################################################################
-# Download SonarScanner CLI Tool (if not using Docker)
+# DOWNLOAD SONARSCANNER CLI TOOL (IF NOT USING DOCKER)
 ################################################################################
 print_heading "SonarScanner CLI Tool Setup"
 
@@ -142,13 +142,10 @@ else
 fi
 
 ################################################################################
-# List all directories in REPOSITORIES_DIR (default: "repositories")
+# FIND ALL REPOSITORIES IN REPOSITORIES_DIR
 ################################################################################
 print_heading "Repositories in '${REPOSITORIES_DIR}'"
 
-##########################################
-# Find all directories in REPOSITORIES_DIR
-##########################################
 repositories=$(find ./$REPOSITORIES_DIR -mindepth 1 -maxdepth 1 -type d)
 # repositories="./repositories/auto_pytorch"
 print_line "Repository directories found:\n$repositories"
@@ -198,7 +195,7 @@ for repo_path in $repositories; do
     OUTPUT_FILE="${OUTPUT_DIR}/measures.json"
 
     ############################################################################
-    # Skip if output file already exists and SKIP_EXISTING_RESULTS is true
+    # SKIP IF OUTPUT FILE EXISTS AND SKIP_EXISTING_RESULTS IS TRUE
     ############################################################################
     if [ -f "${OUTPUT_FILE}" ] && [ "${SKIP_EXISTING_RESULTS}" = "true" ]; then
         print_line "Output file $OUTPUT_FILE already exists. Skipping ${repo_name}..."
@@ -241,7 +238,7 @@ for repo_path in $repositories; do
     # if docker image exists
     if [ "$(docker images -q "${image_name}" 2> /dev/null)" != "" ]; then
         print_line "Docker image ${image_name} available to pull"
-        docker pull ${image_name} || (echo "Pull failed!" && docker image ls)
+        docker pull ${image_name} || (echo "Pull failed!")  # && docker image ls)
     else
         print_line "Docker image not yet pushed"
         # Build Docker image
@@ -257,14 +254,11 @@ for repo_path in $repositories; do
             # Skip building image
             print_line "Docker image ${image_name} already exists. Skipping build..."
         fi
-        # Push built image
-        print_line "Pushing image..."
-        docker push "${image_name}" &
     fi
 
-    ##########################################
-    # Copy contents of relevant coverage files
-    ##########################################
+    ##################################################
+    # Copy contents of relevant coverage files to host
+    ##################################################
     rm -f .coverage coverage.xml report.xml
 
     # coverage.xml
@@ -284,13 +278,25 @@ for repo_path in $repositories; do
         sed -i '1,4d' $OUTPUT_DIR/.coverage
     fi
 
+    ##########################################################
     # Copy coverage files to target directory for SonarScanner
+    ##########################################################
     cp $OUTPUT_DIR/{coverage.xml,.coverage} $TARGET_DIR
     ls $TARGET_DIR/coverage.xml $TARGET_DIR/.coverage || (echo "missing files" && exit 1)
 
-    # Report
+    ######################
+    # Show coverage report
+    ######################
     print_line "Coverage Report:"
     docker run --gpus all --rm --name $repo_name "${image_name}" bash -c "coverage report" > $OUTPUT_DIR/report.txt
+
+    ################################################################################################
+    # PUSH DOCKER IMAGE TO DOCKER HUB (docker push should skip existing layers)
+    ################################################################################################
+    print_line "Checking for previous Docker push to complete before continuing..."
+    wait
+    print_line "Continuing with Docker push (project: $repo_name)..."
+    docker push "${image_name}" &
 
     # continue
     # break
@@ -360,7 +366,7 @@ EOL
     # sonar.sourceEncoding=UTF-8
 
     ################################################################################################
-    # Create projects. Delete old projects if they already exists.
+    # SET UP PROJECT IN SONARQUBE
     ################################################################################################
     print_subheading "Set Up Project (project: $repo_name)"
 
@@ -434,9 +440,9 @@ EOL
     ####################################################
     rm -f "${TARGET_DIR}/coverage.xml" "${TARGET_DIR}/report.xml"
 
-    ################################################################################
+    ################################################################################################
     # EXPORT SONARQUBE RESULTS TO FILE
-    ################################################################################
+    ################################################################################################
     print_subheading "Exporting SonarQube Results to File (project: $repo_name)"
 
     #############################

@@ -20,6 +20,7 @@ services:
       - SONAR_PASSWORD=2c71d75bcs4hq934tdjqngtsojxercm
       - SONAR_WEB_PORT=9000
       - SONAR_ES_BOOTSTRAP_CHECKS_DISABLE=true
+    restart: always
     networks:
       - sonarnet
     volumes:
@@ -32,6 +33,7 @@ services:
   db:
     container_name: sonardb
     image: postgres
+    restart: always
     networks:
       - sonarnet
     environment:

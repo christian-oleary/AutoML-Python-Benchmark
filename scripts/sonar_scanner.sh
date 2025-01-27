@@ -177,6 +177,8 @@ mkdir -p logs; mkdir -p logs/sca/sonar/
 ################################################################################
 # LOOP OVER EACH REPOSITORY
 ################################################################################
+previous_image=""
+
 for repo_path in $repositories; do
     # Get the name of the repository from directory path
     repo_name=$(basename "$repo_path")
@@ -198,14 +200,6 @@ for repo_path in $repositories; do
     OUTPUT_DIR="./results/sca/sonar/${repo_name}"
     mkdir -p $OUTPUT_DIR
     OUTPUT_FILE="${OUTPUT_DIR}/measures.json"
-
-    ############################################################################
-    # SKIP IF OUTPUT FILE EXISTS AND SKIP_EXISTING_RESULTS IS TRUE
-    ############################################################################
-    if [ -f "${OUTPUT_FILE}" ] && [ "${SKIP_EXISTING_RESULTS}" = "true" ]; then
-        print_line "Output file $OUTPUT_FILE already exists. Skipping ${repo_name}..."
-        continue
-    fi
 
     ############################################################################
     # ENVIRONMENT VARIABLES
@@ -240,11 +234,7 @@ for repo_path in $repositories; do
     ###################################################################################
     # Pull or build Docker image if not SKIP_EXISTING_IMAGES or if image does not exist
     ###################################################################################
-
     if [ -z "$(docker images -q ${image_name} 2> /dev/null)" ]; then
-        print_line "Docker image ${image_name} available to pull"
-        docker pull ${image_name} || (echo "Pull failed!")  # && docker image ls)
-    else
         print_line "Docker image not yet pushed (${image_name})"
         # Build Docker image
         if [ "$SKIP_EXISTING_IMAGES" == "false" ]; then
@@ -259,6 +249,9 @@ for repo_path in $repositories; do
             # Skip building image
             print_line "Docker image ${image_name} already exists. Skipping build..."
         fi
+    else
+        print_line "Docker image ${image_name} available to pull"
+        docker pull ${image_name} || (echo "Pull failed!")  # && docker image ls)
     fi
 
     ##################################################
@@ -298,13 +291,22 @@ for repo_path in $repositories; do
     ################################################################################################
     # PUSH DOCKER IMAGE TO DOCKER HUB (docker push should skip existing layers)
     ################################################################################################
-    print_line "Checking for previous Docker push to complete before continuing..."
+    print_line "Checking for previous Docker push to complete before continuing${previous_image}..."
     wait
     print_line "Continuing with Docker push (project: $repo_name)..."
+    previous_image=" (${image_name})"
     docker push "${image_name}" &
 
     # continue
     # break
+
+    ############################################################################
+    # SKIP IF OUTPUT FILE EXISTS AND SKIP_EXISTING_RESULTS IS TRUE
+    ############################################################################
+    if [ -f "${OUTPUT_FILE}" ] && [ "${SKIP_EXISTING_RESULTS}" = "true" ]; then
+        print_line "Output file $OUTPUT_FILE already exists. Skipping ${repo_name}..."
+        continue
+    fi
 
     ################################################################################################
     # CREATE/REPLACE USER ACCESS TOKEN

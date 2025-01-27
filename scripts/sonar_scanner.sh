@@ -116,7 +116,12 @@ if [ "$DOCKER" = "false" ]; then
         else
             scanner_url="${URL}-6.2.1.4610-windows-x64.zip"
         fi
-        curl --clobber -sL "${scanner_url}" -o $TOOL.zip
+
+        # if $TOOL directory is not found, download it
+        if [ ! -d $TOOL ]; then
+            curl --clobber -sL "${scanner_url}" -o $TOOL.zip || \
+                curl -sL "${scanner_url}" -o $TOOL.zip
+        fi
 
         ########################################
         # Unzip SonarScanner and remove zip file
@@ -235,12 +240,12 @@ for repo_path in $repositories; do
     ###################################################################################
     # Pull or build Docker image if not SKIP_EXISTING_IMAGES or if image does not exist
     ###################################################################################
-    # if docker image exists
-    if [ "$(docker images -q "${image_name}" 2> /dev/null)" != "" ]; then
+
+    if [ -z "$(docker images -q ${image_name} 2> /dev/null)" ]; then
         print_line "Docker image ${image_name} available to pull"
         docker pull ${image_name} || (echo "Pull failed!")  # && docker image ls)
     else
-        print_line "Docker image not yet pushed"
+        print_line "Docker image not yet pushed (${image_name})"
         # Build Docker image
         if [ "$SKIP_EXISTING_IMAGES" == "false" ]; then
             print_line "Building Docker image ${image_name}..."

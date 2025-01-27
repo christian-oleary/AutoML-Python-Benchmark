@@ -68,17 +68,17 @@ print_heading "Environment Variables"
 # Delete and replace existing projects in SonarQube
 export DELETE_EXISTING_PROJECTS=${DELETE_EXISTING_PROJECTS:-"false"}
 
-# Skip building existing docker images
-export SKIP_EXISTING_IMAGES=${SKIP_EXISTING_IMAGES:-"false"}
-
-# Skip running sonar scanner if results already exist
-export SKIP_EXISTING_RESULTS=${SKIP_EXISTING_RESULTS:-"true"}
-
-# Run SonarScanner using Docker
-export DOCKER=${DOCKER:-"false"}
-
 # Path to the repositories directory
 export REPOSITORIES_DIR=${REPOSITORIES_DIR:-"repositories"}
+
+# Skip tests and running sonar scanner if results already exist
+export SKIP_EXISTING_RESULTS=${SKIP_EXISTING_RESULTS:-"true"}
+
+# Skip building existing docker images
+export SKIP_REBUILDING_IMAGES=${SKIP_REBUILDING_IMAGES:-"false"}
+
+# Run SonarScanner using Docker
+export SONAR_SCANNER_DOCKER=${SONAR_SCANNER_DOCKER:-"false"}
 
 # SonarQube server
 export SONAR_HOST_URL=${SONAR_HOST_URL:-"http://localhost:9000"}
@@ -86,13 +86,17 @@ export SONAR_LOGIN=${SONAR_LOGIN:-"admin"}
 export SONAR_PASSWORD=${SONAR_PASSWORD:-"2c71d75bcs4hq934tdjqngtsojxercm"}
 API_URL="${SONAR_HOST_URL}/api/"
 
-print_line "DOCKER=${DOCKER}"
 print_line "REPOSITORIES_DIR=${REPOSITORIES_DIR}"
 print_line "RESULTS_DIR=${RESULTS_DIR}"
+print_line "SKIP_EXISTING_RESULTS=${SKIP_EXISTING_RESULTS}"
+print_line "SKIP_REBUILDING_IMAGES=${SKIP_REBUILDING_IMAGES}"
+print_line "SONAR_SCANNER_DOCKER=${SONAR_SCANNER_DOCKER}"
+
+print_line "API_URL=${API_URL}"
+print_line "DELETE_EXISTING_PROJECTS=${REPOSITORIES_DIR}"
 print_line "SONAR_HOST_URL=${SONAR_HOST_URL}"
 print_line "SONAR_LOGIN=${SONAR_LOGIN}"
 print_line "SONAR_PASSWORD=${SONAR_PASSWORD}"
-print_line "API_URL=${API_URL}"
 
 ################################################################################
 # CHANGE ADMIN PASSWORD
@@ -110,7 +114,7 @@ printf "Done\n"
 print_heading "SonarScanner CLI Tool Setup"
 
 # Skip if using Docker
-if [ "$DOCKER" = "false" ]; then
+if [ "$SONAR_SCANNER_DOCKER" = "false" ]; then
     # Check if SonarScanner exists
     TOOL="sonar-scanner-cli"
     if [ ! -d $TOOL ]; then
@@ -240,12 +244,15 @@ for repo_path in $repositories; do
     rm -f coverage.xml report.xml
 
     ###################################################################################
-    # Pull or build Docker image if not SKIP_EXISTING_IMAGES or if image does not exist
+    # Pull or build Docker image if not SKIP_REBUILDING_IMAGES or if image does not exist
     ###################################################################################
+    print_line "Attempting to pull Docker image (${image_name})..."
+    docker pull $image_name || (echo "Pull failed!")  # && docker image ls)
+
     if [ -z "$(docker images -q ${image_name} 2> /dev/null)" ]; then
         print_line "Docker image not yet pushed (${image_name})"
         # Build Docker image
-        if [ "$SKIP_EXISTING_IMAGES" == "false" ]; then
+        if [ "$SKIP_REBUILDING_IMAGES" == "false" ]; then
             print_line "Building Docker image ${image_name}..."
 
             # Build image with tests enabled and save logs to file
@@ -257,9 +264,6 @@ for repo_path in $repositories; do
             # Skip building image
             print_line "Docker image ${image_name} already exists. Skipping build..."
         fi
-    else
-        print_line "Docker image ${image_name} available to pull"
-        docker pull ${image_name} || (echo "Pull failed!")  # && docker image ls)
     fi
 
     ##################################################
@@ -425,7 +429,7 @@ EOL
     # Remove irrelevant files
     rm -f coverage.xml report.xml
 
-    if [ "${DOCKER}" = "false" ]; then
+    if [ "${SONAR_SCANNER_DOCKER}" = "false" ]; then
         ###########################
         # Run SonarScanner CLI tool
         ###########################

@@ -54,6 +54,13 @@ if [[ "$(uname -s)" != "Linux" && ! -f /proc/sys/fs/binfmt_misc/WSLInterop ]]; t
 fi
 
 ################################################################################
+# ARGUMENTS
+################################################################################
+print_heading "Arguments"
+export RESULTS_DIR="${1:-results}/sca/sonar/"
+print_line "RESULTS_DIR=${RESULTS_DIR}"
+
+################################################################################
 # ENVIRONMENT VARIABLES
 ################################################################################
 print_heading "Environment Variables"
@@ -81,6 +88,7 @@ API_URL="${SONAR_HOST_URL}/api/"
 
 print_line "DOCKER=${DOCKER}"
 print_line "REPOSITORIES_DIR=${REPOSITORIES_DIR}"
+print_line "RESULTS_DIR=${RESULTS_DIR}"
 print_line "SONAR_HOST_URL=${SONAR_HOST_URL}"
 print_line "SONAR_LOGIN=${SONAR_LOGIN}"
 print_line "SONAR_PASSWORD=${SONAR_PASSWORD}"
@@ -197,8 +205,8 @@ for repo_path in $repositories; do
     ############################################################################
     # CREATE OUTPUT DIRECTORY
     ############################################################################
-    OUTPUT_DIR="./results/sca/sonar/${repo_name}"
-    mkdir -p $OUTPUT_DIR
+    OUTPUT_DIR="${RESULTS_DIR}/${repo_name}"
+    mkdir -p "${OUTPUT_DIR}"
     OUTPUT_FILE="${OUTPUT_DIR}/measures.json"
 
     ############################################################################
@@ -261,32 +269,35 @@ for repo_path in $repositories; do
 
     # coverage.xml
     print_line "Reading coverage.xml from Docker container..."
-    docker run --gpus all --rm --name $repo_name "${image_name}" bash -c "cat coverage.xml" > $OUTPUT_DIR/coverage.xml
-    print_line "Misses: $(cat $OUTPUT_DIR/coverage.xml | grep -c "hits=\"0\"")"
-    print_line "Hits: $(cat $OUTPUT_DIR/coverage.xml | grep -c "hits=\"1\"")"
-    print_line "Total: $(cat $OUTPUT_DIR/coverage.xml | grep -c "hits=")"
+    docker run --gpus all --rm --name $repo_name "${image_name}" bash -c "cat coverage.xml" > "${OUTPUT_DIR}/coverage.xml"
+    misses=$(grep -c "hits=\"0\"" < "${OUTPUT_DIR}/coverage.xml")
+    hits=$(grep -c "hits=\"1\"" < "${OUTPUT_DIR}/coverage.xml")
+    total=$(grep -c "hits=" < "${OUTPUT_DIR}/coverage.xml")
+    print_line "Misses: $misses"
+    print_line "Hits: $hits"
+    print_line "Total: $total"
 
     # .coverage
     print_line "Reading .coverage from Docker container..."
-    docker run --gpus all --rm --name $repo_name "${image_name}" bash -c "cat .coverage" > $OUTPUT_DIR/.coverage
+    docker run --gpus all --rm --name $repo_name "${image_name}" bash -c "cat .coverage" > "${OUTPUT_DIR}/.coverage"
 
     # If fedot, delete first 3 lines of coverage.xml
     if [ "$repo_name" = "fedot" ]; then
-        sed -i '1,4d' $OUTPUT_DIR/coverage.xml
-        sed -i '1,4d' $OUTPUT_DIR/.coverage
+        sed -i '1,4d' "${OUTPUT_DIR}/coverage.xml"
+        sed -i '1,4d' "${OUTPUT_DIR}/.coverage"
     fi
 
     ##########################################################
     # Copy coverage files to target directory for SonarScanner
     ##########################################################
-    cp $OUTPUT_DIR/{coverage.xml,.coverage} $TARGET_DIR
+    cp "${OUTPUT_DIR}"/{coverage.xml,.coverage} $TARGET_DIR
     ls $TARGET_DIR/coverage.xml $TARGET_DIR/.coverage || (echo "missing files" && exit 1)
 
     ######################
     # Show coverage report
     ######################
     print_line "Coverage Report:"
-    docker run --gpus all --rm --name $repo_name "${image_name}" bash -c "coverage report" > $OUTPUT_DIR/report.txt
+    docker run --gpus all --rm --name $repo_name "${image_name}" bash -c "coverage report" > "${OUTPUT_DIR}"/report.txt
 
     ################################################################################################
     # PUSH DOCKER IMAGE TO DOCKER HUB (docker push should skip existing layers)
@@ -352,7 +363,7 @@ for repo_path in $repositories; do
     print_subheading "Updating sonar-project.properties file (project: $repo_name)"
     # ABSOLUTE_PATH=$(realpath $TARGET_DIR)
     ABSOLUTE_PATH=$TARGET_DIR
-    cat <<EOL >$OUTPUT_DIR/sonar-project.properties
+    cat <<EOL >"${OUTPUT_DIR}/sonar-project.properties"
 sonar.projectKey=$SONAR_PROJECT_KEY
 sonar.projectName=$SONAR_PROJECT_KEY
 sonar.sources=$ABSOLUTE_PATH
@@ -361,14 +372,14 @@ sonar.login=$SONAR_LOGIN
 sonar.password=$SONAR_PASSWORD
 sonar.token=$SONAR_TOKEN
 sonar.language=py
-sonar.python.coverage.reportPaths=coverage.xml,$TARGET_DIR/coverage.xml,$TARGET_DIR/**/coverage.xml,$OUTPUT_DIR/coverage.xml,$ABSOLUTE_PATH/coverage.xml
+sonar.python.coverage.reportPaths=coverage.xml,$TARGET_DIR/coverage.xml,$TARGET_DIR/**/coverage.xml,${OUTPUT_DIR}/coverage.xml,$ABSOLUTE_PATH/coverage.xml
 sonar.python.coverage.itReportPath=$TARGET_DIR/.coverage
 sonar.scm.disabled=true
 EOL
-    # sonar.python.coverage.reportPaths=coverage.xml,$TARGET_DIR/coverage.xml,$TARGET_DIR/**/coverage.xml,$OUTPUT_DIR/coverage.xml,$ABSOLUTE_PATH/coverage.xml
+    # sonar.python.coverage.reportPaths=coverage.xml,$TARGET_DIR/coverage.xml,$TARGET_DIR/**/coverage.xml,${OUTPUT_DIR}/coverage.xml,$ABSOLUTE_PATH/coverage.xml
 
-    # sonar.working.directory=$OUTPUT_DIR
-    cat "$OUTPUT_DIR/sonar-project.properties"
+    # sonar.working.directory="${OUTPUT_DIR}"
+    cat "${OUTPUT_DIR}/sonar-project.properties"
     # sonar.python.version=3.x
     # sonar.sourceEncoding=UTF-8
 
@@ -426,15 +437,15 @@ EOL
         else
             sonar_scanner() { sonar-scanner.bat "$@"; }
         fi
-        sonar_scanner -X -Dproject.settings=$OUTPUT_DIR/sonar-project.properties
+        sonar_scanner -X -Dproject.settings="${OUTPUT_DIR}"/sonar-project.properties
     else
         ###############################
         # Run SonarScanner Docker image
         ###############################
         print_line "Running SonarScanner Docker image..."
         docker run --network=host --rm \
-            -e PROJECT_SETTINGS=$OUTPUT_DIR/sonar-project.properties \
-            -e SONAR_PROJECT_SETTINGS=$OUTPUT_DIR/sonar-project.properties \
+            -e PROJECT_SETTINGS="${OUTPUT_DIR}"/sonar-project.properties \
+            -e SONAR_PROJECT_SETTINGS="${OUTPUT_DIR}"/sonar-project.properties \
             -v "${TARGET_DIR}:/usr/src" \
             sonarsource/sonar-scanner-cli:4 -X
         # -v "${OUTPUT_DIR}:/usr/src/.scannerwork" \

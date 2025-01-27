@@ -319,7 +319,7 @@ for repo_path in $repositories; do
     # SKIP IF OUTPUT FILE EXISTS AND SKIP_EXISTING_RESULTS IS TRUE
     ############################################################################
     if [ -f "${OUTPUT_FILE}" ] && [ "${SKIP_EXISTING_RESULTS}" = "true" ]; then
-        print_line "Output file $OUTPUT_FILE already exists. Skipping ${repo_name}..."
+        print_line "Output file ${OUTPUT_FILE} already exists. Skipping ${repo_name}..."
         continue
     fi
 
@@ -480,9 +480,9 @@ EOL
     for measure in $measures; do
         print_line "Fetching metrics for measure: $measure"
         curl -u ${SONAR_LOGIN}:${SONAR_PASSWORD} -s -X GET \
-            "${API_URL}measures/component?component=${PROJECT_NAME}&metricKeys=${measure}" >> $OUTPUT_FILE
-        printf "\n" >> $OUTPUT_FILE
-        tail -n 1 $OUTPUT_FILE
+            "${API_URL}measures/component?component=${PROJECT_NAME}&metricKeys=${measure}" >> "${OUTPUT_FILE}"
+        printf "\n" >> "${OUTPUT_FILE}"
+        tail -n 1 "${OUTPUT_FILE}"
     done
 
     # break

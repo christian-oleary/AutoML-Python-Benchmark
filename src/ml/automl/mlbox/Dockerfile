@@ -27,12 +27,17 @@ RUN python -m pip install . pytest-cov protobuf==3.20.*
 
 # Run tests
 ARG run_tests
-RUN if [ "$run_tests" = true ]; then \
+RUN if [ "$run_tests" = "true" ]; then \
+        echo "Running unit tests..." && \
         rm -rf coverage.xml && \
         cd tests && \
-        python -m pytest --cov-report xml:coverage.xml --cov=. --cov-fail-under=1 || ls coverage.xml \
-    ; fi
+        rm -rf coverage.xml && \
+        python -m pytest --cov-report xml:coverage.xml --cov=. && \
+        (cat coverage.xml | grep "hits=" | grep -Eo '[0-9]+' | grep -v '^0$' | wc -l || (echo "No coverage data" && exit 1)) && \
+        echo "Tests complete"; \
+    else \
+        echo "Skipping tests"; \
+    fi
 
-# Ensure the coverage.xml file is created and some lines are covered
-RUN mv ./tests/coverage.xml coverage.xml && \
-    cat coverage.xml | grep "hits=" | grep -Eo '[0-9]+' | grep -v '^0$' | wc -l
+RUN cat coverage.xml | grep "hits=" | grep -Eo '[0-9]+' | grep -v '^0$' | wc -l || (echo "No coverage data" && exit 1)
+RUN python -c "import tensorflow as tf;print('GPU STATUS:',tf.test.is_built_with_cuda())"

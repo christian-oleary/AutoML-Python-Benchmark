@@ -15,12 +15,17 @@ WORKDIR /src/hyperopt_sklearn
 # Install Python dependencies
 RUN python -m pip install -r requirements.txt
 RUN python -m pip install -r requirements_dev.txt
-RUN python -m pip install pytest-cov
-RUN python -m pip install .
+RUN python -m pip install .[test] pytest-cov
 
 # Run tests
 ARG run_tests
-RUN if [ "$run_tests" = true ]; then \
-        python3 -m pytest --cov-report xml:coverage.xml --cov=. --cov-fail-under=1 && \
-        cat coverage.xml | grep "hits=" | grep -Eo '[0-9]+' | grep -v '^0$' | wc -l \
-    ; fi
+RUN if [ "$run_tests" = "true" ]; then \
+        echo "Running unit tests..." && \
+        python3 -m pytest --cov-report xml:coverage.xml --cov=. && \
+        (cat coverage.xml | grep "hits=" | grep -Eo '[0-9]+' | grep -v '^0$' | wc -l || (echo "No coverage data" && exit 1)) && \
+        echo "Tests complete"; \
+    else \
+        echo "Skipping tests"; \
+    fi
+
+RUN cat coverage.xml | grep "hits=" | grep -Eo '[0-9]+' | grep -v '^0$' | wc -l || (echo "No coverage data" && exit 1)

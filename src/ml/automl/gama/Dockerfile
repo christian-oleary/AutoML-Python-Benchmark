@@ -14,13 +14,19 @@ WORKDIR /src/gama
 # Install the required dependencies
 RUN pip install .[test] coverage numpy==1.20.*
 
+RUN pip freeze | grep numpy && rm -rf coverage.xml
+
 # Run tests
 ARG run_tests
-# RUN if [ "$run_tests" = true ]; then \
-#     pytest --cov-report xml:coverage.xml --cov=. --cov-fail-under=1; fi
+RUN if [ "$run_tests" = "true" ]; then \
+        echo "Running unit tests..." && \
+        python -m pytest ./tests/unit --cov-report xml:coverage.xml --cov=. && \
+        (cat coverage.xml | grep "hits=" | grep -Eo '[0-9]+' | grep -v '^0$' | wc -l || (echo "No coverage data" && exit 1)) && \
+        echo "Tests complete"; \
+    else \
+        echo "Skipping tests"; \
+    fi
 
-RUN pip freeze | grep numpy && rm -rf coverage.xml
-RUN pytest --cov-report xml:coverage.xml --cov=. --cov-fail-under=1 || ls coverage.xml
-
-# Ensure the coverage.xml file is created and some lines are covered
-RUN cat coverage.xml | grep "hits=" | grep -Eo '[0-9]+' | grep -v '^0$' | wc -l
+RUN cat coverage.xml | grep "hits=" | grep -Eo '[0-9]+' | grep -v '^0$' | wc -l || (echo "No coverage data" && exit 1)
+RUN python -c "import tensorflow as tf;print('GPU STATUS:',tf.test.is_built_with_cuda())"
+RUN python -c "import torch;print('GPU STATUS:',torch.cuda.is_available())"

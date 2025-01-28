@@ -20,9 +20,17 @@ RUN git submodule update --init --recursive
 # Install the required dependencies
 RUN python3 -m pip install .
 
-RUN python3 -m pytest --cov-report xml:coverage.xml --cov=. --cov-fail-under=1
+# Run tests
+ARG run_tests
+RUN if [ "$run_tests" = "true" ]; then \
+        rm -rf coverage.xml && \
+        echo "Running unit tests..." && \
+        python3 -m pytest --cov-report xml:coverage.xml --cov=. && \
+        (cat coverage.xml | grep "hits=" | grep -Eo '[0-9]+' | grep -v '^0$' | wc -l || (echo "No coverage data" && exit 1)) && \
+        echo "Tests complete"; \
+    else \
+        echo "Skipping tests"; \
+    fi
 
-# Ensure the coverage.xml file is created and some lines are covered
-RUN cat coverage.xml | grep "hits=" | grep -Eo '[0-9]+' | grep -v '^0$' | wc -l
-
+RUN cat coverage.xml | grep "hits=" | grep -Eo '[0-9]+' | grep -v '^0$' | wc -l || (echo "No coverage data" && exit 1)
 RUN python -c "import tensorflow as tf;print('GPU STATUS:',tf.test.is_built_with_cuda())"

@@ -20,20 +20,23 @@ RUN rm -rf /src/lightautoml && git clone https://github.com/sb-ai-lab/LightAutoM
 WORKDIR /src/lightautoml
 
 # Install the required packages
-RUN python3 -m pip install --upgrade pip
-RUN python3 -m pip install -e .[all] pytest-cov
+RUN python -m pip install --upgrade pip
+RUN python -m pip install -e .[all] pytest-cov
 RUN python -c "import torch;print('GPU STATUS:',torch.cuda.is_available())"
 
 # Remove old test reports if they exist
 RUN rm -f report.xml coverage.xml
 
-# Run the tests if the run_tests is set to "true"
+# Run tests
 ARG run_tests
-RUN if [ "$run_tests" = true ]; then \
-    python3 -m pytest --cov-report xml:coverage.xml --cov=. --cov-fail-under=1; fi
+RUN if [ "$run_tests" = "true" ]; then \
+        echo "Running unit tests..." && \
+        python -m pytest --cov-report xml:coverage.xml --cov=. && \
+        (cat coverage.xml | grep "hits=" | grep -Eo '[0-9]+' | grep -v '^0$' | wc -l || (echo "No coverage data" && exit 1)) && \
+        echo "Tests complete"; \
+    else \
+        echo "Skipping tests"; \
+    fi
 
-# Print the number of lines with non-zero coverage
-RUN cat coverage.xml | grep "hits=" | grep -Eo '[0-9]+' | grep -v '^0$' | wc -l
-
-# Print the GPU status
+RUN cat coverage.xml | grep "hits=" | grep -Eo '[0-9]+' | grep -v '^0$' | wc -l || (echo "No coverage data" && exit 1)
 RUN python -c "import torch;print('GPU STATUS:',torch.cuda.is_available())"

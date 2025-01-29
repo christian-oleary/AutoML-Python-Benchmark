@@ -57,7 +57,12 @@ fi
 # ARGUMENTS
 ################################################################################
 print_heading "Arguments"
-export RESULTS_DIR="${1:-results}/sca/sonar/"
+
+export RESULTS_DIR="${1:-results}"
+# # Replace "C:" with "/c" in RESULTS_DIR if it exists
+# export RESULTS_DIR="${RESULTS_DIR/C:/\/c}"
+# # If RESULTS_DIR does not exist, prepend with "/mnt"
+# ls "${RESULTS_DIR}" &> /dev/null || RESULTS_DIR="/mnt${RESULTS_DIR}"
 print_line "RESULTS_DIR=${RESULTS_DIR}"
 
 ################################################################################
@@ -184,7 +189,8 @@ print_line "Repository directories found:\n$repositories"
 #########################
 # Create logs directories
 #########################
-mkdir -p logs; mkdir -p logs/sca/sonar/
+export SCA_LOGS_DIR="${RESULTS_DIR}/logs/sca/sonar/"
+mkdir -p "${SCA_LOGS_DIR}"
 
 ################################################################################
 # LOOP OVER EACH REPOSITORY
@@ -209,7 +215,7 @@ for repo_path in $repositories; do
     ############################################################################
     # CREATE OUTPUT DIRECTORY
     ############################################################################
-    OUTPUT_DIR="${RESULTS_DIR}/${repo_name}"
+    OUTPUT_DIR="${RESULTS_DIR}/sca/sonar/${repo_name}"
     mkdir -p "${OUTPUT_DIR}"
     OUTPUT_FILE="${OUTPUT_DIR}/measures.json"
 
@@ -257,7 +263,7 @@ for repo_path in $repositories; do
 
             # Build image with tests enabled and save logs to file
             (docker build --build-arg run_tests=true --progress plain -t "${image_name}" \
-                -f ./src/ml/automl/$repo_name/Dockerfile . 2>&1 | tee ./logs/sca/sonar/$repo_name.log) || exit 1
+                -f ./src/ml/automl/$repo_name/Dockerfile . 2>&1 | tee "${SCA_LOGS_DIR}/${repo_name}.log") || exit 1
 
             print_line "Docker image ${image_name} built successfully."
         else

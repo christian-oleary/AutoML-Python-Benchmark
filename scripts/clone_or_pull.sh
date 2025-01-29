@@ -2,6 +2,23 @@
 
 echo Cloning repositories...
 
+# ANSI color codes
+LIGHT_BLUE='\033[1;36m'
+GREEN='\033[1;32m'
+RESET='\033[0m'
+
+print_heading() {
+    local message="  $1  "
+    local border
+    border=$(printf '%*s' "${#message}" '' | tr ' ' '=')
+    echo -e "\n${LIGHT_BLUE}${border}\n${message}\n${border}${RESET}\n"
+}
+
+print_line() {
+    local message=$1
+    echo -e "${GREEN}$0:${BASH_LINENO[0]}: -> ${message}${RESET}"
+}
+
 # Create directory for repositories
 print_heading "Creating repositories directory..."
 repo_dir=./repositories/
@@ -42,15 +59,16 @@ for repo_url in "${repos[@]}"; do
     repo_name=$(basename "${repo_url}" .git)
     # Convert to lowercase and replace hyphens with underscores
     repo_name=$(echo "${repo_name}" | tr '[:upper:]' '[:lower:]' | tr '-' '_')
+    print_heading "Cloning ${repo_name}"
     # Define repository path
     repo_path="${repo_dir}${repo_name}"
 
     # Clone or pull repository
     if [ -d "${repo_path}" ]; then
-        echo "Repository ${repo_name} already exists. Pulling latest changes..."
+        print_line "Repository ${repo_name} already exists. Pulling latest changes..."
         git -C "${repo_path}" pull
     else
-        echo "Cloning ${repo_name}..."
+        print_line "Cloning ${repo_name}..."
         git clone "${repo_url}" "${repo_path}"
     fi
 done

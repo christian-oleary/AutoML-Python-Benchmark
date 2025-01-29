@@ -73,6 +73,17 @@ Removed. To be redrafted.
 
 ## Experiments
 
+### Source Code Analysis
+
+```bash
+./scripts/clone_or_pull.sh     # Clone repositories
+conda activate automl          # Activate environment
+pip install -e .[sca]          # Install dependencies
+python -m sca.ml repositories  # Analyze repositories
+```
+
+### Forecasting
+
 Removed. To be redrafted.
 <!-- After downloading repositories and datasets, you can run experiments with the following:
 

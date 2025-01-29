@@ -9,22 +9,28 @@ from ml.sca.analysis import Analysis
 
 def run_analysis():
     """Run static code analysis on a Git repository."""
-    # Check if the path is provided
-    if len(sys.argv) != 2:
-        logger.error('Usage: python -m ml.sca [path]')
+    # Check number of inputs
+    if len(sys.argv) == 0 or len(sys.argv) > 2:
+        logger.error('Usage: python -m ml.sca [repository_path] [output_dir_path]')
         sys.exit(1)
-    input_path = sys.argv[1]
 
-    # Check if the path is a directory
-    if not Path(input_path).is_dir():
-        logger.error(f'Path must be a directory: {input_path}')
+    # Validate input_dir
+    input_dir = sys.argv[1]
+    if not Path(input_dir).is_dir():
+        logger.error(f'Path must be a directory: {input_dir}')
         sys.exit(1)
+
+    # Validate output_dir
+    if len(sys.argv) > 1:
+        output_dir = sys.argv[1]
+        if not Path(output_dir).is_dir():
+            logger.error(f'Path must be a directory: {output_dir}')
+            sys.exit(1)
 
     # Run analysis on the specified directory
-    logger.info(f'Running static code analysis on {input_path}')
-    results_dir = Path('results', 'sca')
-    _ = Analysis(input_path, output_dir=results_dir).run()
-    logger.info(f'Saved results to {results_dir}')
+    logger.info(f'Running static code analysis on {input_dir}')
+    _ = Analysis(input_dir, output_dir=output_dir).run()
+    logger.info(f'Saved results to {output_dir}')
 
 
 if __name__ == "__main__":

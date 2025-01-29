@@ -135,11 +135,11 @@ class GitRepo:
 class Analysis:
     """Class for performing static code analysis (SCA) on a directory."""
 
-    def __init__(self, input_dir: str | Path, output_dir: str | Path | None = None):
+    def __init__(self, input_dir: str | Path, output_dir: str | Path = Path('results/sca')):
         """Analysis class for static code analysis (SCA) on a directory.
 
-        :param str | Path directory: Directory assumed to represent cloned repository or contain cloned repositories.
-        :param str | Path output_dir: Directory to save the results of the analysis, defaults to None.
+        :param str | Path input_dir: Directory of cloned repository or containing cloned repositories.
+        :param str | Path output_dir: Directory to save the results of the analysis, defaults to 'results/sca'.
         """
         self.input_dir = Path(input_dir)
         self.output_dir = output_dir

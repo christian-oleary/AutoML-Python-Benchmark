@@ -21,11 +21,13 @@ def run_analysis():
         sys.exit(1)
 
     # Validate output_dir
-    if len(sys.argv) > 1:
-        output_dir = sys.argv[1]
+    if len(sys.argv) > 3:
+        output_dir = sys.argv[2]
         if not Path(output_dir).is_dir():
             logger.error(f'Path must be a directory: {output_dir}')
             sys.exit(1)
+    else:
+        output_dir = Path('results/sca/')
 
     # Run analysis on the specified directory
     logger.info(f'Running static code analysis on {input_dir}')

@@ -16,11 +16,9 @@ DEFAULT_BRANCHES = ['main']
 DEFAULT_COMMIT = 'latest_commit'
 DEFAULT_EMAIL = 'test@example.com'
 DEFAULT_NAME = 'repo'
-DEFAULT_PATH = 'path/to/repo'
 DEFAULT_URL = 'https://github.com/user/repo.git'
-
-DEFAULT_PATH_TO_INPUT = 'path/to/input'
-DEFAULT_PATH_TO_OUTPUT = 'path/to/output'
+INPUT_PATH = 'input'
+OUTPUT_PATH = 'output'
 
 
 @pytest.fixture
@@ -36,14 +34,14 @@ def mock_repo():
 
 
 @pytest.fixture
-def git_repo(mock_repo):
+def git_repo(tmp_path, mock_repo):
     """Fixture to return a GitRepo object."""
-    return GitRepo(repo_path=DEFAULT_PATH)
+    return GitRepo(repo_path=tmp_path)
 
 
-def test_git_repo_initialization(git_repo):
+def test_git_repo_initialization(tmp_path, git_repo):
     """Test the initialization of a GitRepo object."""
-    assert git_repo.path == DEFAULT_PATH
+    assert git_repo.path == tmp_path
     assert git_repo.commit_count == 1
     assert git_repo.contributors == [DEFAULT_EMAIL]
     assert git_repo.lines_of_code == 0
@@ -101,15 +99,15 @@ def test_git_repo_count_contributors(git_repo):
 
 
 @pytest.fixture
-def analysis():
+def analysis(tmp_path):
     """Fixture to return an Analysis object."""
-    return Analysis(input_dir=DEFAULT_PATH_TO_INPUT, output_dir=DEFAULT_PATH_TO_OUTPUT)
+    return Analysis(input_dir=Path(tmp_path, INPUT_PATH), output_dir=Path(tmp_path, OUTPUT_PATH))
 
 
-def test_analysis_initialization(analysis):
+def test_analysis_initialization(tmp_path, analysis):
     """Test the initialization of an Analysis object."""
-    assert str(Path(analysis.input_dir)) == str(Path(DEFAULT_PATH_TO_INPUT))
-    assert str(Path(analysis.output_dir)) == str(Path(DEFAULT_PATH_TO_OUTPUT))
+    assert str(Path(analysis.input_dir)) == str(Path(tmp_path, INPUT_PATH))
+    assert str(Path(analysis.output_dir)) == str(Path(tmp_path, OUTPUT_PATH))
 
 
 def test_analysis_run(analysis, mock_repo):
@@ -123,23 +121,16 @@ def test_analysis_run(analysis, mock_repo):
         assert results == [{'name': DEFAULT_NAME}]
 
 
-def test_analysis_analyze_repo(analysis, mock_repo):
+def test_analysis_analyze_repo(tmp_path, analysis, mock_repo):
     """Test the analyze_repo method of the Analysis class."""
     with (
         patch.object(analysis, 'parse_sonar_scanner_json', return_value={}),
         patch.object(analysis, 'git_analysis', return_value={}),
         patch.object(analysis, 'run_pylint', return_value={}),
     ):
-        results = analysis.analyze_repo(DEFAULT_PATH)
+        results = analysis.analyze_repo(tmp_path)
         assert results['name'] == DEFAULT_NAME
-        assert results['path'] == DEFAULT_PATH
-        # assert results['git__repository'] == DEFAULT_NAME
-        # assert results['git__path'] == DEFAULT_PATH
-        # assert results['git__lines_of_code'] == 0
-        # assert results['git__num_commits'] == 1
-        # assert results['git__num_contributors'] == 1
-        # assert results['sonar__'] == {}
-        # assert results['pylint__'] == {}
+        assert results['path'] == tmp_path
 
 
 def test_analysis_run_pylint(analysis, git_repo):
@@ -154,40 +145,40 @@ def test_analysis_run_pylint(analysis, git_repo):
         assert results == {}
 
 
-def test_analysis_git_analysis(analysis, git_repo):
+def test_analysis_git_analysis(tmp_path, analysis, git_repo):
     """Test the git_analysis method of the Analysis class."""
     results = analysis.git_analysis(git_repo)
     assert results == {
         'repository': DEFAULT_NAME,
-        'path': DEFAULT_PATH,
+        'path': tmp_path,
         'lines_of_code': 0,
         'num_commits': 1,
         'num_contributors': 1,
     }
 
 
-def test_analysis_parse_sonar_scanner_json(analysis, git_repo):
+def test_analysis_parse_sonar_scanner_json(tmp_path, analysis, git_repo):
     """Test the parse_sonar_scanner_json method of the Analysis class."""
     with (
         patch('builtins.open', new_callable=MagicMock),
         patch('json.load', return_value={'component': {'measures': []}}),
     ):
-        results = analysis.parse_sonar_scanner_json(git_repo, DEFAULT_PATH_TO_OUTPUT)
+        results = analysis.parse_sonar_scanner_json(git_repo, tmp_path)
         assert results == {}
 
 
-def test_analysis_is_git_repo(analysis):
+def test_analysis_is_git_repo(tmp_path, analysis):
     """Test the is_git_repo method of the Analysis class."""
     with patch('ml.sca.analysis.Repo') as mock_repo:
         mock_repo.side_effect = InvalidGitRepositoryError
-        assert not analysis.is_git_repo(DEFAULT_PATH)
+        assert not analysis.is_git_repo(tmp_path)
 
 
-def test_analysis_save_results(analysis):
+def test_analysis_save_results(tmp_path, analysis):
     """Test the save_results method of the Analysis class."""
     with patch('pandas.DataFrame.to_csv'), patch('json.dump'), patch('ml.util.Utils.save_heatmap'):
         analysis.results = [{'name': DEFAULT_NAME}]
         analysis.start_time = 0
         analysis.end_time = 1
-        df = analysis.save_results(DEFAULT_PATH_TO_OUTPUT)
+        df = analysis.save_results(tmp_path)
         assert isinstance(df, pd.DataFrame)

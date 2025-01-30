@@ -2,7 +2,7 @@
 
 import json
 import os
-import subprocess
+import subprocess  # nosec
 from pathlib import Path
 
 from git import Repo
@@ -135,14 +135,19 @@ class GitRepo:
 class Analysis:
     """Class for performing static code analysis (SCA) on a directory."""
 
-    def __init__(self, input_dir: str | Path, output_dir: str | Path = Path('results/sca')):
+    def __init__(self, input_dir: str | Path, output_dir: str | Path, skip_existing: bool = False):
         """Analysis class for static code analysis (SCA) on a directory.
 
         :param str | Path input_dir: Directory of cloned repository or containing cloned repositories.
-        :param str | Path output_dir: Directory to save the results of the analysis, defaults to 'results/sca'.
+        :param str | Path output_dir: Directory to save the results of the analysis.
+        :param bool skip_existing: Whether to skip existing results, defaults to False.
         """
         self.input_dir = Path(input_dir)
-        self.output_dir = output_dir
+        self.output_dir = Path(output_dir)
+        self.skip_existing = skip_existing
+        self.results: list[dict] = []
+        self.start_time: str = ''
+        self.end_time: str = ''
 
     def run(self) -> list[dict]:
         """Run the static code analysis."""
@@ -212,7 +217,13 @@ class Analysis:
 
         # Run pylint command
         command = ['pylint', '-ry', '--output-format=json2', f'--output={pylint_file}', '.']
-        result = subprocess.run(command, capture_output=True, check=False, cwd=repo.path, text=True)
+        result = subprocess.run(  # nosec
+            command,
+            capture_output=True,
+            check=False,
+            cwd=repo.path,
+            text=True,
+        )
         pylint_file = Path(repo.path, pylint_file)
         logger.debug(result)
 

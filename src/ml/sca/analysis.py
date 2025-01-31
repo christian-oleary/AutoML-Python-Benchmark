@@ -4,7 +4,9 @@ import json
 import os
 import subprocess  # nosec
 from pathlib import Path
+from typing import Any
 
+import defusedxml.ElementTree as ET
 from git import Repo
 from git.exc import InvalidGitRepositoryError
 
@@ -13,7 +15,8 @@ import pandas as pd
 from ml.logs import logger
 from ml.util import Utils
 
-
+COVERAGE_MEANS = ['line-rate', 'branch-rate', 'complexity']
+COVERAGE_SUMS = ['lines-covered', 'lines-valid', 'branches-covered', 'branches-valid']
 IGNORED_SONAR_METRICS = ['quality_profiles', 'quality_gate_details', 'alert_status']
 
 
@@ -135,16 +138,14 @@ class GitRepo:
 class Analysis:
     """Class for performing static code analysis (SCA) on a directory."""
 
-    def __init__(self, input_dir: str | Path, output_dir: str | Path, skip_existing: bool = False):
+    def __init__(self, input_dir: str | Path, output_dir: str | Path):
         """Analysis class for static code analysis (SCA) on a directory.
 
         :param str | Path input_dir: Directory of cloned repository or containing cloned repositories.
         :param str | Path output_dir: Directory to save the results of the analysis.
-        :param bool skip_existing: Whether to skip existing results, defaults to False.
         """
         self.input_dir = Path(input_dir)
         self.output_dir = Path(output_dir)
-        self.skip_existing = skip_existing
         self.results: list[dict] = []
         self.start_time: str = ''
         self.end_time: str = ''
@@ -186,37 +187,62 @@ class Analysis:
         results = {
             'name': repo.name,
             'path': repo.path,
+            **{f'coverage__{k}': v for k, v in self.read_coverage_xml(repo).items()},
             **{f'git__{k}': v for k, v in self.git_analysis(repo).items()},
             **{f'sonar__{k}': v for k, v in sonar_results.items()},
-            **{f'pylint__{k}': v for k, v in self.run_pylint(repo, skip_existing).items()},
         }
+
+        # Run CLI tools on the repository
+        for tool, command in self.build_commands(repo.name).items():
+            outputs = self.run_cli_command(tool, command, repo, skip_existing)
+            results.update({f'{tool}__{k}': v for k, v in outputs.items()})
+            logger.info(f'{tool} analysis complete for {repo.name}')
         return results
 
-    def run_pylint(self, repo: GitRepo, skip_existing: bool = True) -> dict:
-        """Run pylint on the specified directory.
+    def build_commands(self, repo_name: str | Path) -> dict:
+        """Build the CLI commands for the static code analysis tools.
 
+        :param str | Path repo_name: The name of the repository.
+        :return dict: The CLI commands for the static code analysis tools.
+        """
+        commands = {
+            'bandit': [
+                'bandit', '-r', '--format', 'json', '-o', f'bandit_{repo_name}.json', '.'
+            ],
+            'pylint': [
+                'pylint', '-ry', '--output-format=json2', f'--output=pylint_{repo_name}.json', '.'
+            ],
+        }
+        return commands
+
+    def run_cli_command(
+        self,
+        tool: str,
+        command: list,
+        repo: GitRepo,
+        skip_existing: bool = True,
+        verbose: bool = False,
+    ) -> dict:
+        """Run a CLI command on the specified directory.
+
+        :param str tool: The tool to run the CLI command for.
+        :param list command: The CLI command to run.
         :param GitRepo repo: The Git repository object.
         :param bool skip_existing: Whether to skip existing results, defaults to True.
-        :return dict: The frequencies of pylint errors.
+        :param bool verbose: Whether to include additional information, defaults to False.
+        :raises ValueError: If the tool is not supported.
+        :return dict: The frequencies of the tool errors.
         """
-        logger.debug(f'Running pylint on {repo.name}...')
+        logger.info(f'Running {tool} on {repo.name} using command: {command}')
 
-        # Temporary pylint output file. Deleted later.
-        pylint_file: str | Path = f'pylint_{repo.name}.json'
+        # Check if the results file already exists
+        result_path, frequencies, json_file = self.check_results_file(tool, repo, skip_existing)
 
-        # File to save formatted results
-        if self.output_dir:
-            results_file = Path(self.output_dir, 'pylint', pylint_file)
-            # Load the pylint output from a file if possible
-            if skip_existing and results_file and results_file.exists():
-                logger.debug(f'Output file already exists: {results_file}')
-                frequencies = json.loads(results_file.read_text(encoding='utf-8'))
-                return frequencies
-        else:
-            results_file = None
+        # Return the frequencies if they already exist
+        if frequencies and skip_existing:
+            return frequencies
 
-        # Run pylint command
-        command = ['pylint', '-ry', '--output-format=json2', f'--output={pylint_file}', '.']
+        # Run the CLI command
         result = subprocess.run(  # nosec
             command,
             capture_output=True,
@@ -224,30 +250,132 @@ class Analysis:
             cwd=repo.path,
             text=True,
         )
-        pylint_file = Path(repo.path, pylint_file)
-        logger.debug(result)
+        if verbose:
+            logger.debug(f'{tool} -> stdout: \n{result.stdout}')
+            if result.returncode != 0:
+                logger.error(f'{tool} -> stderr: \n{result.stderr}')
+        else:
+            logger.debug(f'{tool}: \n{result}')
 
-        # Load the pylint output from the temporary file
-        with open(pylint_file, 'r', encoding='utf-8') as f:
-            pylint_output = json.load(f)
+        # Ensure output file was created
+        if not json_file.is_file():
+            raise ValueError(f'Output file not found: {json_file}')
+
+        # Parse the results file
+        frequencies = self.parse_results_file(tool, result_path, json_file)
+        return frequencies
+
+    def read_coverage_xml(self, repo: GitRepo):
+        """Read the coverage XML file from the repository if present.
+
+        :param GitRepo repo: The Git repository object.
+        :param str pattern: The pattern to search for, defaults to 'coverage.xml'.
+        """
+        logger.info(f'Reading coverage XML file for {repo.name}...')
+        coverage_results: dict[str, Any] = {}
+        # Scan the repository for the coverage XML file
+        for file_path in Path(repo.path).rglob('*'):
+            if 'coverage' in str(file_path) and file_path.suffix == '.xml':
+                # Try to parse the coverage XML file
+                try:
+                    attributes = ET.parse(file_path).getroot().attrib
+                except ET.ParseError as e:
+                    raise ValueError(f'Error parsing coverage XML file: {file_path}') from e
+                # Extract the coverage results
+                del attributes['timestamp']
+                del attributes['version']
+                for key, value in attributes.items():
+                    if key not in coverage_results:
+                        coverage_results[key] = []
+                    coverage_results[key].append(float(value))
+
+        # Aggregate the coverage results
+        for metric, scores in coverage_results.copy().items():
+            if metric in COVERAGE_MEANS:
+                coverage_results[metric] = sum(scores) / len(scores)
+            elif metric in COVERAGE_SUMS:
+                coverage_results[metric] = float(sum(scores))
+        return coverage_results
+
+    def check_results_file(self, tool: str, repo: GitRepo, skip_existing: bool) -> tuple:
+        """Check if the results file already exists, and return the path if it does.
+
+        :param str tool: The tool to check the results file for.
+        :param GitRepo repo: The Git repository object.
+        :param bool skip_existing: Whether to skip existing results.
+        :return tuple: The results file, frequencies, and temporary file.
+        """
+        results_file, frequencies = None, None
+        # Temporary output file. Deleted later.
+        temp_file: str | Path = f'{tool}_{repo.name}.json'
+
+        # File to save formatted results
+        if self.output_dir:
+            results_file = Path(self.output_dir, tool, temp_file)
+            # Load the output from a file if possible
+            if skip_existing and results_file and results_file.exists():
+                logger.debug(f'Output file already exists: {results_file}')
+                frequencies = json.loads(results_file.read_text(encoding='utf-8'))
+
+        return results_file, frequencies, Path(repo.path, temp_file)
+
+    def parse_results_file(self, tool: str, results_file: Path, temp_file: str | Path) -> dict:
+        """Parse the results file from the specified tool.
+
+        :param str tool: The tool to parse the results file for.
+        :param Path results_file: The path to the results file.
+        :param str | Path temp_file: The temporary file to parse.
+        :return dict: The frequencies of the tool errors.
+        """
+        # Load the output from the temporary file
+        with open(temp_file, 'r', encoding='utf-8') as f:
+            output = json.load(f)
 
         # Count message frequencies
-        frequencies = {}
-        for m in pylint_output['messages']:
-            message_id = m['messageId']
-            if message_id not in frequencies:
-                frequencies[message_id] = 0
-            frequencies[message_id] += 1
+        frequencies = self.parse_json(tool, output)
+        logger.debug(f'{tool}: {frequencies}')
 
         # Save results to a file if an output directory is provided
         if self.output_dir and results_file:
             results_file.parent.mkdir(parents=True, exist_ok=True)
             with open(results_file, 'w', encoding='utf-8') as f:
-                json.dump(pylint_output, f, indent=4)
-            logger.info(f'Pylint output saved to {results_file}')
+                json.dump(output, f, indent=4)
+            logger.info(f'{tool} output saved to {results_file}')
 
-        if pylint_file.is_file():
-            os.remove(pylint_file)
+        # Delete the temporary file
+        if Path(temp_file).is_file():
+            os.remove(temp_file)
+        return frequencies
+
+    def parse_json(self, tool: str, output: dict) -> dict:
+        """Parse the JSON output from the specified tool.
+
+        :param str tool: The tool to parse the JSON output for.
+        :param dict output: The JSON output from the tool.
+        :return dict: The frequencies of the tool errors.
+        """
+        frequencies = {}
+
+        def count_message_type(message: dict, key: str) -> None:
+            message_type = message[key]
+            if message_type not in frequencies:
+                frequencies[message_type] = 0
+            frequencies[message_type] += 1
+
+        if tool == 'bandit':
+            frequencies = output['metrics']['_totals']  # Overall statistics
+            for issue in output['results']:  # Frequencies of each message type
+                count_message_type(issue, 'test_id')
+
+        elif tool == 'pylint':
+            frequencies = output['statistics']['messageTypeCount']  # Overall statistics
+            frequencies['score'] = output['statistics']['score']  # Overall score
+            for m in output['messages']:  # Frequencies of each message type
+                count_message_type(m, 'messageId')
+
+        else:
+            logger.error(f'output: {json.dumps(output, indent=4)}')
+            raise NotImplementedError(f'Parsing for {tool} not implemented')
         return frequencies
 
     def git_analysis(self, repo: GitRepo, verbose: bool = False) -> dict:
@@ -316,7 +444,7 @@ class Analysis:
             # Parse the JSON line and extract the measures
             if 'component' in line:
                 measures = json.loads(line)['component']['measures']
-                results = self.parse_line(measures, results)
+                results = self.parse_sonar_scanner_line(measures, results)
             elif 'errors' in line:
                 results['errors'] = len(json.loads(line)['errors'])
             else:
@@ -329,7 +457,7 @@ class Analysis:
 
         return results
 
-    def parse_line(self, measures: list[dict], results: dict[str, float | int]) -> dict:
+    def parse_sonar_scanner_line(self, measures: list[dict], results: dict[str, float | int]) -> dict:
         """Parse a line of measures from SonarScanner output.
 
         :param list[dict] measures: The measures from SonarScanner output.

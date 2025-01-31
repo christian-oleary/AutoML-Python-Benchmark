@@ -10,7 +10,7 @@ from ml.sca.analysis import Analysis
 def run_analysis():
     """Run static code analysis on a Git repository."""
     # Check number of inputs
-    if len(sys.argv) == 0 or len(sys.argv) > 2:
+    if len(sys.argv) == 0 or len(sys.argv) > 4:
         logger.error('Usage: python -m ml.sca [repository_path] [output_dir_path]')
         sys.exit(1)
 
@@ -21,10 +21,12 @@ def run_analysis():
         sys.exit(1)
 
     # Validate output_dir
-    if len(sys.argv) > 3:
+    if len(sys.argv) == 3:
         output_dir = sys.argv[2]
-        if not Path(output_dir).is_dir():
-            logger.error(f'Path must be a directory: {output_dir}')
+        try:
+            Path(output_dir).mkdir(parents=True, exist_ok=True)
+        except FileNotFoundError:
+            logger.error(f'Invalid output directory: {output_dir}')
             sys.exit(1)
     else:
         output_dir = Path('results/sca/')

@@ -247,23 +247,26 @@ for repo_path in $repositories; do
     print_subheading "Running Python Tests (project: $repo_name)"
 
     # Remove irrelevant files that may be picked up by Sonar
-    rm -f coverage.xml report.xml
+    rm -f coverage.xml report.xml .coverage
 
     ###################################################################################
     # Pull or build Docker image if not SKIP_REBUILDING_IMAGES or if image does not exist
     ###################################################################################
-    print_line "Attempting to pull Docker image (${image_name})..."
-    docker pull $image_name || (echo "Pull failed!")  # && docker image ls)
+    if [ "$SKIP_REBUILDING_IMAGES" == "false" ]; then
+        print_line "Skipping Docker image pull as SKIP_REBUILDING_IMAGES=false"
+    else
+        print_line "Attempting to pull Docker image (${image_name})..."
+        docker pull $image_name || (echo "Pull failed!")  # && docker image ls)
+    fi
 
-    if [ -z "$(docker images -q ${image_name} 2> /dev/null)" ]; then
-        print_line "Docker image not yet pushed (${image_name})"
+    if [ -z "$(docker images -q ${image_name} 2> /dev/null)" ] || [ "$SKIP_REBUILDING_IMAGES" == "false" ]; then
         # Build Docker image
         if [ "$SKIP_REBUILDING_IMAGES" == "false" ]; then
             print_line "Building Docker image ${image_name}..."
 
             # Build image with tests enabled and save logs to file
-            (docker build --build-arg run_tests=true --progress plain -t "${image_name}" \
-                -f ./src/ml/automl/$repo_name/Dockerfile . 2>&1 | tee "${SCA_LOGS_DIR}/${repo_name}.log") || exit 1
+            ( (docker build --build-arg run_tests=true --progress plain -t "${image_name}" \
+                -f ./src/ml/automl/$repo_name/Dockerfile . || exit 1) 2>&1 | tee "${SCA_LOGS_DIR}/${repo_name}.log")
 
             print_line "Docker image ${image_name} built successfully."
         else
@@ -275,9 +278,12 @@ for repo_path in $repositories; do
     ##################################################
     # Copy contents of relevant coverage files to host
     ##################################################
-    rm -f .coverage coverage.xml report.xml
+    rm -f "${TARGET_DIR}/.coverage" "${TARGET_DIR}/coverage.xml" "${TARGET_DIR}/report.xml" \
+        .coverage coverage.xml report.xml
 
+    ##############
     # coverage.xml
+    ##############
     print_line "Reading coverage.xml from Docker container..."
     docker run --gpus all --rm --name $repo_name "${image_name}" bash -c "cat coverage.xml" > "${OUTPUT_DIR}/coverage.xml"
     misses=$(grep -c "hits=\"0\"" < "${OUTPUT_DIR}/coverage.xml")
@@ -287,15 +293,29 @@ for repo_path in $repositories; do
     print_line "Hits: $hits"
     print_line "Total: $total"
 
+    ##########################################
+    # Fix path in <source> tag in coverage.xml
+    ##########################################
+    # Delete all lines before "<?xml version="1.0" ?>"
+    # sed '1/<\?xml version="1.0" ?>/d' "${OUTPUT_DIR}/coverage.xml" > temp.xml
+    # head -n 10 $TARGET_DIR/coverage.xml
+    sed -i "s|<source>/src/${repo_name}</source>|<source>$(realpath $TARGET_DIR)</source>|g" $OUTPUT_DIR/coverage.xml
+    # Fix other paths in coverage.xml. Append TARGET_DIR to all "filename=" paths"
+    # sed -i "s|filename=\"|filename=\"${TARGET_DIR}|g" $TARGET_DIR/coverage.xml
+
+    ###########
     # .coverage
+    ###########
     print_line "Reading .coverage from Docker container..."
     docker run --gpus all --rm --name $repo_name "${image_name}" bash -c "cat .coverage" > "${OUTPUT_DIR}/.coverage"
 
-    # If fedot, delete first 3 lines of coverage.xml
-    if [ "$repo_name" = "fedot" ]; then
-        sed -i '1,4d' "${OUTPUT_DIR}/coverage.xml"
-        sed -i '1,4d' "${OUTPUT_DIR}/.coverage"
-    fi
+    ##################################################
+    # Remove all lines before "<?xml version="1.0" ?>"
+    ##################################################
+    sed -ni '/<\?xml version="1.0" ?>/,$p' "${OUTPUT_DIR}/coverage.xml"
+    # if [ "$repo_name" = "fedot" ]; then
+    #     sed -i '1,4d' "${OUTPUT_DIR}/coverage.xml"
+    # fi
 
     ##########################################################
     # Copy coverage files to target directory for SonarScanner
@@ -316,10 +336,7 @@ for repo_path in $repositories; do
     wait
     print_line "Continuing with Docker push (project: $repo_name)..."
     previous_image=" (${image_name})"
-    docker push "${image_name}" &
-
-    # continue
-    # break
+    docker push -q "${image_name}" &
 
     ############################################################################
     # SKIP IF OUTPUT FILE EXISTS AND SKIP_EXISTING_RESULTS IS TRUE
@@ -376,22 +393,18 @@ for repo_path in $repositories; do
     cat <<EOL >"${OUTPUT_DIR}/sonar-project.properties"
 sonar.projectKey=$SONAR_PROJECT_KEY
 sonar.projectName=$SONAR_PROJECT_KEY
+sonar.qualitygate.wait=true
 sonar.sources=$ABSOLUTE_PATH
 sonar.host.url=$SONAR_HOST_URL
 sonar.login=$SONAR_LOGIN
 sonar.password=$SONAR_PASSWORD
 sonar.token=$SONAR_TOKEN
 sonar.language=py
-sonar.python.coverage.reportPaths=coverage.xml,$TARGET_DIR/coverage.xml,$TARGET_DIR/**/coverage.xml,${OUTPUT_DIR}/coverage.xml,$ABSOLUTE_PATH/coverage.xml
-sonar.python.coverage.itReportPath=$TARGET_DIR/.coverage
+sonar.python.coverage.reportPaths=$TARGET_DIR/coverage.xml
 sonar.scm.disabled=true
 EOL
-    # sonar.python.coverage.reportPaths=coverage.xml,$TARGET_DIR/coverage.xml,$TARGET_DIR/**/coverage.xml,${OUTPUT_DIR}/coverage.xml,$ABSOLUTE_PATH/coverage.xml
 
-    # sonar.working.directory="${OUTPUT_DIR}"
     cat "${OUTPUT_DIR}/sonar-project.properties"
-    # sonar.python.version=3.x
-    # sonar.sourceEncoding=UTF-8
 
     ################################################################################################
     # SET UP PROJECT IN SONARQUBE
@@ -402,6 +415,18 @@ EOL
     # Exit if coverage.xml does not exist
     #####################################
     ls $TARGET_DIR/coverage.xml || (echo "coverage.xml not found in $TARGET_DIR" && exit 1)
+
+    ###################################
+    # Add a blank line to try_import.py
+    ###################################
+    if [ "$repo_name" = "autogluon" ]; then
+        problematic_file="repositories/autogluon/common/src/autogluon/common/utils/try_import.py"
+        wc -l "${problematic_file}"  # 210
+        for i in {1..6}; do
+            echo -en '\n' >> "${problematic_file}"
+        done
+        wc -l "${problematic_file}" # 215
+    fi
 
     #####################################
     # Delete project if it already exists
@@ -432,9 +457,14 @@ EOL
     ################################################################################################
     print_subheading "Running SonarScanner (project: $repo_name)"
 
-    # Remove irrelevant files
-    rm -f coverage.xml report.xml
+    #######################################################################################
+    # Remove irrelevant files in this project's directory, i.e. NOT in the target directory
+    #######################################################################################
+    rm -f coverage.xml report.xml .coverage
 
+    ###############
+    # Start scanner
+    ###############
     if [ "${SONAR_SCANNER_DOCKER}" = "false" ]; then
         ###########################
         # Run SonarScanner CLI tool
@@ -463,10 +493,19 @@ EOL
         # -v .scannerwork/${PROJECT_NAME}/:/usr/src/.scannerwork/ \
     fi
 
+    #################################
+    # Revert changes to try_import.py
+    #################################
+    if [ "$repo_name" = "autogluon" ]; then
+        wc -l "${problematic_file}"  # 
+        head -n -5 "${problematic_file}" > temp.txt && mv temp.txt "${problematic_file}"
+        wc -l "${problematic_file}" # 
+    fi
+
     ####################################################
     # Remove used files to prevent false positives later
     ####################################################
-    rm -f "${TARGET_DIR}/coverage.xml" "${TARGET_DIR}/report.xml"
+    rm -f "${TARGET_DIR}/coverage.xml" "${TARGET_DIR}/report.xml" "${TARGET_DIR}/.coverage"
 
     ################################################################################################
     # EXPORT SONARQUBE RESULTS TO FILE
@@ -489,8 +528,9 @@ EOL
             "${API_URL}measures/component?component=${PROJECT_NAME}&metricKeys=${measure}" >> "${OUTPUT_FILE}"
         printf "\n" >> "${OUTPUT_FILE}"
         tail -n 1 "${OUTPUT_FILE}"
+
     done
 
-    # break
 done
+
 print_heading "Program completed successfully"

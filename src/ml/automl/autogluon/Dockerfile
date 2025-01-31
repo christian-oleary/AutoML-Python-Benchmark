@@ -50,14 +50,12 @@ ENV CI_DIR=.github/workflow_scripts
 RUN chmod +x $CI_DIR/*.sh
 
 # Remove any existing coverage.xml files
-RUN rm -rf ./**/results.xml ./**/coverage.xml ./**/.coverage
+RUN rm -rf results.xml, coverage.xml, .coverage, ./**/results.xml ./**/coverage.xml ./**/.coverage
 
 # Run the test scripts
 # Common
 RUN sed -i 's/--junitxml=results.xml/--cov-report xml:coverage.xml --cov=. --cov-fail-under=1/g' $CI_DIR/test_common.sh && \
     $CI_DIR/test_common.sh && (ls common/.coverage || exit)
-    #  && (cp common/.coverage .coverage.common || exit)
-    # $CI_DIR/test_common.sh && (cp common/.coverage .coverage.common || exit)
 
 # Core
 RUN sed -i 's/--junitxml=results.xml/--cov-report xml:coverage.xml --cov=. --cov-fail-under=1/g' $CI_DIR/test_core.sh && \
@@ -85,7 +83,7 @@ RUN sed -i 's/--junitxml=results.xml/--cov-report xml:coverage.xml --cov=. --cov
     $CI_DIR/test_tabular.sh && (ls tabular/.coverage || exit)
 
 # Combine .coverage files
-RUN ls && echo "--------" && python -m coverage combine ./*/.coverage
+RUN ls && echo "--------" && python -m coverage combine ./**/.coverage
 
 # Generate the coverage report
 RUN ls && echo "--------" && python -m coverage xml -o coverage.xml && ls

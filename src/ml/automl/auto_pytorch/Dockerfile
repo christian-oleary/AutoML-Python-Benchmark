@@ -4,14 +4,11 @@ FROM automlorg/autopytorch:v0.2
 # Set non-interactive mode for apt-get to avoid prompts
 ENV DEBIAN_FRONTEND=noninteractive
 
-# Check the version of g++ installed
-RUN g++ -v
-
-# Install git and Auto-PyTorch dependencies (ffmpeg, libsm6, libxext6)
-RUN apt-get install -y swig3.0 git ffmpeg libsm6 libxext6 || (\
-apt-get update --fix-missing && apt-get install -y swig3.0 git ffmpeg libsm6 libxext6)
-
-RUN ln -s /usr/bin/swig3.0 /usr/bin/swig || echo "swig already exists"
+# Check g++, install git and dependencies (ffmpeg, libsm6, libxext6)
+RUN g++ -v && \
+    apt-get update --fix-missing && \
+    apt-get install -y swig3.0 git ffmpeg libsm6 libxext6 && \
+    (ln -s /usr/bin/swig3.0 /usr/bin/swig || echo "swig already exists")
 
 # Clone the Auto-PyTorch repository which contains source code and tests
 RUN git clone https://github.com/automl/Auto-PyTorch.git /src/auto_pytorch
@@ -23,14 +20,11 @@ WORKDIR /src/auto_pytorch/
 RUN git submodule update --init --recursive
 
 # Install required dependencies
-RUN python3 -m pip install swig
-RUN python3 -m pip install setuptools
-RUN python3 setup.py install
-RUN python3 -m pip install Cython==0.29.36
-RUN python3 -m pip install scikit-learn==0.24.2 --no-build-isolation
-RUN python3 -m pip install -e .[forecasting]
-RUN python3 -m pip install gluonts==0.10.*
-# RUN python3 -m pip install gluonts==0.10.* numpy==1.20.* torch==1.*
+RUN python3 -m pip install swig setuptools && \
+    python3 setup.py install && \
+    python3 -m pip install Cython==0.29.36 && \
+    python3 -m pip install scikit-learn==0.24.2 --no-build-isolation && \
+    python3 -m pip install -e .[forecasting] gluonts==0.10.*
 
 # Run tests if the run_tests is set to "true"
 ARG run_tests

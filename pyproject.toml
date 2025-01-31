@@ -43,16 +43,14 @@ sca = [
     "autoflake",     # Removes unused imports/variables
     "autopep8",      # Code formatting
     "bandit",        # Security checks
-    "black",         # Code formatting
-    "codespell",     # Spelling checks  # Check how to use multiple dictionaries?
     "coverage",      # Code coverage
     "dead",          # Dead code detection
-    "doc8",          # Documentation style checking
+    "defusedxml==0.7.1",  # XML security
     "docformatter",  # Documentation style checking
     "isort",         # Import sorting
     "it",            # InspectorTiger. Code quality checks
     "lint",          # Linter
-    "mypy",          # Type checking
+    # "mypy",          # Type checking
     "outdated",      # Outdated dependency checks
     "radon[toml]",   # Code metrics
     "rope",          # Refactoring
@@ -66,7 +64,6 @@ sca = [
     "flake8", "flake8-bugbear", "flake8-docstrings", "flake8-import-order",
     "mccabe",       # Complexity
     "pycodestyle",  # Code style
-    # "pydocstyle",   # Docstring style  # Officially deprecated
     "pyflakes",     # Static analysis
     ### Prospector ###
     "dodgy",      # Finds "dodgy" code
@@ -74,12 +71,12 @@ sca = [
     "pyroma",     # Checks package installation "friendliness"
     "vulture",    # Finds unused code
     ### Pylint ###
-    "astroid",    # Static analysis of Python code
     "pylint", "pylint-celery", "pylint-django",
     "pylint-flask", "pylint-mccabe", "pylint-pytest",
     ##############
-    # Deprecated: "frosted"
-    # Redundant: "hacking", "unimport", "zimports"
+    # Deprecated: frosted, pydocstyle
+    # Redundant: hacking, unimport, zimports
+    # Lacking CLI scores reporting: black, doc8
 ]
 
 # Machine learning
@@ -113,6 +110,7 @@ target-version = ['py39', 'py310']
 # COVERAGE
 [tool.coverage.run]
 branch = true
+relative_files = true
 
 [tool.coverage.report]
 exclude_also = [ # Regexes for lines to exclude from consideration

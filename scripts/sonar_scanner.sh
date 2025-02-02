@@ -77,7 +77,7 @@ export DELETE_EXISTING_PROJECTS=${DELETE_EXISTING_PROJECTS:-"false"}
 export REPOSITORIES_DIR=${REPOSITORIES_DIR:-"repositories"}
 
 # Skip tests and running sonar scanner if results already exist
-export SKIP_EXISTING_RESULTS=${SKIP_EXISTING_RESULTS:-"true"}
+export SKIP_EXISTING_RESULTS=${SKIP_EXISTING_RESULTS:-"false"}
 
 # Skip building existing docker images
 export SKIP_REBUILDING_IMAGES=${SKIP_REBUILDING_IMAGES:-"false"}
@@ -169,7 +169,7 @@ fi
 print_heading "Repositories in '${REPOSITORIES_DIR}'"
 
 repositories=$(find ./$REPOSITORIES_DIR -mindepth 1 -maxdepth 1 -type d)
-# repositories="./repositories/auto_pytorch"
+# repositories="./repositories/autogluon"
 print_line "Repository directories found:\n$repositories"
 
 ##################################
@@ -266,7 +266,7 @@ for repo_path in $repositories; do
 
             # Build image with tests enabled and save logs to file
             ( (docker build --build-arg run_tests=true --progress plain -t "${image_name}" \
-                -f ./src/ml/automl/$repo_name/Dockerfile . || exit 1) 2>&1 | tee "${SCA_LOGS_DIR}/${repo_name}.log")
+                -f ./src/ml/automl/$repo_name/Dockerfile . || exit 1) 2>&1 | tee "${SCA_LOGS_DIR}/${repo_name}.log") || continue
 
             print_line "Docker image ${image_name} built successfully."
         else
@@ -285,13 +285,22 @@ for repo_path in $repositories; do
     # coverage.xml
     ##############
     print_line "Reading coverage.xml from Docker container..."
-    docker run --gpus all --rm --name $repo_name "${image_name}" bash -c "cat coverage.xml" > "${OUTPUT_DIR}/coverage.xml"
+    docker run --gpus all --rm --name $repo_name "${image_name}" bash -c "cat coverage.xml" > "${OUTPUT_DIR}/coverage.xml" || continue
     misses=$(grep -c "hits=\"0\"" < "${OUTPUT_DIR}/coverage.xml")
     hits=$(grep -c "hits=\"1\"" < "${OUTPUT_DIR}/coverage.xml")
     total=$(grep -c "hits=" < "${OUTPUT_DIR}/coverage.xml")
     print_line "Misses: $misses"
     print_line "Hits: $hits"
     print_line "Total: $total"
+
+    # echo "Occurrences of 'common/': $(grep -c "common/" < "${OUTPUT_DIR}/coverage.xml")"
+    # echo "Occurrences of 'core/': $(grep -c "core/" < "${OUTPUT_DIR}/coverage.xml")"
+    # echo "Occurrences of 'eda/': $(grep -c "eda/" < "${OUTPUT_DIR}/coverage.xml")"
+    # echo "Occurrences of 'features/': $(grep -c "features/" < "${OUTPUT_DIR}/coverage.xml")"
+    # echo "Occurrences of 'timeseries/': $(grep -c "timeseries/" < "${OUTPUT_DIR}/coverage.xml")"
+    # echo "Occurrences of 'multimodal/': $(grep -c "multimodal/" < "${OUTPUT_DIR}/coverage.xml")"
+    # echo "Occurrences of 'tabular/': $(grep -c "tabular/" < "${OUTPUT_DIR}/coverage.xml")"
+    # break
 
     ##########################################
     # Fix path in <source> tag in coverage.xml
@@ -404,6 +413,8 @@ sonar.python.coverage.reportPaths=$TARGET_DIR/coverage.xml
 sonar.scm.disabled=true
 EOL
 
+    # sonar.python.coverage.reportPaths=$TARGET_DIR/results.xml,$TARGET_DIR/coverage.xml
+    # sonar.python.coverage.reportPaths=coverage.xml,$TARGET_DIR/coverage.xml,$TARGET_DIR/**/coverage.xml,$ABSOLUTE_PATH/coverage.xml
     cat "${OUTPUT_DIR}/sonar-project.properties"
 
     ################################################################################################
@@ -435,6 +446,10 @@ EOL
     fi
     if [ "$repo_name" = "fedot" ]; then
         problematic_file="${TARGET_DIR}/fedot/core/operations/evaluation/operation_implementations/models/boostings_implementations.py"
+        add_blank_lines_to_file "${problematic_file}" 6
+    fi
+    if [ "$repo_name" = "lightautoml" ]; then
+        problematic_file="${TARGET_DIR}/lightautoml/ml_algo/boost_lgbm.py"
         add_blank_lines_to_file "${problematic_file}" 6
     fi
 
@@ -506,7 +521,7 @@ EOL
     #################################
     # Revert changes to try_import.py
     #################################
-    if [ "$repo_name" = "autogluon" ] || [ "$repo_name" = "fedot" ]; then
+    if [ "$repo_name" = "autogluon" ] || [ "$repo_name" = "fedot" ] || [ "$repo_name" = "lightautoml" ]; then
         head -n -6 "${problematic_file}" > temp.txt && mv temp.txt "${problematic_file}"
     fi
 

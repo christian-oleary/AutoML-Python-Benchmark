@@ -172,7 +172,7 @@ class Analysis:
             self.save_results(self.output_dir)
         return self.results
 
-    def analyze_repo(self, target_dir: str | Path, skip_existing: bool = True) -> dict:
+    def analyze_repo(self, target_dir: str | Path, skip_existing: bool = False) -> dict:
         """Analyze a single Git repository in the specified directory.
 
         :param str | Path target_dir: Path to the Git repository.
@@ -208,11 +208,23 @@ class Analysis:
         filename = f'_{repo_name}.json'
         commands = {
             'bandit': ['bandit', '-r', '--format', 'json', '-o', f'bandit{filename}', '.'],
+            # 'dodgy': ['dodgy', '--output', f'dodgy{filename}'],
+            # 'flake8': ['flake8', '--format=json', '--output-file', f'flake8{filename}', '.'],
+            # 'isort': ['isort', '--check-only', '--diff', '.'],
+            # 'mypy': ['mypy', '--json', '--output', f'mypy{filename}', '.'],
+            # 'prospector': ['prospector', '--output-format=json', '--output-file', output_file, '.'],
             'pylint': ['pylint', '-ry', '--output-format=json2', f'--output=pylint{filename}', '.'],
+            # 'pyroma': ['pyroma', '--json', '.'],
             'radon-cc': ['radon', 'cc', '-ja', '-O', f'radon-cc{filename}', '.'],
             'radon-hal': ['radon', 'hal', '-j', '-O', f'radon-hal{filename}', '.'],
             'radon-mi': ['radon', 'mi', '-j', '-O', f'radon-mi{filename}', '.'],
             'radon-raw': ['radon', 'raw', '-j', '-O', f'radon-raw{filename}', '.'],
+            # 'ruff': ['ruff', '--output', f'ruff{filename}'],
+            # 'rope': ['rope', '--output', f'rope{filename}'],
+            # 'safety': ['safety', 'check', '--json', '--output', f'safety{filename}'],
+            # 'uncalled': ['uncalled', '--output', f'uncalled{filename}'],
+            # 'vulture': ['vulture', '--min-confidence', '100', '--output', f'vulture{filename}', '.'],
+            # 'yapf': ['yapf', '--style', 'pep8', '--recursive', '--diff', '--parallel', '.'],
         }
         return commands
 
@@ -378,8 +390,10 @@ class Analysis:
         :param dict bandit_output: The output of running 'bandit'.
         :return dict: The frequencies of the message types.
         """
-        results = output_json['metrics']['_totals']  # Overall statistics
-        for issue in output_json['results']:  # Frequencies of each message type
+        # Overall statistics
+        results = output_json['metrics']['_totals']
+        # Frequencies of each message type
+        for issue in output_json['results']:
             test_id = issue['test_id']
             results[test_id] = results.get(test_id, 0.0) + 1.0
         return results

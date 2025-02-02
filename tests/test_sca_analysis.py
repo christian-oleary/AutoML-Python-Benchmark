@@ -118,3 +118,41 @@ def test_analyze_repo(analysis, git_repo, tmp_path):
         assert 'coverage__lines' in result
         assert 'git__lines' in result
         assert 'sonar__lines' in result
+
+
+def test_parse_pylint_empty_output(analysis):
+    """Test the parse_pylint method of the Analysis class with empty output."""
+    output_json = {'statistics': {'messageTypeCount': {}, 'score': 0}, 'messages': []}
+    expected = {'score': 0}
+    assert analysis.parse_pylint(output_json) == expected
+
+
+def test_parse_pylint_single_message(analysis):
+    """Test the parse_pylint method of the Analysis class with a single message."""
+    output_json = {
+        'statistics': {'messageTypeCount': {}, 'score': 10},
+        'messages': [{'messageId': 'C0103'}],
+    }
+    expected = {'score': 10, 'C0103': 1.0}
+    assert analysis.parse_pylint(output_json) == expected
+
+
+def test_parse_json_bandit_empty_output(analysis):
+    """Test the parse_json_bandit method with empty output."""
+    output_json = {'metrics': {'_totals': {}}, 'results': []}
+    assert analysis.parse_json_bandit(output_json) == {}
+
+
+def test_parse_json_bandit_single_issue(analysis):
+    """Test the parse_json_bandit method with a single issue."""
+    output_json = {'metrics': {'_totals': {'loc': 100}}, 'results': [{'test_id': 'B101'}]}
+    assert analysis.parse_json_bandit(output_json) == {'loc': 100, 'B101': 1.0}
+
+
+def test_parse_json_bandit_multiple_issues(analysis):
+    """Test the parse_json_bandit method with multiple issues."""
+    output_json = {
+        'metrics': {'_totals': {'loc': 100}},
+        'results': [{'test_id': 'B101'}, {'test_id': 'B102'}],
+    }
+    assert analysis.parse_json_bandit(output_json) == {'loc': 100, 'B101': 1.0, 'B102': 1.0}

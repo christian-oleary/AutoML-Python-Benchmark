@@ -416,16 +416,26 @@ EOL
     #####################################
     ls $TARGET_DIR/coverage.xml || (echo "coverage.xml not found in $TARGET_DIR" && exit 1)
 
-    ###################################
-    # Add a blank line to try_import.py
-    ###################################
-    if [ "$repo_name" = "autogluon" ]; then
-        problematic_file="repositories/autogluon/common/src/autogluon/common/utils/try_import.py"
-        wc -l "${problematic_file}"  # 210
-        for i in {1..6}; do
-            echo -en '\n' >> "${problematic_file}"
+    ##############################################################################
+    # Add a blank line to files with inconsistent line lengths in coverage reports
+    ##############################################################################
+    add_blank_lines_to_file() {
+        local file_path=$1
+        local num_lines=$2
+        wc -l "${file_path}"
+        for _ in $(seq 1 $num_lines); do
+            echo -en '\n' >> "${file_path}"
         done
-        wc -l "${problematic_file}" # 215
+        wc -l "${file_path}"
+    }
+
+    if [ "$repo_name" = "autogluon" ]; then
+        problematic_file="${TARGET_DIR}/common/src/autogluon/common/utils/try_import.py"
+        add_blank_lines_to_file "${problematic_file}" 6
+    fi
+    if [ "$repo_name" = "fedot" ]; then
+        problematic_file="${TARGET_DIR}/fedot/core/operations/evaluation/operation_implementations/models/boostings_implementations.py"
+        add_blank_lines_to_file "${problematic_file}" 6
     fi
 
     #####################################
@@ -496,10 +506,8 @@ EOL
     #################################
     # Revert changes to try_import.py
     #################################
-    if [ "$repo_name" = "autogluon" ]; then
-        wc -l "${problematic_file}"  # 
-        head -n -5 "${problematic_file}" > temp.txt && mv temp.txt "${problematic_file}"
-        wc -l "${problematic_file}" # 
+    if [ "$repo_name" = "autogluon" ] || [ "$repo_name" = "fedot" ]; then
+        head -n -6 "${problematic_file}" > temp.txt && mv temp.txt "${problematic_file}"
     fi
 
     ####################################################

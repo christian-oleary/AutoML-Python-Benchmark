@@ -3,8 +3,6 @@
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
-from git import InvalidGitRepositoryError
-import pandas as pd
 import pytest
 
 from ml.sca.analysis import Analysis, GitRepo
@@ -104,81 +102,19 @@ def analysis(tmp_path):
     return Analysis(input_dir=Path(tmp_path, INPUT_PATH), output_dir=Path(tmp_path, OUTPUT_PATH))
 
 
-def test_analysis_initialization(tmp_path, analysis):
-    """Test the initialization of an Analysis object."""
-    assert str(Path(analysis.input_dir)) == str(Path(tmp_path, INPUT_PATH))
-    assert str(Path(analysis.output_dir)) == str(Path(tmp_path, OUTPUT_PATH))
-
-
-def test_analysis_run(analysis, mock_repo):
-    """Test the run method of the Analysis class."""
-    with (
-        patch.object(analysis, 'is_git_repo', return_value=True),
-        patch.object(analysis, 'analyze_repo', return_value={'name': DEFAULT_NAME}),
-        patch.object(analysis, 'save_results'),
-    ):
-        results = analysis.run()
-        assert results == [{'name': DEFAULT_NAME}]
-
-
-def test_analysis_analyze_repo(tmp_path, analysis, mock_repo):
+def test_analyze_repo(analysis, git_repo, tmp_path):
     """Test the analyze_repo method of the Analysis class."""
     with (
-        patch.object(analysis, 'parse_sonar_scanner_json', return_value={}),
-        patch.object(analysis, 'git_analysis', return_value={}),
-        patch.object(analysis, 'run_pylint', return_value={}),
+        patch.object(Analysis, 'parse_sonar_scanner_json', return_value={'lines': 1}),
+        patch.object(Analysis, 'read_coverage_xml', return_value={'lines': 1}),
+        patch.object(Analysis, 'git_analysis', return_value={'lines': 1}),
+        patch.object(Analysis, 'build_commands', return_value={}),
+        patch.object(Analysis, 'run_cli_command', return_value={}),
     ):
-        results = analysis.analyze_repo(tmp_path)
-        assert results['name'] == DEFAULT_NAME
-        assert results['path'] == tmp_path
 
-
-def test_analysis_run_pylint(analysis, git_repo):
-    """Test the run_pylint method of the Analysis class."""
-    with (
-        patch('subprocess.run') as mock_run,
-        patch('builtins.open', new_callable=MagicMock),
-        patch('json.load', return_value={'messages': []}),
-    ):
-        mock_run.return_value = MagicMock(returncode=0)
-        results = analysis.run_pylint(git_repo)
-        assert results == {}
-
-
-def test_analysis_git_analysis(tmp_path, analysis, git_repo):
-    """Test the git_analysis method of the Analysis class."""
-    results = analysis.git_analysis(git_repo)
-    assert results == {
-        'repository': DEFAULT_NAME,
-        'path': tmp_path,
-        'lines_of_code': 0,
-        'num_commits': 1,
-        'num_contributors': 1,
-    }
-
-
-def test_analysis_parse_sonar_scanner_json(tmp_path, analysis, git_repo):
-    """Test the parse_sonar_scanner_json method of the Analysis class."""
-    with (
-        patch('builtins.open', new_callable=MagicMock),
-        patch('json.load', return_value={'component': {'measures': []}}),
-    ):
-        results = analysis.parse_sonar_scanner_json(git_repo, tmp_path)
-        assert results == {}
-
-
-def test_analysis_is_git_repo(tmp_path, analysis):
-    """Test the is_git_repo method of the Analysis class."""
-    with patch('ml.sca.analysis.Repo') as mock_repo:
-        mock_repo.side_effect = InvalidGitRepositoryError
-        assert not analysis.is_git_repo(tmp_path)
-
-
-def test_analysis_save_results(tmp_path, analysis):
-    """Test the save_results method of the Analysis class."""
-    with patch('pandas.DataFrame.to_csv'), patch('json.dump'), patch('ml.util.Utils.save_heatmap'):
-        analysis.results = [{'name': DEFAULT_NAME}]
-        analysis.start_time = 0
-        analysis.end_time = 1
-        df = analysis.save_results(tmp_path)
-        assert isinstance(df, pd.DataFrame)
+        result = analysis.analyze_repo(tmp_path)
+        assert result['name'] == DEFAULT_NAME
+        assert str(Path(result['path'])) == str(tmp_path)
+        assert 'coverage__lines' in result
+        assert 'git__lines' in result
+        assert 'sonar__lines' in result

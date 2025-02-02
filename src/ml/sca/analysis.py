@@ -6,7 +6,7 @@ import subprocess  # nosec
 from pathlib import Path
 from typing import Any
 
-import defusedxml.ElementTree as ET
+from defusedxml import ElementTree
 from git import Repo
 from git.exc import InvalidGitRepositoryError
 
@@ -188,7 +188,7 @@ class Analysis:
             'name': repo.name,
             'path': repo.path,
             **{f'coverage__{k}': v for k, v in self.read_coverage_xml(repo).items()},
-            **{f'git__{k}': v for k, v in self.git_analysis(repo).items()},
+            **{f'git__{k}': v for k, v in self.git_analysis(repo, verbose=False).items()},
             **{f'sonar__{k}': v for k, v in sonar_results.items()},
         }
 
@@ -205,13 +205,14 @@ class Analysis:
         :param str | Path repo_name: The name of the repository.
         :return dict: The CLI commands for the static code analysis tools.
         """
+        filename = f'_{repo_name}.json'
         commands = {
-            'bandit': [
-                'bandit', '-r', '--format', 'json', '-o', f'bandit_{repo_name}.json', '.'
-            ],
-            'pylint': [
-                'pylint', '-ry', '--output-format=json2', f'--output=pylint_{repo_name}.json', '.'
-            ],
+            'bandit': ['bandit', '-r', '--format', 'json', '-o', f'bandit{filename}', '.'],
+            'pylint': ['pylint', '-ry', '--output-format=json2', f'--output=pylint{filename}', '.'],
+            'radon-cc': ['radon', 'cc', '-ja', '-O', f'radon-cc{filename}', '.'],
+            'radon-hal': ['radon', 'hal', '-j', '-O', f'radon-hal{filename}', '.'],
+            'radon-mi': ['radon', 'mi', '-j', '-O', f'radon-mi{filename}', '.'],
+            'radon-raw': ['radon', 'raw', '-j', '-O', f'radon-raw{filename}', '.'],
         }
         return commands
 
@@ -233,9 +234,8 @@ class Analysis:
         :raises ValueError: If the tool is not supported.
         :return dict: The frequencies of the tool errors.
         """
-        logger.info(f'Running {tool} on {repo.name} using command: {command}')
-
         # Check if the results file already exists
+        logger.info(f'{tool} - {repo.name}')
         result_path, frequencies, json_file = self.check_results_file(tool, repo, skip_existing)
 
         # Return the frequencies if they already exist
@@ -243,6 +243,7 @@ class Analysis:
             return frequencies
 
         # Run the CLI command
+        logger.info(f'Running {tool} on {repo.name} using command: {command}')
         result = subprocess.run(  # nosec
             command,
             capture_output=True,
@@ -278,8 +279,8 @@ class Analysis:
             if 'coverage' in str(file_path) and file_path.suffix == '.xml':
                 # Try to parse the coverage XML file
                 try:
-                    attributes = ET.parse(file_path).getroot().attrib
-                except ET.ParseError as e:
+                    attributes = ElementTree.parse(file_path).getroot().attrib
+                except ElementTree.ParseError as e:
                     raise ValueError(f'Error parsing coverage XML file: {file_path}') from e
                 # Extract the coverage results
                 del attributes['timestamp']
@@ -339,7 +340,7 @@ class Analysis:
         if self.output_dir and results_file:
             results_file.parent.mkdir(parents=True, exist_ok=True)
             with open(results_file, 'w', encoding='utf-8') as f:
-                json.dump(output, f, indent=4)
+                json.dump(frequencies, f, indent=4)
             logger.info(f'{tool} output saved to {results_file}')
 
         # Delete the temporary file
@@ -352,31 +353,130 @@ class Analysis:
 
         :param str tool: The tool to parse the JSON output for.
         :param dict output: The JSON output from the tool.
-        :return dict: The frequencies of the tool errors.
+        :return dict: The parsed results from the JSON output.
         """
-        frequencies = {}
-
-        def count_message_type(message: dict, key: str) -> None:
-            message_type = message[key]
-            if message_type not in frequencies:
-                frequencies[message_type] = 0
-            frequencies[message_type] += 1
-
         if tool == 'bandit':
-            frequencies = output['metrics']['_totals']  # Overall statistics
-            for issue in output['results']:  # Frequencies of each message type
-                count_message_type(issue, 'test_id')
-
+            results = self.parse_json_bandit(output)
         elif tool == 'pylint':
-            frequencies = output['statistics']['messageTypeCount']  # Overall statistics
-            frequencies['score'] = output['statistics']['score']  # Overall score
-            for m in output['messages']:  # Frequencies of each message type
-                count_message_type(m, 'messageId')
-
+            results = self.parse_pylint(output)
+        elif tool == 'radon-cc':
+            results = self.parse_radon_cyclomatic(output)
+        elif tool == 'radon-hal':
+            results = self.parse_radon_halstead(output)
+        elif tool == 'radon-mi':
+            results = self.parse_radon_maintainability(output)
+        elif tool == 'radon-raw':
+            results = self.parse_radon_raw(output)
         else:
-            logger.error(f'output: {json.dumps(output, indent=4)}')
+            # logger.error(f'output: {json.dumps(output, indent=4)}')
             raise NotImplementedError(f'Parsing for {tool} not implemented')
+        return self.format_results(tool, results)
+
+    def parse_json_bandit(self, output_json: dict) -> dict:
+        """Parse the output of bandit to get the frequencies of the message types.
+
+        :param dict bandit_output: The output of running 'bandit'.
+        :return dict: The frequencies of the message types.
+        """
+        results = output_json['metrics']['_totals']  # Overall statistics
+        for issue in output_json['results']:  # Frequencies of each message type
+            test_id = issue['test_id']
+            results[test_id] = results.get(test_id, 0.0) + 1.0
+        return results
+
+    def parse_pylint(self, output_json: dict) -> dict:
+        """Parse the output of pylint to get the frequencies of the message types.
+
+        :param dict output_json: The output of running 'pylint'.
+        :return dict: The frequencies of the message types.
+        """
+        # Overall statistics
+        results = output_json['statistics']['messageTypeCount']
+        # Overall score
+        results['score'] = output_json['statistics']['score']
+        # Frequencies of each message type
+        for message in output_json['messages']:
+            message_id = message['messageId']
+            results[message_id] = results.get(message_id, 0.0) + 1.0
+        return results
+
+    def parse_radon_cyclomatic(self, output_json: dict) -> dict:
+        """Parse radon output to get cyclomatic complexity metrics.
+
+        :param dict output_json: The output of running 'radon cc'.
+        """
+        # Extract the complexity scores from the output
+        scores: dict[str, list[float]] = {}
+        for parsed_file in output_json.values():
+            for element in parsed_file:
+                if 'complexity' in element:
+                    if element['type'] not in scores:
+                        scores[element['type']] = []
+                    scores[element['type']].append(element['complexity'])
+        # Calculate the min, max, mean, std, and var of the complexity scores
+        results = {}
+        for key, value in scores.items():
+            results[f'min-cc_{key}'] = min(value)
+            results[f'max-cc_{key}'] = max(value)
+            results[f'mean-cc_{key}'] = sum(value) / len(value)
+            results[f'std-cc_{key}'] = pd.Series(value).std()
+            results[f'var-cc_{key}'] = pd.Series(value).var()
+            results[f'sum-cc_{key}'] = sum(value)
+        return results
+
+    def parse_radon_halstead(self, output_json: dict) -> dict:
+        """Parse radon output to get Halstead complexity metrics.
+
+        :param dict output_json: The output of running 'radon hal'.
+        :return dict: The mean of each Halstead complexity metric.
+        """
+        totals = []
+        for result in output_json.values():
+            totals.append(result.get('total', {}))
+        results = pd.DataFrame(totals).mean().to_dict()
+        return {f'mean_{k}': v for k, v in results.items()}
+
+    def parse_radon_maintainability(self, output_json: dict) -> dict:
+        """Parse radon output to get maintainability index scores.
+
+        :param dict output_json: The output of running 'radon mi'.
+        :return dict: The number of files and mean maintainability index.
+        """
+        scores = [result['mi'] for result in output_json.values() if 'mi' in result]
+        return {'num_files': len(output_json), 'mean_index': sum(scores) / len(scores)}
+
+    def parse_radon_raw(self, output_json: dict) -> dict:
+        """Parse radon output to get raw analysis results.
+
+        :param dict output_json: The output of running 'radon raw'.
+        :return dict: The frequencies of the raw analysis results.
+        """
+        metric_names = ['loc', 'lloc', 'sloc', 'comments', 'multi', 'blank', 'single_comments']
+        frequencies = {m: 0.0 for m in metric_names}
+        for result in output_json.values():
+            for metric, value in result.items():
+                if metric in frequencies:
+                    frequencies[metric] += float(value)
+                else:
+                    logger.debug(f'Ignoring unknown metric: {metric}')
         return frequencies
+
+    def format_results(self, tool: str, results: dict) -> dict[str, float]:
+        """Format the results of the analysis. Remove commas and convert to floats.
+
+        :param dict results: The results of the analysis.
+        :param str tool: The tool used to generate the results.
+        :raises TypeError: If the results cannot be formatted.
+        :return dict: The formatted results of the analysis.
+        """
+        try:
+            # Remove commas (for CSV compatibility) and convert to floats
+            results = {k.replace(',', ''): float(v) for k, v in results.items()}
+        except TypeError as e:
+            logger.error(f'\n{json.dumps(results, indent=4)}\n')
+            logger.error(f'Error parsing {tool} output: {e}')
+            raise e
+        return results
 
     def git_analysis(self, repo: GitRepo, verbose: bool = False) -> dict:
         """Analyze the Git repository.
@@ -386,9 +486,8 @@ class Analysis:
         :return dict: The analysis of the Git repository.
         """
         logger.debug(f'Git analysis of {repo.path}...')
-        analysis = {
-            'repository': repo.name,
-            'path': repo.path,
+        analysis: dict[str, Any] = {
+            # 'repository': repo.name, 'path': repo.path,
             'lines_of_code': repo.lines_of_code,
             'num_commits': repo.commit_count,
             'num_contributors': repo.num_contributors,
@@ -457,7 +556,9 @@ class Analysis:
 
         return results
 
-    def parse_sonar_scanner_line(self, measures: list[dict], results: dict[str, float | int]) -> dict:
+    def parse_sonar_scanner_line(
+        self, measures: list[dict], results: dict[str, float | int]
+    ) -> dict:
         """Parse a line of measures from SonarScanner output.
 
         :param list[dict] measures: The measures from SonarScanner output.

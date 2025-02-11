@@ -4,7 +4,6 @@ services:
         build:
             context: .
             dockerfile: Dockerfile
-        # container_name: h2o_server
         image: christianoleary/h2o-server:latest
         ports:
             - "54321:54321"
@@ -12,4 +11,3 @@ services:
         environment:
             - JAVA_OPTS=-Xmx4g
         restart: always
-        command: java -jar /h2o.jar

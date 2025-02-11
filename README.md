@@ -49,7 +49,7 @@ pip install -e .[torch]      # PyTorch
 pip install -e .[xgboost]    # XGBoost
 pip install -e .[ai]         # All ML libraries
 
-pip install -e .[dev,docs]   # Unit tests, docs
+pip install -e .[tests,docs] # Unit tests, docs
 pip install -e .[sca]        # Source Code Analysis
 
 pip install -e .[all]        # Everything

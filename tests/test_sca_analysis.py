@@ -156,3 +156,20 @@ def test_parse_json_bandit_multiple_issues(analysis):
         'results': [{'test_id': 'B101'}, {'test_id': 'B102'}],
     }
     assert analysis.parse_json_bandit(output_json) == {'loc': 100, 'B101': 1.0, 'B102': 1.0}
+
+
+@pytest.mark.parametrize(
+    "language_distribution, expected_percentage",
+    [
+        ("py=50;js=50", 0.5),
+        ("py=30;js=70", 0.3),
+        ("py=100", 1.0),
+        ("js=100", 0.0),
+        ("py=0;js=100", 0.0),
+        ("py=25;js=25;java=50", 0.25),
+    ],
+)
+def test_calculate_python_percentage(language_distribution, expected_percentage):
+    """Test the calculate_python_percentage method of the Analysis class."""
+    analysis = Analysis(input_dir="dummy_input", output_dir="dummy_output")
+    assert analysis.calculate_python_percentage(language_distribution) == expected_percentage

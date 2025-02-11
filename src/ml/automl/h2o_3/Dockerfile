@@ -1,80 +1,66 @@
 # Description: Dockerfile for H2O-3
-# Adapted from: https://github.com/h2oai/h2o-3/blob/master/Dockerfile
 
-FROM ubuntu:16.04
+FROM pytorch/pytorch:2.3.1-cuda11.8-cudnn8-devel
 
-# add a post-invoke hook to dpkg which deletes cached deb files
-# update the sources.list
-# update/dist-upgrade
-# clear the caches
+ENV DEBIAN_FRONTEND=noninteractive
 
-RUN echo 'DPkg::Post-Invoke {"/bin/rm -f /var/cache/apt/archives/*.deb || true";};' | tee /etc/apt/apt.conf.d/no-cache && \
-    echo "deb http://mirror.math.princeton.edu/pub/ubuntu xenial main universe" >> /etc/apt/sources.list && \
-    apt-get update -q -y && \
-    apt-get dist-upgrade -y && \
-    apt-get clean && \
-    rm -rf /var/cache/apt/* && \
-    DEBIAN_FRONTEND=noninteractive apt-get install -y wget unzip openjdk-8-jdk python-pip python-sklearn python-pandas python-numpy python-matplotlib software-properties-common python-software-properties && \
-    apt-get clean
+# Install git and AutoGluon dependencies
+RUN apt-get update --fix-missing && apt-get install -y git libmysqlclient-dev wget unzip openjdk-8-jdk
 
-# Fetch h2o latest_stable
-RUN wget http://h2o-release.s3.amazonaws.com/h2o/latest_stable -O latest && \
-    wget -i latest -O /opt/h2o.zip && \
-    unzip -d /opt /opt/h2o.zip && \
-    rm /opt/h2o.zip
+# Clone the H2O-3 repository which contains source code and tests
+RUN git clone https://github.com/h2oai/h2o-3.git /src/h2o_3
 
-# Install h2o
-RUN cd /opt && \
-    cd `find . -name 'h2o.jar' | sed 's/.\///;s/\/h2o.jar//g'`
+# Set the working directory to the H2O-3 source code
+WORKDIR /src/h2o_3/h2o-py/
 
+# Initialize any submodules
+RUN git submodule update --init --recursive
 
+RUN python3 -m pip install --upgrade pip && pip install requests tabulate
 
+# # Download H2O server jar file
+# RUN wget --progress=dot:giga https://h2o-release.s3.amazonaws.com/h2o/rel-3.46.0/6/h2o-3.46.0.6.zip && \
+#     unzip h2o-3.46.0.6.zip
 
-# > [ 5/11] RUN cp h2o.jar /opt:
-#     0.284 cp: cannot stat 'h2o.jar': No such file or directory
-#     ------
-#     Dockerfile:30
-#     --------------------
-#       28 |         cd `find . -name 'h2o.jar' | sed 's/.\///;s/\/h2o.jar//g'`
-#       29 |
-#       30 | >>> RUN cp h2o.jar /opt
-#       31 |     RUN /usr/bin/pip install `find . -name "*.whl"`
-#       32 |     RUN printf '!/bin/bash\ncd /home/h2o\n./start-h2o-docker.sh\n' > /start-h2o-docker.sh
-#     --------------------
-#     ERROR: failed to solve: process "/bin/sh -c cp h2o.jar /opt" did not complete successfully: exit code: 1
-RUN cp h2o.jar /opt
+# install from wheel
+# RUN python3 -m pip install h2o-3.46.0.6/**/h2o_client-3.46.0.6-py2.py3-none-any.whl
 
+# Install required dependencies
+RUN python3 -m pip install --upgrade pip && pip install requests tabulate && \
+    python3 -m pip uninstall -y h2o && \
+    python3 -m pip install -r requirements.txt
+    # python3 -m pip install -f http://h2o-release.s3.amazonaws.com/h2o/latest_stable_Py.html h2o && \
 
+# Fix and install test dependencies
+RUN sed -i '/pyarrow==10.0.1; python_version > '\''3.6'\''/d' test-requirements.txt && \
+    sed -i '/causalml==0.14.1; python_version > '\''3.7'\'' and python_version < '\''3.11'\''/d' test-requirements.txt && \
+    python3 -m pip install -r test-requirements.txt pytest-cov
 
+# # # Download H2O server jar file
+# # RUN wget --progress=dot:giga https://h2o-release.s3.amazonaws.com/h2o/rel-3.46.0/6/h2o-3.46.0.6.zip && \
+# #     unzip h2o-3.46.0.6.zip
 
+# # RUN ls -la && cp ./h2o-3.46.0.6/h2o.jar ./h2o.jar
+# # RUN cp ./h2o-3.46.0.6/h2o.jar ../h2o.jar
+# # RUN cp ./h2o-3.46.0.6/h2o.jar ../../h2o.jar
+# RUN mkdir -p /src/h2o_3/h2o-py/h2o/backend/bin/
+# RUN cp ./h2o-3.46.0.6/h2o.jar /src/h2o_3/h2o-py/h2o/backend/bin/h2o.jar
+# # # cd h2o-3.46.0.6 && (java -jar h2o.jar &) && cd ..
 
+# Start the H2O-3 server
+# RUN pwd && python3 -c "import h2o; h2o.init()"
 
+# Run tests
+ARG run_tests
+RUN if [ "$run_tests" = "true" ]; then \
+        echo "Running unit tests..." && \
+        (python3 -m pytest --cov-report xml:coverage.xml --cov=.) && \
+        (cat coverage.xml | grep "hits=" | grep -Eo '[0-9]+' | grep -v '^0$' | wc -l || (echo "No coverage data" && exit 1)) && \
+        echo "Tests complete"; \
+    else \
+        echo "Skipping tests"; \
+    fi
+        # (python3 -m pytest --cov-report xml:coverage.xml --cov=. || ls coverage.xml) && \
 
-
-
-RUN /usr/bin/pip install `find . -name "*.whl"`
-RUN printf '!/bin/bash\ncd /home/h2o\n./start-h2o-docker.sh\n' > /start-h2o-docker.sh
-
-# Make the script executable
-RUN chmod +x /start-h2o-docker.sh
-
-# Create new user
-RUN useradd -m -c "h2o.ai" h2o
-USER h2o
-
-# Get Content
-RUN cd && \
-    wget https://raw.githubusercontent.com/h2oai/h2o-3/master/docker/start-h2o-docker.sh && \
-    chmod +x start-h2o-docker.sh && \
-    wget http://s3.amazonaws.com/h2o-training/mnist/train.csv.gz && \
-    gunzip train.csv.gz
-
-# Define working directory
-WORKDIR /home/h2o
-
-EXPOSE 54321
-EXPOSE 54322
-
-#ENTRYPOINT ["java", "-Xmx4g", "-jar", "/opt/h2o.jar"]
-
-CMD ["/bin/bash"]
+RUN cat coverage.xml | grep "hits=" | grep -Eo '[0-9]+' | grep -v '^0$' | wc -l || (echo "No coverage data" && exit 1)
+RUN python -c "import torch;print('GPU STATUS:',torch.cuda.is_available())"

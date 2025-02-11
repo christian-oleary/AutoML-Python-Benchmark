@@ -17,7 +17,7 @@ jobs:
             -   name: Install dependencies
                 run: |
                     python -m pip install --upgrade pip
-                    pip install .[dev]
+                    pip install .[tests]
                     pip install pylint
             -   name: Analysing the code with pylint
                 run: pylint src --rcfile=pyproject.toml

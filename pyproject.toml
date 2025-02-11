@@ -20,15 +20,6 @@ classifiers = [
 ]
 
 [project.optional-dependencies]
-# Development
-dev = [
-    "setuptools",
-    "coverage==7.4.4",    # Code coverage
-    "pytest==8.2.2",      # Testing
-    "pytest-cov==5.0.0",  # Pytest with Coverage
-    "pre-commit==3.7.1",  # Git hooks
-]
-
 # Documentation
 docs = [
     "Sphinx==5.3.0",            # Documentation generator
@@ -77,8 +68,17 @@ torch = ["torch==2.3.1"]
 xgboost = ["xgboost"]
 ai = ["ml[lightgbm,tensorflow,torch,xgboost]"]
 
+# Unit tests
+tests = [
+    "setuptools",
+    "coverage==7.4.4",    # Code coverage
+    "pytest==8.2.2",      # Testing
+    "pytest-cov==5.0.0",  # Pytest with Coverage
+    "pre-commit==3.7.1",  # Git hooks
+]
+
 # All dependencies except SCA
-all = ["ml[dev,docs,sca,lightgbm,tensorflow,torch,xgboost]"]
+all = ["ml[tests,docs,sca,lightgbm,tensorflow,torch,xgboost]"]
 
 [project.urls]
 Homepage = "https://github.com/christian-oleary/AutoML-Python-Benchmark"

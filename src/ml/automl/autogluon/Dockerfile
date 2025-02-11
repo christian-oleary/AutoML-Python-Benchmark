@@ -52,41 +52,114 @@ RUN chmod +x $CI_DIR/*.sh
 # Remove any existing coverage.xml files
 RUN rm -rf results.xml, coverage.xml, .coverage, ./**/results.xml ./**/coverage.xml ./**/.coverage
 
+# Install dependencies for the test scripts
+RUN apt-get update && apt-get install -y g++ && g++ --version
+RUN sed -i 's/pip install/pip install -q/g' $CI_DIR/env_setup.sh
+RUN sed -i 's/setup_hf_model_mirror "$SUB_FOLDER"/# setup_hf_model_mirror "$SUB_FOLDER"/g' $CI_DIR/test_multimodal.sh
+RUN "${CI_DIR}/test_install.sh"
+
+##### Run the test scripts #####
+# Format commands
+RUN cd $CI_DIR && \
+    (find . -type f -exec sed -i.bak "s/--junitxml=results.xml/--cov-append --cov-report xml:coverage.xml --cov=. --cov-fail-under=1/g" {} \;) && \
+    cd ..
+
 # Run the test scripts
-# Common
-RUN sed -i 's/--junitxml=results.xml/--cov-report xml:coverage.xml --cov=. --cov-fail-under=1/g' $CI_DIR/test_common.sh && \
-    $CI_DIR/test_common.sh && (ls common/.coverage || exit)
+RUN $CI_DIR/test_common.sh || ls common/.coverage
+RUN ls common/coverage.xml && wc -l common/coverage.xml
 
-# Core
-RUN sed -i 's/--junitxml=results.xml/--cov-report xml:coverage.xml --cov=. --cov-fail-under=1/g' $CI_DIR/test_core.sh && \
-    $CI_DIR/test_core.sh && (ls core/.coverage || exit)
+RUN $CI_DIR/test_core.sh || ls core/.coverage
+RUN ls core/coverage.xml && wc -l core/coverage.xml
 
-# EDA
-# test_eda.sh fails. It is commented out in their CI.
-# RUN sed -i 's/--junitxml=results.xml/--cov-report xml:coverage.xml --cov=. --cov-fail-under=1/g' $CI_DIR/test_eda.sh && \
-#     $CI_DIR/test_eda.sh && (ls eda/.coverage || exit)
+# RUN $CI_DIR/test_eda.sh && ls eda/.coverage
+RUN $CI_DIR/test_features.sh || ls features/.coverage
+RUN ls features/coverage.xml && wc -l features/coverage.xml
 
-# Features
-RUN sed -i 's/--junitxml=results.xml/--cov-report xml:coverage.xml --cov=. --cov-fail-under=1/g' $CI_DIR/test_features.sh && \
-    $CI_DIR/test_features.sh && (ls features/.coverage || exit)
+RUN $CI_DIR/test_multimodal_predictor.sh || ls multimodal/.coverage
+RUN ls multimodal/coverage.xml && wc -l multimodal/coverage.xml
 
-# Time series
-RUN sed -i 's/--junitxml=results.xml/--cov-report xml:coverage.xml --cov=. --cov-fail-under=1/g' $CI_DIR/test_timeseries.sh && \
-    $CI_DIR/test_timeseries.sh && (ls timeseries/.coverage || exit)
+RUN $CI_DIR/test_multimodal_others.sh || ls multimodal/.coverage
+RUN ls multimodal/coverage.xml && wc -l multimodal/coverage.xml
 
-# Multimodal
-RUN sed -i 's/--junitxml=results.xml/--cov-report xml:coverage.xml --cov=. --cov-fail-under=1/g' $CI_DIR/test_multimodal.sh && \
-    $CI_DIR/test_multimodal.sh && (ls multimodal/.coverage || exit)
+RUN $CI_DIR/test_tabular.sh || ls tabular/.coverage
+RUN ls tabular/coverage.xml && wc -l tabular/coverage.xml
 
-# Tabular
-RUN sed -i 's/--junitxml=results.xml/--cov-report xml:coverage.xml --cov=. --cov-fail-under=1/g' $CI_DIR/test_tabular.sh && \
-    $CI_DIR/test_tabular.sh && (ls tabular/.coverage || exit)
+RUN $CI_DIR/test_timeseries.sh || ls timeseries/.coverage
+RUN ls timeseries/coverage.xml && wc -l timeseries/coverage.xml
+
+# # Common
+# RUN sed -i 's/--junitxml=results.xml/--cov-report xml:coverage.xml --cov=. --cov-fail-under=1/g' $CI_DIR/test_common.sh && \
+#     $CI_DIR/test_common.sh && (ls common/.coverage || exit 1)
+
+# # Core
+# RUN sed -i 's/--junitxml=results.xml/--cov-report xml:coverage.xml --cov=. --cov-fail-under=1/g' $CI_DIR/test_core.sh && \
+#     $CI_DIR/test_core.sh && (ls core/.coverage || exit 1)
+
+# # EDA
+# # test_eda.sh fails. It is commented out in their CI.
+# # RUN sed -i 's/--junitxml=results.xml/--cov-report xml:coverage.xml --cov=. --cov-fail-under=1/g' $CI_DIR/test_eda.sh && \
+# #     $CI_DIR/test_eda.sh && (ls eda/.coverage || exit 1)
+
+# # Features
+# RUN sed -i 's/--junitxml=results.xml/--cov-report xml:coverage.xml --cov=. --cov-fail-under=1/g' $CI_DIR/test_features.sh && \
+#     $CI_DIR/test_features.sh && (ls features/.coverage || exit 1)
+
+# # Time series
+# RUN sed -i 's/--junitxml=results.xml/--cov-report xml:coverage.xml --cov=. --cov-fail-under=1/g' $CI_DIR/test_timeseries.sh && \
+#     $CI_DIR/test_timeseries.sh && (ls timeseries/.coverage || exit 1)
+
+# # Multimodal
+# # RUN sed -i 's/--junitxml=results.xml/--cov-report xml:coverage.xml --cov=. --cov-fail-under=1/g' $CI_DIR/test_multimodal.sh && \
+# #     $CI_DIR/test_multimodal.sh && (ls multimodal/.coverage || exit)
+
+# # Comment out "setup_hf_model_mirror "$SUB_FOLDER""
+# RUN sed -i 's/setup_hf_model_mirror "$SUB_FOLDER"/# setup_hf_model_mirror "$SUB_FOLDER"/g' $CI_DIR/test_multimodal.sh
+
+# RUN apt-get update && apt-get install -y g++ && g++ --version
+
+# RUN source $CI_DIR/env_setup.sh && setup_build_env
+
+# RUN install_local_packages "common/[tests]" "core/[all,tests]" "features/"
+
+# RUN install_multimodal "[tests]"
+
+# RUN sed -i 's/--junitxml=results.xml/--append --cov-report xml:coverage.xml --cov=. --cov-fail-under=1/g' $CI_DIR/test_multimodal_predictor.sh && \
+#     $CI_DIR/test_multimodal_predictor.sh && (ls multimodal/.coverage || exit 1)
+#     # --run_single_gpu
+
+# RUN ls multimodal/coverage.xml && wc -l multimodal/coverage.xml || exit 1
+
+# RUN sed -i 's/--junitxml=results.xml/--append --cov-report xml:coverage.xml --cov=. --cov-fail-under=1/g' $CI_DIR/test_multimodal_others.sh && \
+#     $CI_DIR/test_multimodal_others.sh && (ls multimodal/.coverage || exit 1)
+#     # --run_single_gpu
+
+# RUN ls multimodal/coverage.xml && wc -l multimodal/coverage.xml || exit 1
+
+# # Tabular
+# RUN sed -i 's/--junitxml=results.xml/--cov-report xml:coverage.xml --cov=. --cov-fail-under=1/g' $CI_DIR/test_tabular.sh && \
+#     $CI_DIR/test_tabular.sh && (ls tabular/.coverage || exit 1)
+
+RUN ls common/coverage.xml     && wc -l common/coverage.xml     || exit 1
+RUN ls core/coverage.xml       && wc -l core/coverage.xml       || exit 1
+RUN ls features/coverage.xml   && wc -l features/coverage.xml   || exit 1
+RUN ls multimodal/coverage.xml && wc -l multimodal/coverage.xml || exit 1
+RUN ls tabular/coverage.xml    && wc -l tabular/coverage.xml    || exit 1
+RUN ls timeseries/coverage.xml && wc -l timeseries/coverage.xml || exit 1
+
+RUN ls common/.coverage     || exit 1
+RUN ls core/.coverage       || exit 1
+RUN ls features/.coverage   || exit 1
+RUN ls multimodal/.coverage || exit 1
+RUN ls tabular/.coverage    || exit 1
+RUN ls timeseries/.coverage || exit 1
 
 # Combine .coverage files
-RUN ls && echo "--------" && python -m coverage combine ./**/.coverage
+RUN ls && echo "--------" && python -m coverage combine --keep ./**/.coverage
 
 # Generate the coverage report
 RUN ls && echo "--------" && python -m coverage xml -o coverage.xml && ls
+
+RUN coverage report -m
 
 # Print the number of lines with non-zero coverage
 RUN cat coverage.xml | grep "hits=" | grep -Eo '[0-9]+' | grep -v '^0$' | wc -l

@@ -58,6 +58,9 @@ results/
 # Other
 ###########################
 
+# AWS
+aws/
+
 # Generated
 bin
 cache/
@@ -191,6 +194,9 @@ db.sqlite3-journal
 # Flask stuff:
 instance/
 .webassets-cache
+
+# H2O.ai
+h2o-3.*
 
 # Installer logs
 pip-log.txt

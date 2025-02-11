@@ -169,7 +169,7 @@ fi
 print_heading "Repositories in '${REPOSITORIES_DIR}'"
 
 repositories=$(find ./$REPOSITORIES_DIR -mindepth 1 -maxdepth 1 -type d)
-# repositories="./repositories/autogluon"
+# repositories="./repositories/h2o_3"
 print_line "Repository directories found:\n$repositories"
 
 ##################################
@@ -246,12 +246,34 @@ for repo_path in $repositories; do
     ################################################################################################
     print_subheading "Running Python Tests (project: $repo_name)"
 
+    ########################################################
     # Remove irrelevant files that may be picked up by Sonar
+    ########################################################
     rm -f coverage.xml report.xml .coverage
 
-    ###################################################################################
+    ##################################
+    # If using h2o_3, start H2O server
+    ##################################
+    # if [ "$repo_name" = "h2o_3" ]; then
+    #     # Start H2O server if not already running
+    #     if [ -z "$(docker ps -q -f name=h2o-server)" ]; then
+    #         print_line "H2O server not running. Starting H2O server..."
+    #         cd ./src/ml/automl/h2o_3 && docker-compose up -d && cd -
+    #     else
+    #         print_line "H2O server already running."
+    #     fi
+
+    #     # cd ./src/ml/automl/h2o_3
+    #     # docker build -t "h2o.ai/master:v5" -f Dockerfile.server .
+    #     # docker run --rm --name h2o-server -p 54321:54321 h2o.ai/master:v5 \
+    #     #     /bin/bash -c 'cd /opt && java -Xmx1g -jar h2o.jar'
+    #     # cd -
+    # fi
+
+    #####################################################################################
     # Pull or build Docker image if not SKIP_REBUILDING_IMAGES or if image does not exist
-    ###################################################################################
+    #####################################################################################
+    # Pull
     if [ "$SKIP_REBUILDING_IMAGES" == "false" ]; then
         print_line "Skipping Docker image pull as SKIP_REBUILDING_IMAGES=false"
     else
@@ -259,20 +281,20 @@ for repo_path in $repositories; do
         docker pull $image_name || (echo "Pull failed!")  # && docker image ls)
     fi
 
+    # Build if image does not exist or if SKIP_REBUILDING_IMAGES is false
     if [ -z "$(docker images -q ${image_name} 2> /dev/null)" ] || [ "$SKIP_REBUILDING_IMAGES" == "false" ]; then
-        # Build Docker image
-        if [ "$SKIP_REBUILDING_IMAGES" == "false" ]; then
-            print_line "Building Docker image ${image_name}..."
+        # if [ "$SKIP_REBUILDING_IMAGES" == "false" ]; then
+        print_line "Building Docker image ${image_name}..."
 
-            # Build image with tests enabled and save logs to file
-            ( (docker build --build-arg run_tests=true --progress plain -t "${image_name}" \
-                -f ./src/ml/automl/$repo_name/Dockerfile . || exit 1) 2>&1 | tee "${SCA_LOGS_DIR}/${repo_name}.log") || continue
+        # Build image with tests enabled and save logs to file
+        ( (docker build --build-arg run_tests=true --progress plain -t "${image_name}" \
+            -f ./src/ml/automl/$repo_name/Dockerfile . || exit 1) 2>&1 | tee "${SCA_LOGS_DIR}/${repo_name}.log") || continue
 
-            print_line "Docker image ${image_name} built successfully."
-        else
-            # Skip building image
-            print_line "Docker image ${image_name} already exists. Skipping build..."
-        fi
+        print_line "Docker image ${image_name} built successfully."
+        # else
+        #     # Skip building image
+        #     print_line "Docker image ${image_name} already exists. Skipping build..."
+        # fi
     fi
 
     ##################################################
@@ -293,14 +315,16 @@ for repo_path in $repositories; do
     print_line "Hits: $hits"
     print_line "Total: $total"
 
-    # echo "Occurrences of 'common/': $(grep -c "common/" < "${OUTPUT_DIR}/coverage.xml")"
-    # echo "Occurrences of 'core/': $(grep -c "core/" < "${OUTPUT_DIR}/coverage.xml")"
-    # echo "Occurrences of 'eda/': $(grep -c "eda/" < "${OUTPUT_DIR}/coverage.xml")"
-    # echo "Occurrences of 'features/': $(grep -c "features/" < "${OUTPUT_DIR}/coverage.xml")"
-    # echo "Occurrences of 'timeseries/': $(grep -c "timeseries/" < "${OUTPUT_DIR}/coverage.xml")"
-    # echo "Occurrences of 'multimodal/': $(grep -c "multimodal/" < "${OUTPUT_DIR}/coverage.xml")"
-    # echo "Occurrences of 'tabular/': $(grep -c "tabular/" < "${OUTPUT_DIR}/coverage.xml")"
-    # break
+    if [ "$repo_name" = "autogluon" ]; then
+        echo "Occurrences of 'common/': $(grep -c "common/" < "${OUTPUT_DIR}/coverage.xml")"
+        echo "Occurrences of 'core/': $(grep -c "core/" < "${OUTPUT_DIR}/coverage.xml")"
+        echo "Occurrences of 'eda/': $(grep -c "eda/" < "${OUTPUT_DIR}/coverage.xml")"
+        echo "Occurrences of 'features/': $(grep -c "features/" < "${OUTPUT_DIR}/coverage.xml")"
+        echo "Occurrences of 'timeseries/': $(grep -c "timeseries/" < "${OUTPUT_DIR}/coverage.xml")"
+        echo "Occurrences of 'multimodal/': $(grep -c "multimodal/" < "${OUTPUT_DIR}/coverage.xml")"
+        echo "Occurrences of 'tabular/': $(grep -c "tabular/" < "${OUTPUT_DIR}/coverage.xml")"
+        # break
+    fi
 
     ##########################################
     # Fix path in <source> tag in coverage.xml
@@ -441,17 +465,20 @@ EOL
     }
 
     if [ "$repo_name" = "autogluon" ]; then
-        problematic_file="${TARGET_DIR}/common/src/autogluon/common/utils/try_import.py"
-        add_blank_lines_to_file "${problematic_file}" 6
+        problematic_files=("${TARGET_DIR}/common/src/autogluon/common/utils/try_import.py")
     fi
     if [ "$repo_name" = "fedot" ]; then
-        problematic_file="${TARGET_DIR}/fedot/core/operations/evaluation/operation_implementations/models/boostings_implementations.py"
-        add_blank_lines_to_file "${problematic_file}" 6
+        problematic_files=("${TARGET_DIR}/fedot/core/operations/evaluation/operation_implementations/models/boostings_implementations.py")
     fi
     if [ "$repo_name" = "lightautoml" ]; then
-        problematic_file="${TARGET_DIR}/lightautoml/ml_algo/boost_lgbm.py"
-        add_blank_lines_to_file "${problematic_file}" 6
+        problematic_files=(
+            "${TARGET_DIR}/lightautoml/ml_algo/boost_lgbm.py"
+            "${TARGET_DIR}/lightautoml/ml_algo/tuning/optuna.py"
+        )
     fi
+    for file_path in "${problematic_files[@]}"; do
+        add_blank_lines_to_file "${file_path}" 8
+    done
 
     #####################################
     # Delete project if it already exists
@@ -522,7 +549,9 @@ EOL
     # Revert changes to try_import.py
     #################################
     if [ "$repo_name" = "autogluon" ] || [ "$repo_name" = "fedot" ] || [ "$repo_name" = "lightautoml" ]; then
-        head -n -6 "${problematic_file}" > temp.txt && mv temp.txt "${problematic_file}"
+        for file_path in "${problematic_files[@]}"; do
+            head -n -8 "${file_path}" > temp.txt && mv temp.txt "${file_path}"
+        done
     fi
 
     ####################################################

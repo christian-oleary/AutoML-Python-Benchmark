@@ -6,7 +6,7 @@ FROM python:3.9-slim
 RUN apt-get update && apt-get install -y git libgomp1
 
 # Clone the mljar repository
-RUN rm -rf /src/mljar && git clone https://github.com/mljar/mljar-supervised.git /src/mlbox
+RUN rm -rf /src/mljar && git clone https://github.com/mljar/mljar-supervised.git /src/mljar
 
 # Change working directory to mljar
 WORKDIR /src/mljar

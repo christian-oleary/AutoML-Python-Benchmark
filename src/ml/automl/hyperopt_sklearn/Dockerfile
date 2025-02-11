@@ -28,4 +28,4 @@ RUN if [ "$run_tests" = "true" ]; then \
         echo "Skipping tests"; \
     fi
 
-RUN cat coverage.xml | grep "hits=" | grep -Eo '[0-9]+' | grep -v '^0$' | wc -l || (echo "No coverage data" && exit 1)
+RUN cat coverage.xml | grep "hits=" | grep -Eo '[0-9]+' | grep -v '^0$' | wc -l

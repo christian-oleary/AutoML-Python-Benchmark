@@ -77,8 +77,10 @@ RUN sed -i 's/\$//g'  requirements.txt && \
     cat requirements.txt && \
     python -m pip install -r requirements.txt
 
-# RUN python -m pip install pystan
-RUN python -m pip install pystan==2.18.0.0
+RUN apt-get update && apt-get install -y g++ && g++ --version
+
+RUN python -m pip install pystan
+# RUN python -m pip install pystan==2.18.0.0
 # RUN python -m pip install pystan==2.19.1.1
 RUN python -m pip install fbprophet
 

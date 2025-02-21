@@ -25,7 +25,7 @@ RUN python -m pip install -e .[all] pytest-cov
 RUN python -c "import torch;print('GPU STATUS:',torch.cuda.is_available())"
 
 # Remove old test reports if they exist
-RUN rm -f report.xml coverage.xml
+RUN rm -f report.xml coverage.xml .coverage ./**/report.xml ./**/coverage.xml ./**/.coverage
 
 # Run tests
 ARG run_tests

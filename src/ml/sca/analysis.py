@@ -13,7 +13,6 @@ from git.exc import InvalidGitRepositoryError
 import pandas as pd
 
 from ml.logs import logger
-from ml.util import Utils
 
 COVERAGE_MEANS = ['line-rate', 'branch-rate', 'complexity']
 COVERAGE_SUMS = ['lines-covered', 'lines-valid', 'branches-covered', 'branches-valid']
@@ -657,7 +656,9 @@ class Analysis:
         logger.info(f'Saved metadata to {metadata_file}: {metadata}')
 
         # Save correlation matrix to CSV file
-        if len(df) > 1:
-            path = str(Path(self.output_dir, 'correlation_heatmap.csv'))
-            Utils.save_heatmap(df, path, path.replace('.csv', '.png'), columns='all')
+        # if len(df) > 1:
+        #     path = str(Path(self.output_dir, 'correlation_heatmap.csv'))
+        #     Utils.save_heatmap(
+        #         df, path, path.replace('.csv', '.png'), columns='all', figsize=(30, 20)
+        #     )
         return df

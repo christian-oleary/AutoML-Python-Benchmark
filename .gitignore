@@ -197,6 +197,7 @@ instance/
 
 # H2O.ai
 h2o-3.*
+h2o/
 
 # Installer logs
 pip-log.txt

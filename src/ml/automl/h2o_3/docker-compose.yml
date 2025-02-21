@@ -1,0 +1,39 @@
+# Run H2O server and build image for H2O-3 Python
+
+name: h2o_3_python
+
+services:
+    h2o_server:
+        image: christianoleary/h2o-server:latest
+        build:
+            context: .
+            dockerfile: ./server/Dockerfile
+        networks:
+            - h2o
+        ports:
+            - "54321:54321"
+            - "54322:54322"
+        environment:
+            - JAVA_OPTS=-Xmx4g
+            - H2O_PORT=54321
+        # restart: always
+        # command: java -jar /h2o.jar
+
+    h2o_3:
+        image: christianoleary/h2o_3:latest
+        build:
+            context: .
+            dockerfile: Dockerfile
+        depends_on:
+            - h2o_server
+        networks:
+            - h2o
+        environment:
+            - JAVA_OPTS=-Xmx4g
+            # - H2O_HOST=h2o_server
+            - H2O_PORT=54321
+        extra_hosts:
+            - "h2o_server:host-gateway"
+
+networks:
+  h2o:

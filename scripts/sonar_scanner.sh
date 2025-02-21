@@ -177,13 +177,11 @@ print_line "Repository directories found:\n$repositories"
 ##################################
 # print_heading "Deleting All Projects"
 # # Fetch all project keys
-# project_keys=$(curl -u ${SONAR_LOGIN}:${SONAR_PASSWORD} -s \
-#     -X GET "${API_URL}projects/search" | grep -oP '(?<="key":")[^"]*')
+# project_keys=$(curl -u ${SONAR_LOGIN}:${SONAR_PASSWORD} -s -X GET "${API_URL}projects/search" | grep -oP '(?<="key":")[^"]*')
 # # Loop over each project key and delete the project
 # for project_key in $project_keys; do
 #     print_line "Deleting project: $project_key"
-#     curl -u ${SONAR_LOGIN}:${SONAR_PASSWORD} -s -X POST \
-#         "${API_URL}projects/delete?project=${project_key}"
+#     curl -u ${SONAR_LOGIN}:${SONAR_PASSWORD} -s -X POST "${API_URL}projects/delete?project=${project_key}"
 # done
 
 #########################
@@ -198,46 +196,56 @@ mkdir -p "${SCA_LOGS_DIR}"
 previous_image=""
 
 for repo_path in $repositories; do
+    ####################################################
     # Get the name of the repository from directory path
+    ####################################################
     repo_name=$(basename "$repo_path")
     image_name="christianoleary/${repo_name}"
 
+    ############
+    # Skip H2O-3
+    ############
+    if [ "$repo_name" = "h2o_3" ]; then
+        print_line "Skipping H2O-3..."
+        continue
+    fi
+
     print_heading "Processing directory: ${repo_path} (${repo_name} - ${image_name})"
 
-    ############################################################################
-    # SKIP IF NOT A DIRECTORY
-    ############################################################################
+    #########################
+    # Skip if not a directory
+    #########################
     if [ ! -d "$repo_path" ]; then
         echo "Skipping $repo_path (not a directory)"
         continue
     fi
 
-    ############################################################################
-    # CREATE OUTPUT DIRECTORY
-    ############################################################################
+    ###############################################
+    # Create output directory for SonarQube results
+    ###############################################
     OUTPUT_DIR="${RESULTS_DIR}/sca/sonar/${repo_name}"
     mkdir -p "${OUTPUT_DIR}"
     OUTPUT_FILE="${OUTPUT_DIR}/measures.json"
 
-    ############################################################################
+    ################################################################################################
     # ENVIRONMENT VARIABLES
-    ############################################################################
+    ################################################################################################
     print_subheading "Environment Variables (project: $repo_name)"
 
     export PROJECT_BRANCH="master"
     export PROJECT_NAME=$repo_name
-    export PROJECTKEY=$PROJECT_NAME
+    # export PROJECTKEY=$PROJECT_NAME
     export PROJECT_KEY=$PROJECT_NAME
-    export SONAR_PROJECTKEY=$PROJECT_NAME
+    # export SONAR_PROJECTKEY=$PROJECT_NAME
     export SONAR_PROJECT_KEY=$PROJECT_NAME
     export TARGET_DIR="${repo_path}/"
 
     # Print newly added environment variables
     print_line "PROJECT_BRANCH=${PROJECT_BRANCH}"
     print_line "PROJECT_NAME=${PROJECT_NAME}"
-    print_line "PROJECTKEY=${PROJECTKEY}"
+    # print_line "PROJECTKEY=${PROJECTKEY}"
     print_line "PROJECT_KEY=${PROJECT_KEY}"
-    print_line "SONAR_PROJECTKEY=${SONAR_PROJECTKEY}"
+    # print_line "SONAR_PROJECTKEY=${SONAR_PROJECTKEY}"
     print_line "SONAR_PROJECT_KEY=${SONAR_PROJECT_KEY}"
     print_line "TARGET_DIR=${TARGET_DIR}"
 
@@ -250,25 +258,6 @@ for repo_path in $repositories; do
     # Remove irrelevant files that may be picked up by Sonar
     ########################################################
     rm -f coverage.xml report.xml .coverage
-
-    ##################################
-    # If using h2o_3, start H2O server
-    ##################################
-    # if [ "$repo_name" = "h2o_3" ]; then
-    #     # Start H2O server if not already running
-    #     if [ -z "$(docker ps -q -f name=h2o-server)" ]; then
-    #         print_line "H2O server not running. Starting H2O server..."
-    #         cd ./src/ml/automl/h2o_3 && docker-compose up -d && cd -
-    #     else
-    #         print_line "H2O server already running."
-    #     fi
-
-    #     # cd ./src/ml/automl/h2o_3
-    #     # docker build -t "h2o.ai/master:v5" -f Dockerfile.server .
-    #     # docker run --rm --name h2o-server -p 54321:54321 h2o.ai/master:v5 \
-    #     #     /bin/bash -c 'cd /opt && java -Xmx1g -jar h2o.jar'
-    #     # cd -
-    # fi
 
     #####################################################################################
     # Pull or build Docker image if not SKIP_REBUILDING_IMAGES or if image does not exist
@@ -283,31 +272,30 @@ for repo_path in $repositories; do
 
     # Build if image does not exist or if SKIP_REBUILDING_IMAGES is false
     if [ -z "$(docker images -q ${image_name} 2> /dev/null)" ] || [ "$SKIP_REBUILDING_IMAGES" == "false" ]; then
-        # if [ "$SKIP_REBUILDING_IMAGES" == "false" ]; then
         print_line "Building Docker image ${image_name}..."
 
         # Build image with tests enabled and save logs to file
-        ( (docker build --build-arg run_tests=true --progress plain -t "${image_name}" \
-            -f ./src/ml/automl/$repo_name/Dockerfile . || exit 1) 2>&1 | tee "${SCA_LOGS_DIR}/${repo_name}.log") || continue
+        #  2>&1 | tee "${SCA_LOGS_DIR}/${repo_name}.log") # || continue
+        docker build --build-arg run_tests=true --progress plain -t "${image_name}" \
+            -f ./src/ml/automl/$repo_name/Dockerfile . || exit 1
 
         print_line "Docker image ${image_name} built successfully."
-        # else
-        #     # Skip building image
-        #     print_line "Docker image ${image_name} already exists. Skipping build..."
-        # fi
     fi
 
     ##################################################
     # Copy contents of relevant coverage files to host
     ##################################################
     rm -f "${TARGET_DIR}/.coverage" "${TARGET_DIR}/coverage.xml" "${TARGET_DIR}/report.xml" \
+        "${TARGET_DIR}/**/coverage.xml" "${TARGET_DIR}/**/report.xml" "${TARGET_DIR}/**/.coverage" \
         .coverage coverage.xml report.xml
 
     ##############
     # coverage.xml
     ##############
     print_line "Reading coverage.xml from Docker container..."
-    docker run --gpus all --rm --name $repo_name "${image_name}" bash -c "cat coverage.xml" > "${OUTPUT_DIR}/coverage.xml" || continue
+    docker run --gpus all --rm --name $repo_name "${image_name}" \
+        bash -c "cat coverage.xml" > "${OUTPUT_DIR}/coverage.xml" # || continue
+
     misses=$(grep -c "hits=\"0\"" < "${OUTPUT_DIR}/coverage.xml")
     hits=$(grep -c "hits=\"1\"" < "${OUTPUT_DIR}/coverage.xml")
     total=$(grep -c "hits=" < "${OUTPUT_DIR}/coverage.xml")
@@ -315,23 +303,9 @@ for repo_path in $repositories; do
     print_line "Hits: $hits"
     print_line "Total: $total"
 
-    if [ "$repo_name" = "autogluon" ]; then
-        echo "Occurrences of 'common/': $(grep -c "common/" < "${OUTPUT_DIR}/coverage.xml")"
-        echo "Occurrences of 'core/': $(grep -c "core/" < "${OUTPUT_DIR}/coverage.xml")"
-        echo "Occurrences of 'eda/': $(grep -c "eda/" < "${OUTPUT_DIR}/coverage.xml")"
-        echo "Occurrences of 'features/': $(grep -c "features/" < "${OUTPUT_DIR}/coverage.xml")"
-        echo "Occurrences of 'timeseries/': $(grep -c "timeseries/" < "${OUTPUT_DIR}/coverage.xml")"
-        echo "Occurrences of 'multimodal/': $(grep -c "multimodal/" < "${OUTPUT_DIR}/coverage.xml")"
-        echo "Occurrences of 'tabular/': $(grep -c "tabular/" < "${OUTPUT_DIR}/coverage.xml")"
-        # break
-    fi
-
     ##########################################
     # Fix path in <source> tag in coverage.xml
     ##########################################
-    # Delete all lines before "<?xml version="1.0" ?>"
-    # sed '1/<\?xml version="1.0" ?>/d' "${OUTPUT_DIR}/coverage.xml" > temp.xml
-    # head -n 10 $TARGET_DIR/coverage.xml
     sed -i "s|<source>/src/${repo_name}</source>|<source>$(realpath $TARGET_DIR)</source>|g" $OUTPUT_DIR/coverage.xml
     # Fix other paths in coverage.xml. Append TARGET_DIR to all "filename=" paths"
     # sed -i "s|filename=\"|filename=\"${TARGET_DIR}|g" $TARGET_DIR/coverage.xml
@@ -346,21 +320,12 @@ for repo_path in $repositories; do
     # Remove all lines before "<?xml version="1.0" ?>"
     ##################################################
     sed -ni '/<\?xml version="1.0" ?>/,$p' "${OUTPUT_DIR}/coverage.xml"
-    # if [ "$repo_name" = "fedot" ]; then
-    #     sed -i '1,4d' "${OUTPUT_DIR}/coverage.xml"
-    # fi
 
     ##########################################################
     # Copy coverage files to target directory for SonarScanner
     ##########################################################
     cp "${OUTPUT_DIR}"/{coverage.xml,.coverage} $TARGET_DIR
     ls $TARGET_DIR/coverage.xml $TARGET_DIR/.coverage || (echo "missing files" && exit 1)
-
-    ######################
-    # Show coverage report
-    ######################
-    print_line "Coverage Report:"
-    docker run --gpus all --rm --name $repo_name "${image_name}" bash -c "coverage report" > "${OUTPUT_DIR}"/report.txt
 
     ################################################################################################
     # PUSH DOCKER IMAGE TO DOCKER HUB (docker push should skip existing layers)
@@ -414,8 +379,7 @@ for repo_path in $repositories; do
     # List tokens
     #############
     # print_line "User tokens in SonarQube:\n"
-    # curl -u ${SONAR_LOGIN}:${SONAR_PASSWORD} \
-    #     -X POST "${API_URL}user_tokens/search"  | python -m json.tool
+    # curl -u ${SONAR_LOGIN}:${SONAR_PASSWORD} -X POST "${API_URL}user_tokens/search"  | python -m json.tool
 
     ################################################################################################
     # CREATE sonar-project.properties FILE
@@ -437,8 +401,6 @@ sonar.python.coverage.reportPaths=$TARGET_DIR/coverage.xml
 sonar.scm.disabled=true
 EOL
 
-    # sonar.python.coverage.reportPaths=$TARGET_DIR/results.xml,$TARGET_DIR/coverage.xml
-    # sonar.python.coverage.reportPaths=coverage.xml,$TARGET_DIR/coverage.xml,$TARGET_DIR/**/coverage.xml,$ABSOLUTE_PATH/coverage.xml
     cat "${OUTPUT_DIR}/sonar-project.properties"
 
     ################################################################################################
@@ -465,7 +427,22 @@ EOL
     }
 
     if [ "$repo_name" = "autogluon" ]; then
-        problematic_files=("${TARGET_DIR}/common/src/autogluon/common/utils/try_import.py")
+        problematic_files=(
+            "${TARGET_DIR}/common/src/autogluon/common/utils/try_import.py"
+            "${TARGET_DIR}/tabular/src/autogluon/tabular/experimental/_tabular_classifier.py"
+            "${TARGET_DIR}/tabular/src/autogluon/tabular/experimental/_tabular_regressor.py"
+            "${TARGET_DIR}/tabular/src/autogluon/tabular/predictor/_deprecated_methods.py"
+            "${TARGET_DIR}/timeseries/src/autogluon/timeseries/learner.py"
+            "${TARGET_DIR}/timeseries/src/autogluon/timeseries/predictor.py"
+            "${TARGET_DIR}/timeseries/src/autogluon/timeseries/dataset/ts_dataframe.py"
+            "${TARGET_DIR}/timeseries/src/autogluon/timeseries/models/gluonts/torch/models.py"
+            "${TARGET_DIR}/timeseries/tests/smoketests/test_all_models.py"
+            "${TARGET_DIR}/timeseries/tests/unittests/test_predictor.py"
+            "${TARGET_DIR}/timeseries/tests/unittests/test_splitter.py"
+            "${TARGET_DIR}/timeseries/tests/unittests/test_trainer.py"
+            "${TARGET_DIR}/timeseries/tests/unittests/test_ts_dataset.py"
+            "${TARGET_DIR}/timeseries/tests/unittests/utils/test_features.py"
+        )
     fi
     if [ "$repo_name" = "fedot" ]; then
         problematic_files=("${TARGET_DIR}/fedot/core/operations/evaluation/operation_implementations/models/boostings_implementations.py")
@@ -474,10 +451,11 @@ EOL
         problematic_files=(
             "${TARGET_DIR}/lightautoml/ml_algo/boost_lgbm.py"
             "${TARGET_DIR}/lightautoml/ml_algo/tuning/optuna.py"
+            "${TARGET_DIR}/tests/integration/test_custom_2_level_stacking.py"
         )
     fi
     for file_path in "${problematic_files[@]}"; do
-        add_blank_lines_to_file "${file_path}" 8
+        add_blank_lines_to_file "${file_path}" 300
     done
 
     #####################################
@@ -550,7 +528,9 @@ EOL
     #################################
     if [ "$repo_name" = "autogluon" ] || [ "$repo_name" = "fedot" ] || [ "$repo_name" = "lightautoml" ]; then
         for file_path in "${problematic_files[@]}"; do
-            head -n -8 "${file_path}" > temp.txt && mv temp.txt "${file_path}"
+            # head -n -8 "${file_path}" > temp.txt && mv temp.txt "${file_path}"
+            # Remove duplicate blank lines at end of file
+            sed -i -e :a -e '/^\n*$/{$d;N;ba' -e '}' "${file_path}"
         done
     fi
 
@@ -558,6 +538,7 @@ EOL
     # Remove used files to prevent false positives later
     ####################################################
     rm -f "${TARGET_DIR}/coverage.xml" "${TARGET_DIR}/report.xml" "${TARGET_DIR}/.coverage"
+    rm -f "${TARGET_DIR}/**/coverage.xml" "${TARGET_DIR}/**/report.xml" "${TARGET_DIR}/**/.coverage"
 
     ################################################################################################
     # EXPORT SONARQUBE RESULTS TO FILE

@@ -666,6 +666,7 @@ class Utils:
         csv_path: str,
         png_path: str,
         columns: str | list[str] | None = None,
+        figsize: tuple[int, int] | None = None,
     ) -> pd.DataFrame:
         """Save Pearson correlation matrix of metrics.
 
@@ -673,7 +674,8 @@ class Utils:
         :param str csv_path: Path to CSV file
         :param str png_path: Path to PNG file
         :param str | list[str] columns: Columns to include, defaults to PRIORITY_METRICS. Accepts 'all'.
-        :return pd.DataFrame: Correlation matrix if successful
+        :param tuple[int, int] figsize: Figure size, defaults to None
+        :return pd.DataFrame heatmap: Correlation matrix if successful
         """
         # Filter columns
         if columns is None:
@@ -701,8 +703,13 @@ class Utils:
         df[columns].corr(method=p_value).to_csv(p_path)  # type: ignore
 
         # Save correlation heatmap as image
+        ax = None
+        if figsize is not None:
+            plt.figure(figsize=figsize)
+            _, ax = plt.subplots(figsize=figsize)
         axes = sns.heatmap(
             heatmap,
+            ax=ax,
             annot=True,
             cbar=False,
             cmap='viridis',

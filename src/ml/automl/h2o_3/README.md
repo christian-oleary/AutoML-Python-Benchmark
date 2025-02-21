@@ -15,8 +15,7 @@ jar_path=$(find . -name 'h2o.jar') # Find .jar
 java -Xmx4g -jar $jar_path         # Run
 
 # Docker
-# TODO
-docker rm h2o-server-test; docker run -it -p 54321:54321 --name h2o-server-test christianoleary/h2o-server
+docker rm h2o-server-test; docker run -itd -p 54321:54321 --name h2o-server-test christianoleary/h2o-server
 
 # Using docker-compose
 docker compose up -d # Start server

@@ -17,72 +17,53 @@ WORKDIR /src/kats
 
 # Upgrade pip
 RUN python -m pip install --upgrade pip
+# RUN python -m pip install -r requirements.txt  # Fails
+# RUN python -m pip install -r test_requirements.txt  # Fails
 
-# Remove test_requirements.txt and requirements.txt. Major dependency issues with current versions
-RUN rm -rf test_requirements.txt requirements.txt
+# RUN python -m pip install Cython==0.21
+# RUN python -m pip install numpy>=1.21,<1.22
+RUN python -m pip install Cython numpy==1.* scikit-learn
 
-# Create requirements.txt with the necessary dependencies
-# importlib_metadata; python_version < '3.8' \n\
-RUN echo $'\n\
-attrs>=21.2.0           \n\
-deprecated>=1.2.12      \n\
-holidays>=0.10.2,<=0.57 \n\
-matplotlib>=2.0.0       \n\
-numpy>=1.21,<1.22       \n\
-# numpy>=1.21,<1.22     \n\
-pandas>=1.0.4,<=1.3.5   \n\
-packaging<22            \n\
-scikit-learn>=0.24.2    \n\
-python-dateutil>=2.8.0  \n\
-scipy>=1.10.0           \n\
-seaborn>=0.11.1         \n\
-setuptools-git>=1.2     \n\
-# statsmodels==0.12.2   \n\
-statsmodels>=0.12.2     \n\
-lightgbm>=2.3.0         \n\
-# numba>=0.55.0         \n\
-numba>=0.52.0           \n\
-typing-extensions       \n\
-LunarCalendar>=0.0.9    \n\
-ax-platform==0.2.9      \n\
-gpytorch==1.9.0         \n\
-parameterized>=0.8.1    \n\
-plotly>=2.2.1           \n\
-pymannkendall>=1.4.1    \n\
-pytest-mpl>=0.12,<0.16  \n\
-torch                   \n\
-tqdm>=4.36.1            \n\
-###############         \n\
-# Added:                \n\
-###############         \n\
-Cython>=0.22,<3         \n\
-convertdate             \n\
-httpstan                \n\
-lunarcalendar           \n\
-wheel                   \n\
-pytest-cov              \n\
-coverage                \n\
-nevergrad               \n\
-####################### \n\
-# pystan>=2.19.1.1      \n\
-# pystan==2.18.0.0      \n\
-# fbprophet             \n\
-# fbprophet==0.7.1      \n\
-# fbprophet==0.6        \n\
-# prophet               \n\
-' > requirements.txt
+RUN python -m pip install attrs>=21.2.0
+RUN python -m pip install deprecated>=1.2.12
+RUN python -m pip install importlib_metadata
+# RUN python -m pip install holidays<=0.57
+# RUN python -m pip install matplotlib>=2.0.0
+# RUN python -m pip install pandas>=1.0.4,<=1.3.5
+RUN python -m pip install packaging==21
+RUN python -m pip install python-dateutil>=2.8.0
+# RUN python -m pip install scikit-learn>=0.24.2
+# RUN python -m pip install scikit-learn==0.24.2
+RUN python -m pip install scipy>=1.10.0
+RUN python -m pip install seaborn>=0.11.1
+RUN python -m pip install setuptools-git>=1.2
+# RUN python -m pip install statsmodels==0.12.2
+RUN python -m pip install lightgbm>=2.3.0
+RUN python -m pip install numba>=0.55.0
+RUN python -m pip install typing-extensions
+RUN python -m pip install pandas
+RUN python -m pip install matplotlib
+RUN python -m pip install statsmodels
 
-# Remove dollar sign, print requirements and install dependencies
-RUN sed -i 's/\$//g'  requirements.txt && \
-    cat requirements.txt && \
-    python -m pip install -r requirements.txt
+RUN rm -rf test_requirements.txt requirements.txt && \
+    echo "" > test_requirements.txt && \
+    echo "" > requirements.txt && \
+    python -m pip install -e .
 
-RUN apt-get update && apt-get install -y g++ && g++ --version
-
-RUN python -m pip install pystan
-# RUN python -m pip install pystan==2.18.0.0
-# RUN python -m pip install pystan==2.19.1.1
-RUN python -m pip install fbprophet
+RUN python -m pip install LunarCalendar>=0.0.9
+RUN python -m pip install ax-platform==0.2.9
+RUN python -m pip install prophet
+RUN python -m pip install gpytorch==1.9.0
+RUN python -m pip install holidays>=0.10.2
+RUN python -m pip install numba>=0.52.0
+RUN python -m pip install parameterized>=0.8.1
+RUN python -m pip install plotly>=2.2.1
+RUN python -m pip install pymannkendall>=1.4.1
+RUN python -m pip install pystan==2.19.1.1
+RUN python -m pip install pytest-mpl>=0.12
+RUN python -m pip install torch
+RUN python -m pip install tqdm>=4.36.1
+RUN python -m pip install pytest-cov
 
 RUN echo "" > test_requirements.txt
 RUN echo "" > requirements.txt

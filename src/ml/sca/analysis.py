@@ -171,7 +171,7 @@ class Analysis:
             self.save_results(self.output_dir)
         return self.results
 
-    def analyze_repo(self, target_dir: str | Path, skip_existing: bool = False) -> dict:
+    def analyze_repo(self, target_dir: str | Path, skip_existing: bool = True) -> dict:
         """Analyze a single Git repository in the specified directory.
 
         :param str | Path target_dir: Path to the Git repository.

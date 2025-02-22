@@ -49,12 +49,13 @@ RUN cd && \
 # Define the working directory
 # WORKDIR /home/h2o
 
-RUN apt-get -y update
-RUN mkdir -p /usr/share/man/man1/
-RUN apt-get install -y openjdk-8-jdk
-RUN apt-get install -y openjdk-8-jre
-RUN update-alternatives --config java
-RUN update-alternatives --config javac
+RUN apt-get -y update && \
+    mkdir -p /usr/share/man/man1/ && \
+    apt-get install -y openjdk-8-jdk && \
+    apt-get install -y openjdk-8-jre && \
+    update-alternatives --config java && \
+    update-alternatives --config javac && \
+    java -version
 
 RUN apt-get update && \
     DEBIAN_FRONTEND=noninteractive \
@@ -62,9 +63,8 @@ RUN apt-get update && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
-RUN java -version
-
 EXPOSE 54321
 EXPOSE 54322
 
-ENTRYPOINT ["java", "-Xmx4g", "-jar", "/opt/h2o.jar"]
+# ENTRYPOINT ["java", "-Xmx4g", "-jar", "/opt/h2o.jar"]
+CMD ["java", "-Xmx4g", "-jar", "/opt/h2o.jar"]

@@ -1,0 +1,13 @@
+# H2O server
+services:
+    h2o_server:
+        build:
+            context: .
+            dockerfile: Dockerfile
+        image: christianoleary/h2o-server:latest
+        ports:
+            - "54321:54321"
+            - "54322:54322"
+        environment:
+            - JAVA_OPTS=-Xmx4g
+        restart: always

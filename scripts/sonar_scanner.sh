@@ -205,8 +205,8 @@ for repo_path in $repositories; do
     ############
     # Skip H2O-3
     ############
-    if [ "$repo_name" = "h2o_3" ]; then
-        print_line "Skipping H2O-3..."
+    if [ "$repo_name" = "h2o_3" ] || [ "$repo_name" = "kats" ]; then
+        print_line "Skipping ${repo_name}..."
         continue
     fi
 

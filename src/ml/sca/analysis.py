@@ -172,18 +172,24 @@ class Analysis:
             self.save_results(self.output_dir)
         return self.results
 
-    def analyze_repo(self, target_dir: str | Path, skip_existing: bool = True) -> dict:
+    def analyze_repo(
+        self,
+        target_dir: str | Path,
+        skip_existing_sonar: bool = False,
+        skip_existing_sca: bool = True,
+    ) -> dict:
         """Analyze a single Git repository in the specified directory.
 
         :param str | Path target_dir: Path to the Git repository.
-        :param bool skip_existing: Whether to skip existing results, defaults to True.
+        :param bool skip_existing_sonar: Whether to skip existing Sonar-Scanner results, defaults to False.
+        :param bool skip_existing_sca: Whether to skip existing CLI SCA tool results, defaults to True.
         :return dict: The analysis of the Git repository.
         """
         logger.info(f'Analyzing {target_dir}...')
         repo = GitRepo(target_dir)
 
         # Run analysis on the repository
-        sonar_results = self.parse_sonar_scanner_json(repo, self.output_dir, skip_existing)
+        sonar_results = self.parse_sonar_scanner_json(repo, self.output_dir, skip_existing_sonar)
         results = {
             'name': repo.name,
             'path': repo.path,
@@ -194,7 +200,7 @@ class Analysis:
 
         # Run CLI tools on the repository
         for tool, command in self.build_commands(repo.name).items():
-            outputs = self.run_cli_command(tool, command, repo, skip_existing)
+            outputs = self.run_cli_command(tool, command, repo, skip_existing_sca)
             results.update({f'{tool}__{k}': v for k, v in outputs.items()})
             logger.info(f'{tool} analysis complete for {repo.name}')
         return results

@@ -145,7 +145,7 @@ class Analysis:
         :param str | Path output_dir: Directory to save the results of the analysis.
         """
         self.input_dir = Path(input_dir)
-        self.output_dir = Path(output_dir)
+        self.output_dir = Path(output_dir, 'sca')
         self.results: list[dict] = []
         self.start_time: str = ''
         self.end_time: str = ''
@@ -659,5 +659,5 @@ class Analysis:
         # Save correlation matrix to CSV file
         if len(df) > 1:
             path = str(Path(self.output_dir, 'correlation_heatmap.csv'))
-            Utils.save_heatmap(df, path, path.replace('.csv', '.png'), columns='all')
+            Utils.save_heatmap(df, path, None, columns='all')
         return df

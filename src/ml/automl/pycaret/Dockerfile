@@ -78,12 +78,12 @@ RUN if [ "$run_tests" = "true" ]; then \
         rm -rf coverage.xml && \
         echo "Running unit tests..." && \
         python3 -m pytest --cov-report xml:coverage.xml --cov=. && \
-        (cat coverage.xml | grep "hits=" | grep -Eo '[0-9]+' | grep -v '^0$' | wc -l || (echo "No coverage data" && exit 1)) && \
+        cat coverage.xml | grep "hits=" | grep -Eo '[0-9]+' | grep -v '^0$' | wc -l && \
         echo "Tests complete"; \
     else \
         echo "Skipping tests"; \
     fi
 
-RUN cat coverage.xml | grep "hits=" | grep -Eo '[0-9]+' | grep -v '^0$' | wc -l || (echo "No coverage data" && exit 1)
+RUN cat coverage.xml | grep "hits=" | grep -Eo '[0-9]+' | grep -v '^0$' | wc -l
 RUN python -c "import tensorflow as tf;print('GPU STATUS:',tf.test.is_built_with_cuda())"
 RUN python -c "import torch;print('GPU STATUS:',torch.cuda.is_available())"

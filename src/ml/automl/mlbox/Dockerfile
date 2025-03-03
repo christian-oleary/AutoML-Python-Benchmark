@@ -30,14 +30,14 @@ ARG run_tests
 RUN if [ "$run_tests" = "true" ]; then \
         echo "Running unit tests..." && \
         rm -rf coverage.xml && \
-        cd tests && \
-        rm -rf coverage.xml && \
+        cp -r ./tests/data_for_tests ./data_for_tests && \
         python -m pytest --cov-report xml:coverage.xml --cov=. && \
-        (cat coverage.xml | grep "hits=" | grep -Eo '[0-9]+' | grep -v '^0$' | wc -l || (echo "No coverage data" && exit 1)) && \
+        cat coverage.xml | grep "hits=" | grep -Eo '[0-9]+' | grep -v '^0$' | wc -l && \
         echo "Tests complete"; \
     else \
         echo "Skipping tests"; \
     fi
-
-RUN cat coverage.xml | grep "hits=" | grep -Eo '[0-9]+' | grep -v '^0$' | wc -l || (echo "No coverage data" && exit 1)
+    # cd tests && \
+    # rm -rf coverage.xml && \
+RUN cat coverage.xml | grep "hits=" | grep -Eo '[0-9]+' | grep -v '^0$' | wc -l
 RUN python -c "import tensorflow as tf;print('GPU STATUS:',tf.test.is_built_with_cuda())"

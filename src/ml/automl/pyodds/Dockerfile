@@ -17,6 +17,9 @@ WORKDIR /src/pyodds/
 # Initialize any submodules
 RUN git submodule update --init --recursive
 
+# Replace "tensorflow==2.0.0b1" with "tensorflow" in requirements.txt
+RUN sed -i 's/tensorflow==2.0.0b1/tensorflow/g' requirements.txt
+
 # Install the required dependencies
 RUN python3 -m pip install .
 
@@ -26,11 +29,11 @@ RUN if [ "$run_tests" = "true" ]; then \
         rm -rf coverage.xml && \
         echo "Running unit tests..." && \
         python3 -m pytest --cov-report xml:coverage.xml --cov=. && \
-        (cat coverage.xml | grep "hits=" | grep -Eo '[0-9]+' | grep -v '^0$' | wc -l || (echo "No coverage data" && exit 1)) && \
+        cat coverage.xml | grep "hits=" | grep -Eo '[0-9]+' | grep -v '^0$' | wc -l && \
         echo "Tests complete"; \
     else \
         echo "Skipping tests"; \
     fi
 
-RUN cat coverage.xml | grep "hits=" | grep -Eo '[0-9]+' | grep -v '^0$' | wc -l || (echo "No coverage data" && exit 1)
+RUN cat coverage.xml | grep "hits=" | grep -Eo '[0-9]+' | grep -v '^0$' | wc -l
 RUN python -c "import tensorflow as tf;print('GPU STATUS:',tf.test.is_built_with_cuda())"

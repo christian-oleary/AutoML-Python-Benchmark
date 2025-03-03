@@ -205,26 +205,24 @@ class Analysis:
         :return dict: The CLI commands for the static code analysis tools.
         """
         filename = f'_{repo_name}.json'
+        # fmt: off
         commands = {
             'bandit': ['bandit', '-r', '--format', 'json', '-o', f'bandit{filename}', '.'],
-            # 'dodgy': ['dodgy', '--output', f'dodgy{filename}'],
-            # 'flake8': ['flake8', '--format=json', '--output-file', f'flake8{filename}', '.'],
-            # 'isort': ['isort', '--check-only', '--diff', '.'],
-            # 'mypy': ['mypy', '--json', '--output', f'mypy{filename}', '.'],
-            # 'prospector': ['prospector', '--output-format=json', '--output-file', output_file, '.'],
+            # 'flake8': ['flake8', '--format=json-pretty', f'--output-file=flake8{filename}', '.'],  # JSON errors
+            'prospector': [
+                'prospector', '-o', f'json:prospector{filename}',
+                '--tool', 'dodgy', '--tool', 'mypy', '--tool', 'profile-validator',
+                '--tool', 'pyright', '--tool', 'pyroma', '--tool', 'vulture',
+                '.'
+            ],
             'pylint': ['pylint', '-ry', '--output-format=json2', f'--output=pylint{filename}', '.'],
-            # 'pyroma': ['pyroma', '--json', '.'],
             'radon-cc': ['radon', 'cc', '-ja', '-O', f'radon-cc{filename}', '.'],
             'radon-hal': ['radon', 'hal', '-j', '-O', f'radon-hal{filename}', '.'],
             'radon-mi': ['radon', 'mi', '-j', '-O', f'radon-mi{filename}', '.'],
             'radon-raw': ['radon', 'raw', '-j', '-O', f'radon-raw{filename}', '.'],
-            # 'ruff': ['ruff', '--output', f'ruff{filename}'],
-            # 'rope': ['rope', '--output', f'rope{filename}'],
-            # 'safety': ['safety', 'check', '--json', '--output', f'safety{filename}'],
-            # 'uncalled': ['uncalled', '--output', f'uncalled{filename}'],
-            # 'vulture': ['vulture', '--min-confidence', '100', '--output', f'vulture{filename}', '.'],
-            # 'yapf': ['yapf', '--style', 'pep8', '--recursive', '--diff', '--parallel', '.'],
+            'ruff': ['ruff', 'check', '--statistics', '--output-file', f'ruff{filename}', '--output-format', 'json'],
         }
+        # fmt: on
         return commands
 
     def run_cli_command(
@@ -368,6 +366,10 @@ class Analysis:
         """
         if tool == 'bandit':
             results = self.parse_json_bandit(output)
+        elif tool == 'flake8':
+            results = self.parse_json_flake8(output)
+        elif tool == 'prospector':
+            results = self.parse_prospector(output)
         elif tool == 'pylint':
             results = self.parse_pylint(output)
         elif tool == 'radon-cc':
@@ -378,6 +380,8 @@ class Analysis:
             results = self.parse_radon_maintainability(output)
         elif tool == 'radon-raw':
             results = self.parse_radon_raw(output)
+        elif tool == 'ruff':
+            results = self.parse_ruff(output)
         else:
             # logger.error(f'output: {json.dumps(output, indent=4)}')
             raise NotImplementedError(f'Parsing for {tool} not implemented')
@@ -395,6 +399,32 @@ class Analysis:
         for issue in output_json['results']:
             test_id = issue['test_id']
             results[test_id] = results.get(test_id, 0.0) + 1.0
+        return results
+
+    def parse_json_flake8(self, output_json: dict) -> dict:
+        """Parse the output of flake8 to get the frequencies of the message types.
+
+        :param dict output_json: The output of running 'flake8'.
+        :return dict: The frequencies of the message types.
+        """
+        results: dict[str, float] = {}
+        for errors in output_json.values():
+            for error in errors:
+                code = error.get('code', None)
+                if code is not None:
+                    results[code] = error.get(code, 0.0) + 1.0
+        return results
+
+    def parse_prospector(self, output_json: dict) -> dict:
+        """Parse the output of prospector to get the frequencies of the message types.
+
+        :param dict output_json: The output of running 'prospector'.
+        :return dict: The frequencies of the message types.
+        """
+        results: dict[str, float] = {}
+        for message in output_json['messages']:
+            key = f"{message['source']}_{message['code']}"
+            results[key] = results.get(key, 0.0) + 1.0
         return results
 
     def parse_pylint(self, output_json: dict) -> dict:
@@ -474,6 +504,18 @@ class Analysis:
                     logger.debug(f'Ignoring unknown metric: {metric}')
         return frequencies
 
+    def parse_ruff(self, output_json: dict) -> dict:
+        """Parse ruff output to get the frequencies of the message types.
+
+        :param dict output_json: The output of running 'ruff'.
+        :return dict: The frequencies of the message types.
+        """
+        results: dict[str, int] = {}
+        for error in output_json:
+            error_code = error['code'] if error['code'] is not None else error['name']
+            results[error_code] = error['count']
+        return results
+
     def format_results(self, tool: str, results: dict) -> dict[str, float]:
         """Format the results of the analysis. Remove commas and convert to floats.
 
@@ -482,8 +524,7 @@ class Analysis:
         :raises TypeError: If the results cannot be formatted.
         :return dict: The formatted results of the analysis.
         """
-        try:
-            # Remove commas (for CSV compatibility) and convert to floats
+        try:  # Remove commas (for CSV compatibility) and convert to floats
             results = {k.replace(',', ''): float(v) for k, v in results.items()}
         except TypeError as e:
             logger.error(f'\n{json.dumps(results, indent=4)}\n')

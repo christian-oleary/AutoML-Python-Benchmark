@@ -33,32 +33,21 @@ docs = [
 sca = [
     "bandit",        # Security checks
     "coverage",      # Code coverage
+    "defusedxml==0.7.1",  # XML security
+    "flake8", "flake8-bugbear", "flake8-import-order",
     "isort",         # Import sorting
-    # "mypy",          # Type checking
-    "radon[toml]",   # Code metrics
-    "rope",          # Refactoring
-    "rstcheck[sphinx,toml]", # ReStructuredText checks
-    "ruff",          # Code formatting
-    "safety",        # Security checks
-    "uncalled",      # Finds uncalled code
-    # "tox",         # To be considered...
-    "yapf",          # Code formatting
-    ### Flake8 ###
-    "flake8", "flake8-bugbear", "flake8-docstrings", "flake8-import-order",
-    ### Prospector ###
-    "dodgy",      # Finds "dodgy" code
-    "prospector", # Code quality checks
-    "pyroma",     # Checks package installation "friendliness"
-    "vulture",    # Finds unused code
-    ### Pylint ###
+    "prospector[with_everything]", # Code quality checks
     "pylint", "pylint-celery", "pylint-django",
     "pylint-flask", "pylint-mccabe", "pylint-pytest",
-    # Utils
-    "defusedxml==0.7.1",  # XML security
+    "radon[toml]",   # Code metrics
+    "ruff",          # Code formatting
+    "safety",        # Security checks
+    # "tox",         # To be considered...
+    "yapf",          # Code formatting
     ##############
-    # Deprecated: frosted, pydocstyle
+    # Deprecated: frosted, pydocstyle (and therefore "flake8-docstrings")
     # Redundant: autoflake, hacking, mccabe, pep8, pycodestyle, pyflakes, unimport, zimports
-    # Lacking CLI scores reporting: autopep8, black, dead, doc8, docformatter, it
+    # Lacking CLI scores reporting: autopep8, black, dead, doc8, docformatter, it, rope, uncalled, vulture
 ]
 
 # Machine learning

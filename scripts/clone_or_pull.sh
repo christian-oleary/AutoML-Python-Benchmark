@@ -66,7 +66,7 @@ for repo_url in "${repos[@]}"; do
     # Clone or pull repository
     if [ -d "${repo_path}" ]; then
         print_line "Repository ${repo_name} already exists. Pulling latest changes..."
-        git -C "${repo_path}" pull
+        git -C "${repo_path}" pull &
     else
         print_line "Cloning ${repo_name}..."
         git clone "${repo_url}" "${repo_path}"

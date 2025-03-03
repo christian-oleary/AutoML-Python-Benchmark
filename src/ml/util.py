@@ -664,7 +664,7 @@ class Utils:
     def save_heatmap(
         df: pd.DataFrame,
         csv_path: str,
-        png_path: str,
+        png_path: str | None = None,
         columns: str | list[str] | None = None,
         figsize: tuple[int, int] | None = None,
     ) -> pd.DataFrame:
@@ -672,7 +672,7 @@ class Utils:
 
         :param pd.DataFrame df: Results
         :param str csv_path: Path to CSV file
-        :param str png_path: Path to PNG file
+        :param str | None png_path: Path to PNG file, defaults to None
         :param str | list[str] columns: Columns to include, defaults to PRIORITY_METRICS. Accepts 'all'.
         :param tuple[int, int] figsize: Figure size, defaults to None
         :return pd.DataFrame heatmap: Correlation matrix if successful
@@ -687,7 +687,7 @@ class Utils:
         df[columns].to_csv('variables.csv')
         heatmap = df[columns].corr(method='pearson')
 
-        # Save correlations as CSV
+        # Save correlations as CSV and TEX
         heatmap.to_csv(csv_path)  # Save correlations as CSV
         heatmap.style.to_latex(csv_path.replace('.csv', '.tex'))  # Save correlations as .tex
 
@@ -701,6 +701,9 @@ class Utils:
 
         p_path = csv_path.replace('.csv', '_pvalues.csv')
         df[columns].corr(method=p_value).to_csv(p_path)  # type: ignore
+
+        if png_path is None:
+            return heatmap
 
         # Save correlation heatmap as image
         ax = None
@@ -724,5 +727,4 @@ class Utils:
         # axes.set_yticklabels(columns, fontsize=11, rotation=45, va='top')
         plt.tight_layout()
         Utils.save_plot('Pearson Correlation Heatmap', save_path=png_path)
-
         return heatmap

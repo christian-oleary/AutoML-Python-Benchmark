@@ -144,7 +144,7 @@ class Analysis:
         :param str | Path output_dir: Directory to save the results of the analysis.
         """
         self.input_dir = Path(input_dir)
-        self.output_dir = Path(output_dir)
+        self.output_dir = Path(output_dir, 'sca')
         self.results: list[dict] = []
         self.start_time: str = ''
         self.end_time: str = ''
@@ -171,18 +171,24 @@ class Analysis:
             self.save_results(self.output_dir)
         return self.results
 
-    def analyze_repo(self, target_dir: str | Path, skip_existing: bool = True) -> dict:
+    def analyze_repo(
+        self,
+        target_dir: str | Path,
+        skip_existing_sonar: bool = False,
+        skip_existing_sca: bool = True,
+    ) -> dict:
         """Analyze a single Git repository in the specified directory.
 
         :param str | Path target_dir: Path to the Git repository.
-        :param bool skip_existing: Whether to skip existing results, defaults to True.
+        :param bool skip_existing_sonar: Whether to skip existing Sonar-Scanner results, defaults to False.
+        :param bool skip_existing_sca: Whether to skip existing CLI SCA tool results, defaults to True.
         :return dict: The analysis of the Git repository.
         """
         logger.info(f'Analyzing {target_dir}...')
         repo = GitRepo(target_dir)
 
         # Run analysis on the repository
-        sonar_results = self.parse_sonar_scanner_json(repo, self.output_dir, skip_existing)
+        sonar_results = self.parse_sonar_scanner_json(repo, self.output_dir, skip_existing_sonar)
         results = {
             'name': repo.name,
             'path': repo.path,
@@ -193,7 +199,7 @@ class Analysis:
 
         # Run CLI tools on the repository
         for tool, command in self.build_commands(repo.name).items():
-            outputs = self.run_cli_command(tool, command, repo, skip_existing)
+            outputs = self.run_cli_command(tool, command, repo, skip_existing_sca)
             results.update({f'{tool}__{k}': v for k, v in outputs.items()})
             logger.info(f'{tool} analysis complete for {repo.name}')
         return results
@@ -437,10 +443,10 @@ class Analysis:
         results = output_json['statistics']['messageTypeCount']
         # Overall score
         results['score'] = output_json['statistics']['score']
-        # Frequencies of each message type
-        for message in output_json['messages']:
-            message_id = message['messageId']
-            results[message_id] = results.get(message_id, 0.0) + 1.0
+        # Frequencies of each message type. UPDATE: removed as redundant
+        # for message in output_json['messages']:
+        #     message_id = message['messageId']
+        #     results[message_id] = results.get(message_id, 0.0) + 1.0
         return results
 
     def parse_radon_cyclomatic(self, output_json: dict) -> dict:
@@ -471,13 +477,16 @@ class Analysis:
         """Parse radon output to get Halstead complexity metrics.
 
         :param dict output_json: The output of running 'radon hal'.
-        :return dict: The mean of each Halstead complexity metric.
+        :return dict: The sum and mean of each Halstead complexity metric.
         """
         totals = []
         for result in output_json.values():
             totals.append(result.get('total', {}))
-        results = pd.DataFrame(totals).mean().to_dict()
-        return {f'mean_{k}': v for k, v in results.items()}
+        results = pd.DataFrame(totals)
+        return {
+            **{f'Mean Halstead {k.title()}': v for k, v in results.mean().to_dict().items()},
+            **{f'Total Halstead {k.title()}': v for k, v in results.sum().to_dict().items()},
+        }
 
     def parse_radon_maintainability(self, output_json: dict) -> dict:
         """Parse radon output to get maintainability index scores.
@@ -486,7 +495,10 @@ class Analysis:
         :return dict: The number of files and mean maintainability index.
         """
         scores = [result['mi'] for result in output_json.values() if 'mi' in result]
-        return {'num_files': len(output_json), 'mean_index': sum(scores) / len(scores)}
+        return {
+            'Num. Files': len(output_json),
+            'Mean Maintainability Index': sum(scores) / len(scores),
+        }
 
     def parse_radon_raw(self, output_json: dict) -> dict:
         """Parse radon output to get raw analysis results.
@@ -494,7 +506,15 @@ class Analysis:
         :param dict output_json: The output of running 'radon raw'.
         :return dict: The frequencies of the raw analysis results.
         """
-        metric_names = ['loc', 'lloc', 'sloc', 'comments', 'multi', 'blank', 'single_comments']
+        metric_names = [
+            'LoC',  # number of lines of code
+            'LLoC',  # number of logical lines of code
+            'SLoC',  # number of source lines of code
+            'Comments',
+            'Multi-Line String Lines',  # Number of lines representing multi-line strings
+            'Blank Lines',  # blank or whitespace-only lines
+            'Single Line Comments',
+        ]
         frequencies = {m: 0.0 for m in metric_names}
         for result in output_json.values():
             for metric, value in result.items():
@@ -541,17 +561,17 @@ class Analysis:
         """
         logger.debug(f'Git analysis of {repo.path}...')
         analysis: dict[str, Any] = {
-            # 'repository': repo.name, 'path': repo.path,
-            'lines_of_code': repo.lines_of_code,
-            'num_commits': repo.commit_count,
-            'num_contributors': repo.num_contributors,
+            # 'Repository': repo.name, 'path': repo.path,
+            'LoC': repo.lines_of_code,
+            'Num. Commits': repo.commit_count,
+            'Num. Contributors': repo.num_contributors,
         }
         if verbose:
             analysis = {
                 **analysis,
-                'branches': ', '.join(repo.get_branches()),
-                'contributors': ', '.join(repo.get_contributors()),
-                'latest_commit': repo.get_latest_commit(),
+                'Branches': ', '.join(repo.get_branches()),
+                'Contributors': ', '.join(repo.get_contributors()),
+                'Latest Commit': repo.get_latest_commit(),
             }
         return analysis
 
@@ -671,16 +691,16 @@ class Analysis:
     def save_results(self, output_dir: str | Path) -> pd.DataFrame:
         """Save the results of the analysis to a file.
 
-        :param str output_dir: Path to save the analysis
-        :return pd.DataFrame: The results as a pandas DataFrame.
+        :param str | Path output_dir: Path to save the analysis
+        :return pd.DataFrame df_results: The results as a pandas DataFrame.
         """
         if self.output_dir is None:
             raise ValueError('No output directory specified')
 
         # Save results to a CSV file
         results_file = Path(output_dir, 'results.csv')
-        df = pd.DataFrame(self.results)
-        df.to_csv(results_file, index=False)
+        self.df_results = pd.DataFrame(self.results)
+        self.df_results.to_csv(results_file, index=False)
         logger.info(f'Saved results to {results_file}')
 
         # Save metadata to a JSON file
@@ -697,9 +717,72 @@ class Analysis:
         logger.info(f'Saved metadata to {metadata_file}: {metadata}')
 
         # Save correlation matrix to CSV file
-        # if len(df) > 1:
+        # if len(self.df_results) > 1:
         #     path = str(Path(self.output_dir, 'correlation_heatmap.csv'))
-        #     Utils.save_heatmap(
-        #         df, path, path.replace('.csv', '.png'), columns='all', figsize=(30, 20)
-        #     )
-        return df
+        #     Utils.save_heatmap(self.df_results, path, None, columns='all')
+
+        # Summarize results and export to CSV, Markdown, and LaTeX
+        self.summarize_tools(output_dir)
+        return self.df_results
+
+    def summarize_tools(self, output_dir: str | Path):
+        """Summarize the tool metrics used in the analysis. Save as CSV, Markdown and LaTeX.
+
+        :param str | Path output_dir: Path to save the analysis.
+        """
+        # Group keys by tool
+        keys_by_tool: dict[str, list[str]] = {}
+        for col in self.df_results.columns:
+            if '__' in col:
+                tool = col.split('__')[0]
+                keys_by_tool[tool] = keys_by_tool.get(tool, []) + [col]
+
+        # Bandit score = sum of all bandit issues
+        metric_keys = [key for key in keys_by_tool['bandit'] if key.startswith('bandit__B')]
+        self.df_results['bandit__Score'] = self.df_results[metric_keys].sum(axis=1)
+        # Bandit score per line = Bandit score / LoC
+        self.df_results['bandit__Score per Line'] = (
+            self.df_results['bandit__Score'] / self.df_results['bandit__loc']
+        )
+        self.df_summary = self.df_results.drop(columns=metric_keys)
+
+        # Summarize pylint metrics
+        kept_keys = [
+            f'pylint__{k}'
+            for k in ['fatal', 'error', 'warning', 'refactor', 'convention', 'info', 'score']
+        ]
+        metric_keys = [k for k in keys_by_tool['pylint'] if k not in kept_keys]
+        self.df_summary.drop(columns=metric_keys, inplace=True)
+
+        # Rename/filter Radon metrics
+        names = {
+            f'radon-cc__mean-cc_{k}': f'radon-cc__Mean {k.capitalize()} CC'
+            for k in ['class', 'function', 'method']
+        }
+        self.df_summary.rename(columns=names, errors='raise', inplace=True)
+        self.df_summary.drop(columns=keys_by_tool['radon-cc'], inplace=True, errors='ignore')
+
+        # Set index, sort columns, drop path column
+        self.df_summary.set_index('name', drop=True, inplace=True)
+        self.df_summary = self.df_summary[
+            sorted([c for c in self.df_summary.columns if c != 'path'])
+        ]
+
+        # Save as CSV and Markdown
+        filename = Path(output_dir, 'summary.csv')
+        self.df_summary.to_csv(filename, index=True, float_format='%.2f')
+        logger.info(f'Saved summary to {filename}')
+        self.df_summary.round(2).to_markdown(filename.with_suffix('.md'))
+
+        # Format and group columns
+        def split_key(column):
+            parts = column.replace('_', ' ').split('  ')
+            metric = parts[-1].title() if parts[-1] == parts[-1].lower() else parts[-1]
+            metric = metric.replace('Loc', 'LoC').replace('Nosec', 'Nosec Comments')
+            return parts[0].title(), metric
+
+        self.df_summary.columns = pd.MultiIndex.from_tuples(
+            [split_key(c) for c in sorted(self.df_summary.columns.tolist())],
+            names=['Tool', 'Metric'],
+        )
+        self.df_summary.round(2).style.to_latex(filename.with_suffix('.tex'))  # Save as LaTeX

@@ -705,6 +705,7 @@ class Analysis:
 
         # Save results to a CSV file
         output_dir = Path(output_dir, 'SUMMARY')
+        output_dir.mkdir(parents=True, exist_ok=True)
         results_file = Path(output_dir, 'results.csv')
         self.df_results = pd.DataFrame(self.results)
         self.df_results.to_csv(results_file, index=False)

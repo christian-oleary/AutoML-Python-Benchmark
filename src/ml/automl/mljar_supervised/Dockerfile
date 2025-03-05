@@ -3,18 +3,20 @@
 FROM python:3.9-slim
 
 # Install git
-RUN apt-get update && apt-get install -y git libgomp1
+RUN apt-get update && \
+    apt-get install -y git libgomp1 && \
+    rm -rf /src/mljar_supervised
 
 # Clone the mljar repository
-RUN rm -rf /src/mljar && git clone https://github.com/mljar/mljar-supervised.git /src/mljar
+RUN git clone https://github.com/mljar/mljar-supervised.git /src/mljar_supervised
 
 # Change working directory to mljar
-WORKDIR /src/mljar
+WORKDIR /src/mljar_supervised
 
 # Install the required dependencies
-RUN pip install -r requirements.txt
-RUN pip install -r requirements_dev.txt importlib-metadata>=1.7.0 ipython setuptools
-RUN python setup.py install
+RUN pip install -r requirements.txt && \
+    pip install -r requirements_dev.txt importlib-metadata>=1.7.0 ipython setuptools && \
+    python setup.py install
 
 # Run tests
 ARG run_tests

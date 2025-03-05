@@ -77,10 +77,10 @@ export DELETE_EXISTING_PROJECTS=${DELETE_EXISTING_PROJECTS:-"false"}
 export REPOSITORIES_DIR=${REPOSITORIES_DIR:-"repositories"}
 
 # Skip tests and running sonar scanner if results already exist
-export SKIP_EXISTING_RESULTS=${SKIP_EXISTING_RESULTS:-"false"}
+export SKIP_EXISTING_RESULTS=${SKIP_EXISTING_RESULTS:-"true"}
 
 # Skip building existing docker images
-export SKIP_REBUILDING_IMAGES=${SKIP_REBUILDING_IMAGES:-"false"}
+export SKIP_REBUILDING_IMAGES=${SKIP_REBUILDING_IMAGES:-"true"}
 
 # Run SonarScanner using Docker
 export SONAR_SCANNER_DOCKER=${SONAR_SCANNER_DOCKER:-"false"}
@@ -234,18 +234,14 @@ for repo_path in $repositories; do
 
     export PROJECT_BRANCH="master"
     export PROJECT_NAME=$repo_name
-    # export PROJECTKEY=$PROJECT_NAME
     export PROJECT_KEY=$PROJECT_NAME
-    # export SONAR_PROJECTKEY=$PROJECT_NAME
     export SONAR_PROJECT_KEY=$PROJECT_NAME
     export TARGET_DIR="${repo_path}/"
 
     # Print newly added environment variables
     print_line "PROJECT_BRANCH=${PROJECT_BRANCH}"
     print_line "PROJECT_NAME=${PROJECT_NAME}"
-    # print_line "PROJECTKEY=${PROJECTKEY}"
     print_line "PROJECT_KEY=${PROJECT_KEY}"
-    # print_line "SONAR_PROJECTKEY=${SONAR_PROJECTKEY}"
     print_line "SONAR_PROJECT_KEY=${SONAR_PROJECT_KEY}"
     print_line "TARGET_DIR=${TARGET_DIR}"
 

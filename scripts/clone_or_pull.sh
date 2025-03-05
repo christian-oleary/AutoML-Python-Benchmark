@@ -48,7 +48,7 @@ repos=(
     "https://github.com/AxeldeRomblay/MLBox"
     "https://github.com/mljar/mljar-supervised"
     "https://github.com/pycaret/pycaret"
-    "https://github.com/datamllab/pyodds"
+    # "https://github.com/datamllab/pyodds"  # No updates since 2019
     "https://github.com/epistasislab/tpot"
 )
 echo "Repositories to clone: ${repos[*]}"

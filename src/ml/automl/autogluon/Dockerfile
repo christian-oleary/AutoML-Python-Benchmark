@@ -30,8 +30,10 @@ WORKDIR /src/autogluon/
 RUN git submodule update --init --recursive
 
 # Configure the packages to be tested
-RUN echo '[tool.setuptools]' >> pyproject.toml && \
-    echo 'packages = ["autogluon","autogluon.common","autogluon.core","autogluon.eda","autogluon.features","autogluon.multimodal","autogluon.tabular","autogluon.timeseries"]' >> pyproject.toml
+RUN echo "" >> pyproject.toml && \
+    echo '[tool.setuptools]' >> pyproject.toml && \
+    echo 'packages = ["autogluon","autogluon.common","autogluon.core","autogluon.eda","autogluon.features","autogluon.multimodal","autogluon.tabular","autogluon.timeseries"]' >> pyproject.toml && \
+    echo "" >> pyproject.toml
 
 # Attempts to allow torch to access GPU.
 # RUN conda install -c conda-forge mamba

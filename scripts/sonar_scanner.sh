@@ -170,15 +170,15 @@ print_heading "Repositories in '${REPOSITORIES_DIR}'"
 
 repositories=$(find ./$REPOSITORIES_DIR -mindepth 1 -maxdepth 1 -type d)
 # repositories="./repositories/h2o_3"
+# repositories=$(echo "$repositories" | tac)
+
 print_line "Repository directories found:\n$repositories"
 
 ##################################
 # Delete all projects in SonarQube
 ##################################
 # print_heading "Deleting All Projects"
-# # Fetch all project keys
 # project_keys=$(curl -u ${SONAR_LOGIN}:${SONAR_PASSWORD} -s -X GET "${API_URL}projects/search" | grep -oP '(?<="key":")[^"]*')
-# # Loop over each project key and delete the project
 # for project_key in $project_keys; do
 #     print_line "Deleting project: $project_key"
 #     curl -u ${SONAR_LOGIN}:${SONAR_PASSWORD} -s -X POST "${API_URL}projects/delete?project=${project_key}"
@@ -415,11 +415,16 @@ EOL
 
     ##############################################################################
     # Add a blank line to files with inconsistent line lengths in coverage reports
+    # Can happen when local repository is ahead of version in Docker container
     ##############################################################################
     add_blank_lines_to_file() {
         local file_path=$1
         local num_lines=$2
+        # Return if file does not exist
+        [ -f "${file_path}" ] || return 0
+        # Print number of lines in file
         wc -l "${file_path}"
+        # Add blank lines to file
         for _ in $(seq 1 $num_lines); do
             echo -en '\n' >> "${file_path}"
         done
@@ -428,10 +433,21 @@ EOL
 
     if [ "$repo_name" = "autogluon" ]; then
         problematic_files=(
+            "${TARGET_DIR}/common/src/autogluon/common/utils/log_utils.py"
             "${TARGET_DIR}/common/src/autogluon/common/utils/try_import.py"
             "${TARGET_DIR}/tabular/src/autogluon/tabular/experimental/_tabular_classifier.py"
             "${TARGET_DIR}/tabular/src/autogluon/tabular/experimental/_tabular_regressor.py"
+            "${TARGET_DIR}/tabular/src/autogluon/tabular/models/xgboost/xgboost_model.py"
             "${TARGET_DIR}/tabular/src/autogluon/tabular/predictor/_deprecated_methods.py"
+            "${TARGET_DIR}/tabular/src/autogluon/tabular/trainer/model_presets/presets.py"
+            "${TARGET_DIR}/tabular/tests/unittests/calibrate/test_calibrate.py"
+            "${TARGET_DIR}/tabular/tests/unittests/configs/test_config_helper.py"
+            "${TARGET_DIR}/tabular/tests/unittests/models/test_catboost.py"
+            "${TARGET_DIR}/tabular/tests/unittests/models/test_dummy.py"
+            "${TARGET_DIR}/tabular/tests/unittests/models/test_knn.py"
+            "${TARGET_DIR}/tabular/tests/unittests/models/test_lightgbm.py"
+            "${TARGET_DIR}/tabular/tests/unittests/models/test_linear.py"
+            "${TARGET_DIR}/tabular/tests/unittests/models/test_rf.py"
             "${TARGET_DIR}/timeseries/src/autogluon/timeseries/learner.py"
             "${TARGET_DIR}/timeseries/src/autogluon/timeseries/predictor.py"
             "${TARGET_DIR}/timeseries/src/autogluon/timeseries/dataset/ts_dataframe.py"
@@ -443,16 +459,16 @@ EOL
             "${TARGET_DIR}/timeseries/tests/unittests/test_ts_dataset.py"
             "${TARGET_DIR}/timeseries/tests/unittests/utils/test_features.py"
         )
-    fi
-    if [ "$repo_name" = "fedot" ]; then
+    elif [ "$repo_name" = "fedot" ]; then
         problematic_files=("${TARGET_DIR}/fedot/core/operations/evaluation/operation_implementations/models/boostings_implementations.py")
-    fi
-    if [ "$repo_name" = "lightautoml" ]; then
+    elif [ "$repo_name" = "lightautoml" ]; then
         problematic_files=(
             "${TARGET_DIR}/lightautoml/ml_algo/boost_lgbm.py"
             "${TARGET_DIR}/lightautoml/ml_algo/tuning/optuna.py"
             "${TARGET_DIR}/tests/integration/test_custom_2_level_stacking.py"
         )
+    else
+        problematic_files=()
     fi
     for file_path in "${problematic_files[@]}"; do
         add_blank_lines_to_file "${file_path}" 300
@@ -524,15 +540,21 @@ EOL
     fi
 
     #################################
-    # Revert changes to try_import.py
+    # Revert changes to python files
     #################################
-    if [ "$repo_name" = "autogluon" ] || [ "$repo_name" = "fedot" ] || [ "$repo_name" = "lightautoml" ]; then
-        for file_path in "${problematic_files[@]}"; do
-            # head -n -8 "${file_path}" > temp.txt && mv temp.txt "${file_path}"
-            # Remove duplicate blank lines at end of file
-            sed -i -e :a -e '/^\n*$/{$d;N;ba' -e '}' "${file_path}"
-        done
-    fi
+    remove_blank_lines_at_end() {
+        local file_path=$1
+        # Return if file does not exist
+        [ -f "${file_path}" ] || return 0
+        # Remove duplicate blank lines at end of file
+        # head -n -8 "${file_path}" > temp.txt && mv temp.txt "${file_path}"
+        sed -i -e :a -e '/^\n*$/{$d;N;ba' -e '}' "${file_path}"
+        # Print number of lines in file
+        wc -l "${file_path}"
+    }
+    for file_path in "${problematic_files[@]}"; do
+        sed -i -e :a -e '/^\n*$/{$d;N;ba' -e '}' "${file_path}"
+    done
 
     ####################################################
     # Remove used files to prevent false positives later

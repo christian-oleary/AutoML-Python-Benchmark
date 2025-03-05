@@ -428,9 +428,14 @@ class Analysis:
         :return dict: The frequencies of the message types.
         """
         results: dict[str, float] = {}
+        # Count errors by tool and message type
         for message in output_json['messages']:
-            key = f"{message['source']}_{message['code']}"
-            results[key] = results.get(key, 0.0) + 1.0
+            # Count errors by tool
+            tool = f'{message["source"].title()} Score'
+            results[tool] = results.get(tool, 0.0) + 1.0
+            # Count the frequencies of each message type
+            tool_error = f"{message['source']}_{message['code']}"
+            results[tool_error] = results.get(tool_error, 0.0) + 1.0
         return results
 
     def parse_pylint(self, output_json: dict) -> dict:
@@ -534,6 +539,7 @@ class Analysis:
         for error in output_json:
             error_code = error['code'] if error['code'] is not None else error['name']
             results[error_code] = error['count']
+        results['ruff Score'] = sum(results.values())
         return results
 
     def format_results(self, tool: str, results: dict) -> dict[str, float]:
@@ -698,6 +704,7 @@ class Analysis:
             raise ValueError('No output directory specified')
 
         # Save results to a CSV file
+        output_dir = Path(output_dir, 'SUMMARY')
         results_file = Path(output_dir, 'results.csv')
         self.df_results = pd.DataFrame(self.results)
         self.df_results.to_csv(results_file, index=False)
@@ -740,49 +747,107 @@ class Analysis:
         # Bandit score = sum of all bandit issues
         metric_keys = [key for key in keys_by_tool['bandit'] if key.startswith('bandit__B')]
         self.df_results['bandit__Score'] = self.df_results[metric_keys].sum(axis=1)
-        # Bandit score per line = Bandit score / LoC
-        self.df_results['bandit__Score per Line'] = (
+        self.df_results['bandit__Score per Line'] = (  # Bandit score per line
             self.df_results['bandit__Score'] / self.df_results['bandit__loc']
         )
-        self.df_summary = self.df_results.drop(columns=metric_keys)
+        self.df_summary = self.df_results.drop(columns=keys_by_tool['bandit'])
+
+        # Drop redundant coverage metrics
+        self.df_summary.drop(columns=['coverage__complexity'], inplace=True)
 
         # Summarize pylint metrics
-        kept_keys = [
-            f'pylint__{k}'
-            for k in ['fatal', 'error', 'warning', 'refactor', 'convention', 'info', 'score']
-        ]
-        metric_keys = [k for k in keys_by_tool['pylint'] if k not in kept_keys]
-        self.df_summary.drop(columns=metric_keys, inplace=True)
+        dropped_keys = [k for k in keys_by_tool['pylint'] if k != 'pylint__score']
+        self.df_summary.drop(columns=dropped_keys, inplace=True)
 
-        # Rename/filter Radon metrics
-        names = {
-            f'radon-cc__mean-cc_{k}': f'radon-cc__Mean {k.capitalize()} CC'
-            for k in ['class', 'function', 'method']
-        }
-        self.df_summary.rename(columns=names, errors='raise', inplace=True)
-        self.df_summary.drop(columns=keys_by_tool['radon-cc'], inplace=True, errors='ignore')
+        # Radon CC: only keep sum and mean
+        dropped_keys = [k for k in keys_by_tool['radon-cc'] if 'sum-' not in k and 'mean-' not in k]
+        self.df_summary.drop(columns=dropped_keys, inplace=True, errors='ignore')
+
+        # Ruff: only keep score
+        self.df_summary['ruff__Ruff Score'] = self.df_summary['ruff__ruff Score']
+        self.df_summary.drop(columns=keys_by_tool['ruff'], inplace=True, errors='ignore')
+
+        # Sonar: drop 'new' and 'issues' metrics
+        for term in ['_new_', 'issues']:
+            dropped_keys = [k for k in keys_by_tool['sonar'] if term in k]
+            self.df_summary.drop(columns=dropped_keys, inplace=True, errors='ignore')
 
         # Set index, sort columns, drop path column
         self.df_summary.set_index('name', drop=True, inplace=True)
-        self.df_summary = self.df_summary[
-            sorted([c for c in self.df_summary.columns if c != 'path'])
-        ]
+        self.df_summary.drop(columns=['path'], inplace=True, errors='ignore')
+        self.df_summary = self.df_summary[sorted(self.df_summary.columns)]
 
         # Save as CSV and Markdown
         filename = Path(output_dir, 'summary.csv')
-        self.df_summary.to_csv(filename, index=True, float_format='%.2f')
-        logger.info(f'Saved summary to {filename}')
-        self.df_summary.round(2).to_markdown(filename.with_suffix('.md'))
+        self._save_csv_and_tex(self.df_summary.copy(), filename)
 
-        # Format and group columns
+        # Group metrics by category
+        # fmt: off
+        groups = {
+            'security': [
+                'bandit__Score', 'bandit__Score per Line',
+                'sonar__security_hotspots', 'sonar__security_rating',
+                'sonar__security_remediation_effort', 'sonar__security_review_rating',
+            ],
+            'complexity': [
+                'radon-cc__mean-cc_class', 'radon-cc__mean-cc_function', 'radon-cc__mean-cc_method',
+                'radon-cc__sum-cc_class', 'radon-cc__sum-cc_function', 'radon-cc__sum-cc_method',
+                'sonar__cognitive_complexity', 'sonar__complexity', 'sonar__file_complexity',
+            ],
+            'counts': [
+                'git__LoC',  # Git
+                'radon-raw__LLoC', 'radon-raw__LoC', 'radon-raw__SLoC',  # Radon
+                'radon-raw__Multi-Line String Lines', 'radon-raw__Single Line Comments',
+                'radon-raw__Comments', 'radon-raw__Blank Lines',
+                'sonar__ncloc', 'sonar__ncloc_language_distribution', 'sonar__lines',  # Sonar
+                'sonar__comment_lines', 'sonar__comment_lines_density', 'sonar__files',
+                'sonar__functions', 'sonar__statements', 'sonar__classes',
+            ],
+            'coverage': [col for col in self.df_summary.columns if 'cover' in col],
+            'duplication': [col for col in self.df_summary.columns if 'duplicat' in col],
+            'git': ['git__Num. Commits', 'git__Num. Contributors'],
+            'halstead': [col for col in self.df_summary.columns if 'Halstead' in col],
+            'linting': [
+                *[k for k in keys_by_tool['prospector'] if k.endswith(' Score')],
+                'pylint__score', 'ruff__Ruff Score',
+                'sonar__bugs', 'sonar__code_smells', 'sonar__errors', 'sonar__violations',
+            ],
+            'maintainability': [
+                *keys_by_tool['radon-mi'],
+                'sonar__effort_to_reach_maintainability_rating_a', 'sonar__development_cost',
+                'sonar__sqale_debt_ratio', 'sonar__sqale_index', 'sonar__sqale_rating',
+            ],
+            'reliability': ['sonar__reliability_rating', 'sonar__reliability_remediation_effort'],
+        }
+        # fmt: on
+        # Save summaries to CSV and LaTeX
+        for category, metrics in groups.items():
+            csv_path = filename.with_name(f'summary_{category}.csv')
+            try:
+                self._save_csv_and_tex(self.df_summary[metrics].copy(), csv_path)
+            except KeyError as e:
+                logger.error(e)
+                logger.warning(f'columns: {self.df_summary.columns}')
+                logger.warning(f'{category}: {metrics}')
+                exit(1)
+
+    def _save_csv_and_tex(self, df: pd.DataFrame, file_path: Path):
+        """Save the DataFrame as a CSV and LaTeX file.
+
+        :param str | Path file_path: The file path to save the DataFrame as a CSV and LaTeX file.
+        """
+        # Save CSV
+        df.to_csv(file_path.with_suffix('.csv'), index=True)
+        logger.info(f'Saved results to {file_path.with_suffix(".csv")}')
+        # df.round(2).to_markdown(file_path.with_suffix('.md'))
+
+        # Save TEX
         def split_key(column):
             parts = column.replace('_', ' ').split('  ')
             metric = parts[-1].title() if parts[-1] == parts[-1].lower() else parts[-1]
             metric = metric.replace('Loc', 'LoC').replace('Nosec', 'Nosec Comments')
             return parts[0].title(), metric
 
-        self.df_summary.columns = pd.MultiIndex.from_tuples(
-            [split_key(c) for c in sorted(self.df_summary.columns.tolist())],
-            names=['Tool', 'Metric'],
-        )
-        self.df_summary.round(2).style.to_latex(filename.with_suffix('.tex'))  # Save as LaTeX
+        split_keys = [split_key(c) for c in sorted(df.columns.tolist())]
+        df.columns = pd.MultiIndex.from_tuples(split_keys, names=['Tool', 'Metric'])
+        df.round(2).style.to_latex(file_path.with_suffix('.tex'))

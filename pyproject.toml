@@ -36,13 +36,14 @@ sca = [
     "defusedxml==0.7.1",  # XML security
     "flake8", "flake8-bugbear", "flake8-import-order",
     "isort",         # Import sorting
-    "prospector[with_everything]", # Code quality checks
+    "prospector[with_everything]==1.14.0", # Code quality checks
     "pylint", "pylint-celery", "pylint-django",
     "pylint-flask", "pylint-mccabe", "pylint-pytest",
     "radon[toml]",   # Code metrics
     "ruff",          # Code formatting
     "safety",        # Security checks
     # "tox",         # To be considered...
+    "tables", "tabulate",        # pandas export to tex
     "yapf",          # Code formatting
     ##############
     # Deprecated: frosted, pydocstyle (and therefore "flake8-docstrings")

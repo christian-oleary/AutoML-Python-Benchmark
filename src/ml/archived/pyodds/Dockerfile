@@ -23,6 +23,8 @@ RUN sed -i 's/tensorflow==2.0.0b1/tensorflow/g' requirements.txt
 # Install the required dependencies
 RUN python3 -m pip install .
 
+RUN python3 -m pip install pytest-cov taos
+
 # Run tests
 ARG run_tests
 RUN if [ "$run_tests" = "true" ]; then \

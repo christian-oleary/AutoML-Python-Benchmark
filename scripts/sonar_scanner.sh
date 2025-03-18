@@ -552,12 +552,6 @@ EOL
         sed -i -e :a -e '/^\n*$/{$d;N;ba' -e '}' "${file_path}"
     done
 
-    ####################################################
-    # Remove used files to prevent false positives later
-    ####################################################
-    rm -f "${TARGET_DIR}/coverage.xml" "${TARGET_DIR}/report.xml" "${TARGET_DIR}/.coverage"
-    rm -f "${TARGET_DIR}/**/coverage.xml" "${TARGET_DIR}/**/report.xml" "${TARGET_DIR}/**/.coverage"
-
     ################################################################################################
     # EXPORT SONARQUBE RESULTS TO FILE
     ################################################################################################
@@ -579,7 +573,6 @@ EOL
             "${API_URL}measures/component?component=${PROJECT_NAME}&metricKeys=${measure}" >> "${OUTPUT_FILE}"
         printf "\n" >> "${OUTPUT_FILE}"
         tail -n 1 "${OUTPUT_FILE}"
-
     done
 
 done

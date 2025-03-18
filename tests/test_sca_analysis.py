@@ -133,8 +133,7 @@ def test_parse_pylint_single_message(analysis):
         'statistics': {'messageTypeCount': {}, 'score': 10},
         'messages': [{'messageId': 'C0103'}],
     }
-    expected = {'score': 10, 'C0103': 1.0}
-    assert analysis.parse_pylint(output_json) == expected
+    assert analysis.parse_pylint(output_json) == {'score': 10}
 
 
 def test_parse_json_bandit_empty_output(analysis):

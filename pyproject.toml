@@ -34,21 +34,19 @@ sca = [
     "bandit",        # Security checks
     "coverage",      # Code coverage
     "defusedxml==0.7.1",  # XML security
-    "flake8", "flake8-bugbear", "flake8-import-order",
-    "isort",         # Import sorting
+    # "flake8", "flake8-bugbear", "flake8-import-order",
     "prospector[with_everything]==1.14.0", # Code quality checks
     "pylint", "pylint-celery", "pylint-django",
     "pylint-flask", "pylint-mccabe", "pylint-pytest",
     "radon[toml]",   # Code metrics
     "ruff",          # Code formatting
     "safety",        # Security checks
-    # "tox",         # To be considered...
+    # "tox",         # To be considered
     "tables", "tabulate",        # pandas export to tex
-    "yapf",          # Code formatting
     ##############
     # Deprecated: frosted, pydocstyle (and therefore "flake8-docstrings")
     # Redundant: autoflake, hacking, mccabe, pep8, pycodestyle, pyflakes, unimport, zimports
-    # Lacking CLI scores reporting: autopep8, black, dead, doc8, docformatter, it, rope, uncalled, vulture
+    # Lacking CLI scores reporting: autopep8, black, dead, doc8, docformatter, it, rope, uncalled, vulture, "yapf"
 ]
 
 # Machine learning
@@ -70,6 +68,9 @@ tests = [
 # All dependencies except SCA
 all = ["ml[tests,docs,sca,lightgbm,tensorflow,torch,xgboost]"]
 
+[project.scripts]
+sca = "ml.sca:run_analysis"
+
 [project.urls]
 Homepage = "https://github.com/christian-oleary/AutoML-Python-Benchmark"
 Issues = "https://github.com/christian-oleary/AutoML-Python-Benchmark/issues"
@@ -79,6 +80,9 @@ Issues = "https://github.com/christian-oleary/AutoML-Python-Benchmark/issues"
 [tool.bandit]
 exclude = ["tests", "docs", "repositories", "**/TSForecasting/*"]
 exclude_dirs = ["tests", "docs", "repositories", "**/TSForecasting/*"]
+
+[tool.bandit.scripts]
+exclude = ["*_test.py", "*test_*"]
 
 ################################################################################
 # BLACK

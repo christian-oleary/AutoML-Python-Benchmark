@@ -5,12 +5,14 @@ repos:
         rev: 24.4.2
         hooks:
         -   id: black
-            args: ["--config=./pyproject.toml"]
+            args: ["--config=pyproject.toml"]
 
     -   repo: https://github.com/PyCQA/bandit
         rev: '1.8.3'
         hooks:
         -   id: bandit
+            args: ["--configfile=pyproject.toml"]
+            additional_dependencies: [ "bandit[toml]" ]
 
     -   repo: https://github.com/PyCQA/flake8
         rev: 7.0.0
@@ -27,7 +29,7 @@ repos:
         rev: v1.8.0
         hooks:
         -   id: mypy
-            args: ["--config-file=./pyproject.toml"]
+            args: ["--config-file=pyproject.toml"]
 
     -   repo: https://github.com/pre-commit/pre-commit-hooks
         rev: v3.2.0

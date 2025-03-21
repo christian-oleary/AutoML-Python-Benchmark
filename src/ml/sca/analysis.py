@@ -9,40 +9,24 @@ from typing import Any
 from defusedxml import ElementTree
 from git import Repo
 from git.exc import InvalidGitRepositoryError
-
 import pandas as pd
 
 from ml.logs import logger
+from ml.sca.reporting import Reporting
 
 COVERAGE_MEANS = ['line-rate', 'branch-rate', 'complexity']
 COVERAGE_SUMS = ['lines-covered', 'lines-valid', 'branches-covered', 'branches-valid']
-COVERAGE_IGNORED = ['branches-covered', 'branch-rate', 'branches-valid', 'complexity']
-IGNORED_SONAR_METRICS = [
+COVERAGE_IGNORED = ['branches-covered', 'branch-rate', 'branches-valid']
+SONAR_IGNORED = [
     'alert_status',
+    'branch_coverage',  # Fails to detect (probably due to coverage.py)
+    'conditions_to_cover',  # Fails to detect (probably due to coverage.py)
     'last_commit_date',
+    'line_coverage',  # Almost identical scores to 'Coverage'
     'quality_gate_details',
     'quality_profiles',
+    'uncovered_conditions',  # Fails to detect (probably due to coverage.py)
 ]
-LIBRARIES = {
-    'autogluon': 'AutoGluon',
-    'autokeras': 'AutoKeras',
-    'autots': 'AutoTS',
-    'auto_pytorch': 'Auto-PyTorch',
-    'auto_sklearn': 'auto-sklearn',
-    'evalml': 'EvalML',
-    'flaml': 'FLAML',
-    'gama': 'GAMA',
-    'h2o': 'H2O',
-    'hyperopt-sklearn': 'Hyperopt-sklearn',
-    'kats': 'Kats',
-    'lightautoml': 'LightAutoML',
-    'ludwig': 'Ludwig',
-    'mlbox': 'MLBox',
-    'mljar-supervised': 'MLJAR',
-    'pycaret': 'PyCaret',
-    'tpot': 'TPOT',
-}
-LONGEST_NAME = max(len(name) for name in LIBRARIES.values())
 
 
 class GitRepo:
@@ -177,24 +161,22 @@ class Analysis:
 
     def run(self) -> list[dict]:
         """Run the static code analysis."""
-        self.start_time = pd.Timestamp.now().isoformat()
-
-        # Check if the directory is a Git repository
         if self.is_git_repo(self.input_dir):
+            # Check if the directory is a Git repository
             self.results = [self.analyze_repo(self.input_dir)]
-
-        # Otherwise, assume the directory contains Git repositories
         else:
+            # Otherwise, assume the directory contains Git repositories
             repos = [d for d in self.input_dir.iterdir() if self.is_git_repo(d)]
             if len(repos) == 0:
                 raise ValueError(f'No Git repositories found in directory: {self.input_dir}')
             self.results = [self.analyze_repo(repo) for repo in repos]
+            self.df_results = pd.DataFrame(self.results)
 
         # Save the results to a file if an output directory is provided
-        self.end_time = pd.Timestamp.now().isoformat()
         if self.output_dir:
-            logger.debug(f'Saving results to {self.output_dir}...')
-            self.save_results(self.output_dir)
+            # self.df_results = pd.read_csv(Path(self.output_dir, 'SUMMARY', 'results.csv'))
+            ignored = {'coverage': COVERAGE_IGNORED, 'sonar': SONAR_IGNORED}
+            Reporting.save_results(self.df_results, self.output_dir, ignored)
         return self.results
 
     def analyze_repo(
@@ -667,7 +649,7 @@ class Analysis:
         :return dict: The updated results.
         """
         # Filter out ignored metrics
-        measures = [m for m in measures if m['metric'] not in IGNORED_SONAR_METRICS]
+        measures = [m for m in measures if m['metric'] not in SONAR_IGNORED]
 
         # Record the measures as floats
         for measure in measures:
@@ -713,330 +695,3 @@ class Analysis:
             return True
         except InvalidGitRepositoryError:
             return False
-
-    def save_results(self, output_dir: str | Path) -> pd.DataFrame:
-        """Save the results of the analysis to a file.
-
-        :param str | Path output_dir: Path to save the analysis
-        :return pd.DataFrame df_results: The results as a pandas DataFrame.
-        """
-        # Create the output directory
-        if self.output_dir is None:
-            raise ValueError('No output directory specified')
-        output_dir = Path(output_dir, 'SUMMARY')
-        output_dir.mkdir(parents=True, exist_ok=True)
-
-        # Convert results to a DataFrame and correct library names
-        self.df_results = pd.DataFrame(self.results)
-        self.df_results['name'].replace(LIBRARIES, inplace=True)
-
-        # Save all metrics to a CSV file
-        results_file = Path(output_dir, 'results.csv')
-        self.df_results.to_csv(results_file, index=False)
-        logger.info(f'Saved results to {results_file}')
-
-        # Filter, combine and/or format columns
-        keys_by_tool = self.filter_results_columns()
-
-        # Summarize results and export to CSV, Markdown, and LaTeX
-        dropped_cols, groups = self.summarize_tools(keys_by_tool, output_dir)
-        used_cols = [col for group in groups.values() for col in group]
-        unused_cols = [col for col in self.df_results.columns if col not in used_cols]
-
-        # Save metadata to a JSON file
-        metadata = {
-            'duration': str(pd.Timestamp(self.end_time) - pd.Timestamp(self.start_time)),
-            'input_dir': str(self.input_dir),
-            'metrics_dropped': dropped_cols,
-            'metrics_ignored': COVERAGE_IGNORED + IGNORED_SONAR_METRICS,
-            'metrics_used': used_cols,
-            'metrics_unused': unused_cols,
-            'num_repos': len(self.results),
-            'time_end': str(self.end_time),
-            'time_start': str(self.start_time),
-        }
-        metadata_file = Path(output_dir, 'metadata.json')
-        with open(metadata_file, 'w', encoding='utf-8') as f:
-            json.dump(metadata, f, indent=4)
-        logger.info(f'Saved metadata to {metadata_file}')
-
-        return self.df_results
-
-    def filter_results_columns(self) -> dict:
-        """Filter and format the columns of the results dataframe for analysis.
-
-        :return dict keys_by_tool: Columns/metrics grouped by tool.
-        """
-        # Group keys by tool
-        keys_by_tool: dict[str, list[str]] = {}
-        for col in self.df_results.columns:
-            if '__' in col:
-                tool = col.split('__')[0]
-                keys_by_tool[tool] = keys_by_tool.get(tool, []) + [col]
-
-        # Bandit: score = sum of all bandit issues
-        metric_keys = [key for key in keys_by_tool['bandit'] if key.startswith('bandit__B')]
-        self.df_results['bandit__Total Issues'] = self.df_results[metric_keys].sum(axis=1)
-        self.df_results['bandit__Issues per Line'] = (  # Bandit score per line
-            self.df_results['bandit__Total Issues'] / self.df_results['bandit__loc']
-        )
-        self.df_summary = self.df_results.drop(columns=keys_by_tool['bandit'])
-
-        # Coverage: drop redundant coverage metrics
-        dropped_keys = [f'coverage__{key}' for key in COVERAGE_IGNORED]
-        self.df_summary.drop(columns=dropped_keys, inplace=True, errors='ignore')
-
-        # Prospector: only keep score
-        dropped_keys = [k for k in keys_by_tool['prospector'] if not k.endswith(' Score')]
-        self.df_summary.drop(columns=dropped_keys, inplace=True)
-
-        # Pylint: only keep score
-        dropped_keys = [k for k in keys_by_tool['pylint'] if k != 'pylint__score']
-        self.df_summary.drop(columns=dropped_keys, inplace=True)
-
-        # Radon CC: only keep sum and mean
-        dropped_keys = [
-            k for k in keys_by_tool['radon-cc'] if 'total-' not in k and 'mean-' not in k
-        ]
-        self.df_summary.drop(columns=dropped_keys, inplace=True, errors='ignore')
-
-        # Ruff: only keep score
-        self.df_summary['ruff__Ruff Score'] = self.df_summary['ruff__ruff Score']
-        self.df_summary.drop(columns=keys_by_tool['ruff'], inplace=True, errors='ignore')
-
-        # Sonar: drop 'new' and 'issues' metrics
-        for term in ['_new_', 'issues']:
-            dropped_keys = [k for k in keys_by_tool['sonar'] if term in k]
-            self.df_summary.drop(columns=dropped_keys, inplace=True, errors='ignore')
-
-        # Set index, sort columns, drop path column
-        self.df_summary.set_index('name', drop=True, inplace=True)
-        self.df_summary.drop(columns=['path'], inplace=True, errors='ignore')
-        self.df_summary = self.df_summary[sorted(self.df_summary.columns)]
-        return keys_by_tool
-
-    def summarize_tools(self, keys_by_tool: dict, output_dir: str | Path) -> tuple:
-        """Group various metrics used in the analysis. Save as CSV and LaTeX.
-
-        :param dict keys_by_tool: Columns/metrics grouped by tool.
-        :param str | Path output_dir: Path to save the analysis.
-        :return tuple: Dropped columns and grouped metrics.
-        """
-        # fmt: off
-        # Group metrics by category
-        groups = {
-            'complexity': [
-                'radon-cc__mean-cc_class', 'radon-cc__mean-cc_function', 'radon-cc__mean-cc_method',
-                'radon-cc__sum-cc_class', 'radon-cc__sum-cc_function', 'radon-cc__sum-cc_method',
-                'sonar__cognitive_complexity', 'sonar__complexity', 'sonar__file_complexity',
-            ],
-            'counts': [
-                'git__LoC',  # Git
-                'radon-raw__LLoC', 'radon-raw__LoC', 'radon-raw__SLoC',  # Radon
-                'radon-raw__Multi-Line String Lines', 'radon-raw__Single Line Comments',
-                'radon-raw__Comments', 'radon-raw__Blank Lines',
-                'sonar__ncloc', 'sonar__ncloc_language_distribution', 'sonar__lines',  # Sonar
-                'sonar__comment_lines', 'sonar__comment_lines_density', 'sonar__files',
-                'sonar__functions', 'sonar__statements', 'sonar__classes',
-            ],
-            'coverage': [col for col in self.df_summary.columns if 'cover' in col],
-            'duplication': [col for col in self.df_summary.columns if 'duplicat' in col],
-            'git': ['git__Num. Commits', 'git__Num. Contributors'],
-            'halstead_mean': [col for col in self.df_summary.columns if 'Mean Halstead' in col],
-            'halstead_total': [col for col in self.df_summary.columns if 'Total Halstead' in col],
-            'linting': [
-                *[k for k in keys_by_tool['prospector'] if k.endswith(' Score')],
-                'pylint__score', 'ruff__Ruff Score',
-                'sonar__bugs', 'sonar__code_smells', 'sonar__errors', 'sonar__violations',
-            ],
-            'maintainability': [
-                *keys_by_tool['radon-mi'],
-                'sonar__effort_to_reach_maintainability_rating_a', 'sonar__development_cost',
-                'sonar__sqale_debt_ratio', 'sonar__sqale_index', 'sonar__sqale_rating',
-            ],
-            'reliability': ['sonar__reliability_rating', 'sonar__reliability_remediation_effort'],
-            'security': [
-                'bandit__Total Issues', 'bandit__Issues per Line', 'sonar__security_hotspots'
-            ],
-        }
-        # fmt: on
-        dropped_cols = []
-        filename = Path(output_dir, 'summary.csv')
-        for category, metrics in groups.items():
-            csv_path = filename.with_name(f'summary_{category}.csv')
-            try:
-                # Filter and rename columns
-                metrics = [m for m in metrics if m in self.df_summary.columns]
-                df = self.df_summary[metrics].copy()
-                df.columns = [c.replace('prospector__', '') for c in df.columns]
-
-                # Drop columns with only one unique value
-                counts = df.nunique()
-                dropped = [col for col in counts.index.to_list() if counts[col] < 2]
-                if len(dropped) > 0:
-                    logger.warning(f'Dropping columns with only one unique value: {dropped}')
-                df.drop(columns=dropped, inplace=True)
-                dropped_cols += dropped
-
-                # Save as CSV and LaTeX
-                self._save_csv_and_tex(df, csv_path, category)
-            except KeyError as e:
-                logger.error(f'{e} \ncolumns: {self.df_summary.columns} \n{category}: {metrics}')
-                exit(1)
-
-        # Save as CSV and LaTeX
-        self._save_csv_and_tex(self.df_summary.copy(), filename)
-
-        return dropped_cols, groups
-
-    def _save_csv_and_tex(self, df: pd.DataFrame, file_path: Path, category: str | None = None):
-        """Save the DataFrame as a CSV and LaTeX file.
-
-        :param str | Path file_path: The file path to save the DataFrame as a CSV and LaTeX file.
-        """
-
-        def format_col_name(column):
-            parts = column.replace('_', ' ').split('  ')
-            if len(parts) > 2:
-                raise ValueError(f'Invalid column name "{column}" ({len(parts)} parts)')
-            # Format tool name
-            tool = parts[0].title()
-            tool = tool.replace('-Raw', '').replace('-Hal', ' (Halstead)')
-            tool = tool.replace('-Mi', '').replace('-Cc', '')
-            # Format metric name
-            metric = parts[-1].title() if parts[-1] == parts[-1].lower() else parts[-1]
-            metric = metric.replace('-Cc', ' CC by').replace(' Halstead', '')
-            metric = metric.replace('Sqale', 'SQALE').replace('Ncloc', 'NCLoC')
-            return f'{tool}: {metric}'
-
-        # Save as CSV
-        df = df.round(2)
-        df.columns = [format_col_name(c) for c in df.columns.tolist()]
-        df.to_csv(file_path.with_suffix('.csv'), index=True)
-        logger.info(f'Saved results to {file_path.with_suffix(".csv")}')
-
-        # Convert some columns to integer
-        for col in df.columns:
-            if any([x in col for x in ['Num.', 'oC', 'spots', 'Duplicated', 'Issues']]):
-                if 'Density' in col or 'per' in col:
-                    continue
-                df[col] = df[col].astype(int)
-
-        # Multi-index columns
-        split_keys = [c.split(': ') for c in df.columns]
-        df.columns = pd.MultiIndex.from_tuples(split_keys, names=['Tool', 'Metric'])
-
-        # Pad first column (library names) to align columns
-        df.index = df.index.map(lambda library: library.ljust(LONGEST_NAME))
-
-        # Save as TEX
-        tex_path = file_path.with_suffix('.tex')
-        caption = f'{category.title()} metrics for AutoML libraries' if category else tex_path.stem
-        df.style.format(precision=2, thousands=',', na_rep='-').to_latex(
-            file_path.with_suffix('.tex'),
-            caption=caption,
-            label=f'tab:{file_path.stem}',
-            hrules=True,
-            multicol_align='r',
-            position='!htbp',
-        )
-        # Format the LaTeX table for readability and consistency
-        if category:
-            self.format_tex_table(tex_path)
-
-    def format_tex_table(self, tex_path: Path):
-        """Format the LaTeX table for readability and consistency.
-
-        :param Path tex_path: The path to the LaTeX table file.
-        """
-        # Additional TEX formatting
-        with open(tex_path, 'r', encoding='utf-8') as f:
-            lines = f.readlines()
-
-        # Drop index heading row
-        lines = [line for line in lines if not line.startswith('name &  & ')]
-
-        # Use table* for wide tables
-        lines[0] = lines[0].replace('\\begin{table}', '\\begin{table*}')
-        lines[-1] = lines[-1].replace('\\end{table}', '\\end{table*}')
-
-        # Format rows
-        indent = ''
-        index = 3  # \begin{tabular}
-        metrics_per_tool: list[int] = []
-        for i, line in enumerate(lines):
-            # Indent table contents for readability
-            indents = {'\\toprule': '\t', '\\end{tabular}': ''}
-            indent = indents.get(line.strip(), indent)
-
-            # Use hline instead of rules to avoid vertical spacing
-            for rule in ['\\toprule', '\\midrule', '\\bottomrule']:
-                lines[i] = lines[i].replace(rule, '\\hline')
-
-            # Format "Tool" and "Metric" rows in table header
-            row_title = line.split('&')[0].strip()
-            if row_title in ['Tool', 'Metric']:
-                lines[i], metrics_per_tool = self.format_header_row(lines[i], metrics_per_tool)
-
-            # Try to align cells for readability
-            lines[i] = indent + lines[i].replace(' & ', '\t&\t')
-            if '\\begin{tabular}' in line:
-                index = i
-
-        # Add vertical borders to categorize metrics by tool
-        lines[index] = lines[index].replace('{l', '{|l|')
-        offset = len('\\begin{tabular}{|l|')
-        for i, count in enumerate(metrics_per_tool):
-            offset += count + i
-            lines[index] = lines[index][:offset] + '|' + lines[index][offset:]
-
-        # Specify font size, centering, and extra row height
-        lines.insert(1, '\\setlength\\extrarowheight{2pt} % extra row height\n')
-        lines.insert(1, '\\centering\n')
-        lines.insert(1, '\\small % \\footnotesize % \\scriptsize\n')
-
-        # Save formatted lines
-        with open(tex_path, 'w', encoding='utf-8') as f:
-            f.writelines(lines)
-        logger.info(f'Saved results to {tex_path}')
-
-    def format_header_row(self, row: str, metrics_per_tool: list[int]) -> tuple:
-        """Format the header rows of the LaTeX table.
-
-        :param str row: The row to format.
-        :param list[int] metrics_per_tool: The number of metrics per tool.
-        :return tuple: The formatted row and the updated metrics per tool.
-        """
-        row_title = row.split('&')[0].strip()
-        if row_title not in ['Tool', 'Metric']:
-            return row, metrics_per_tool
-
-        # ### Header row title ###
-        styles = {'Tool': 'textbf', 'Metric': 'textit'}
-        row = row.replace(
-            f'{row_title} & ',  # right-align, add vertical border and bold/italicize
-            '\\multicolumn{1}{|r|}{\\' + styles[row_title] + '{' + row_title + '}} & ',
-        )
-
-        # ### Header row column names ###
-        row = row.replace('{r}', '{c|}')  # Center-align, add vertical borders
-        # Column names in row: center-align, and bold/italicize
-        logger.warning(f'row: {row}')
-        for col in row.split('&')[1:]:
-            col = col.replace('\\\\', '').strip()
-            # Get multicolumn sizes
-            if row_title == 'Tool':
-                if 'multicolumn' in col:
-                    parts = [s.replace('}', '') for s in col.split('{')[1:]]
-                    metrics_per_tool.append(int(parts[0]))
-                    col = parts[2].strip()
-                else:
-                    row = row.replace(col, ' \\multicolumn{1}{c|}{' + col + '} ')
-                    metrics_per_tool.append(1)
-
-            # Bold/italicize
-            row = row.replace(col, f'\\{styles[row_title]}' + '{' + col + '}')
-
-        if row_title == 'Tool':
-            row += '\\hline'
-        return row, metrics_per_tool

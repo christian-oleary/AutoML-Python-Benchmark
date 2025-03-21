@@ -42,6 +42,8 @@ papers/
 repositories/
 results/
 
+main.tex
+
 *_ignore.ipynb
 *.ignore
 

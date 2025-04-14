@@ -26,7 +26,7 @@ RUN if [ "$run_tests" = "true" ]; then make installdeps-test; fi
 # RUN if [ "$run_tests" = "true" ]; then pip freeze && make test; fi
 RUN if [ "$run_tests" = "true" ]; then \
         pip freeze && \
-        (pytest evalml/ --doctest-modules --doctest-continue-on-failure  --timeout 3600 --cov-report xml:coverage.xml --cov=. --cov-fail-under=1 || ls coverage.xml) && \
+        (pytest evalml/ --doctest-modules --doctest-continue-on-failure --timeout 3600 --cov-branch --cov-report xml:coverage.xml --cov=. --cov-fail-under=1 || ls coverage.xml) && \
         (cat coverage.xml | grep "hits=" | grep -Eo '[0-9]+' | grep -v '^0$' | wc -l || (echo "FAILED" && exit 1)) \
     ; fi
 

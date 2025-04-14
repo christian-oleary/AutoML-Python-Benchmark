@@ -24,7 +24,7 @@ RUN python3 -m pip install -e .[test,examples]
 # Run tests
 ARG run_tests
 RUN if [ "$run_tests" = true ]; then \
-        (python3 -m pytest --cov-report xml:coverage.xml --cov=. --cov-fail-under=1 || ls coverage.xml) && \
+        (python3 -m pytest --cov-branch --cov-report xml:coverage.xml --cov=. --cov-fail-under=1 || ls coverage.xml) && \
         (cat coverage.xml | grep "hits=" | grep -Eo '[0-9]+' | grep -v '^0$' | wc -l || (echo "FAILED" && exit 1)) \
     ; fi
 

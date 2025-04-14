@@ -16,17 +16,22 @@ from ml.sca.reporting import Reporting
 
 COVERAGE_MEANS = ['line-rate', 'branch-rate', 'complexity']
 COVERAGE_SUMS = ['lines-covered', 'lines-valid', 'branches-covered', 'branches-valid']
-COVERAGE_IGNORED = ['branches-covered', 'branch-rate', 'branches-valid']
-SONAR_IGNORED = [
-    'alert_status',
-    'branch_coverage',  # Fails to detect (probably due to coverage.py)
-    'conditions_to_cover',  # Fails to detect (probably due to coverage.py)
-    'last_commit_date',
-    'line_coverage',  # Almost identical scores to 'Coverage'
-    'quality_gate_details',
-    'quality_profiles',
-    'uncovered_conditions',  # Fails to detect (probably due to coverage.py)
-]
+IGNORED_COLS = {
+    'coverage': ['branches-covered', 'branch-rate', 'branches-valid'],  # Missing most scores
+    'prospector': ['dodgy Score'],  # Missing most scores
+    'sonar': [
+        'alert_status',
+        'branch_coverage',  # Fails to detect (probably due to coverage.py)
+        # 'comment_lines',  # Covered by other metrics
+        'conditions_to_cover',  # Fails to detect (probably due to coverage.py)
+        'last_commit_date',  # irrelevant
+        # 'line_coverage',  # Almost identical scores to 'Coverage'
+        'ncloc_language_distribution',  # Only Python examined here
+        'quality_gate_details',  # Specific to SonarQube
+        'quality_profiles',  # Specific to SonarQube
+        'uncovered_conditions',  # Fails to detect (probably due to coverage.py)
+    ],
+}
 
 
 class GitRepo:
@@ -170,13 +175,12 @@ class Analysis:
             if len(repos) == 0:
                 raise ValueError(f'No Git repositories found in directory: {self.input_dir}')
             self.results = [self.analyze_repo(repo) for repo in repos]
-            self.df_results = pd.DataFrame(self.results)
 
         # Save the results to a file if an output directory is provided
         if self.output_dir:
+            self.df_results = pd.DataFrame(self.results)
             # self.df_results = pd.read_csv(Path(self.output_dir, 'SUMMARY', 'results.csv'))
-            ignored = {'coverage': COVERAGE_IGNORED, 'sonar': SONAR_IGNORED}
-            Reporting.save_results(self.df_results, self.output_dir, ignored)
+            Reporting.save_results(self.df_results, self.output_dir, IGNORED_COLS)
         return self.results
 
     def analyze_repo(
@@ -201,7 +205,7 @@ class Analysis:
             'name': repo.name,
             'path': repo.path,
             **{f'coverage__{k}': v for k, v in self.read_coverage_xml(repo).items()},
-            **{f'git__{k}': v for k, v in self.git_analysis(repo, verbose=False).items()},
+            # **{f'git__{k}': v for k, v in self.git_analysis(repo, verbose=False).items()},
             **{f'sonar__{k}': v for k, v in sonar_results.items()},
         }
 
@@ -209,7 +213,6 @@ class Analysis:
         for tool, command in self.build_commands(repo.name).items():
             outputs = self.run_cli_command(tool, command, repo, skip_existing_sca)
             results.update({f'{tool}__{k}': v for k, v in outputs.items()})
-            # logger.info(f'{tool} analysis complete for {repo.name}')
         return results
 
     def build_commands(self, repo_name: str | Path) -> dict:
@@ -244,15 +247,15 @@ class Analysis:
         tool: str,
         command: list,
         repo: GitRepo,
-        skip_existing: bool = True,
-        verbose: bool = False,
+        skip_existing: bool,
+        verbose: bool = True,
     ) -> dict:
         """Run a CLI command on the specified directory.
 
         :param str tool: The tool to run the CLI command for.
         :param list command: The CLI command to run.
         :param GitRepo repo: The Git repository object.
-        :param bool skip_existing: Whether to skip existing results, defaults to True.
+        :param bool skip_existing: Whether to skip existing results.
         :param bool verbose: Whether to include additional information, defaults to False.
         :raises ValueError: If the tool is not supported.
         :return dict: The frequencies of the tool errors.
@@ -264,6 +267,10 @@ class Analysis:
         # Return the frequencies if they already exist
         if frequencies and skip_existing:
             return frequencies
+
+        # Avoid library specific configuration error
+        if repo.name == 'auto_sklearn':
+            command[-1] += '/auto-sklearn'
 
         # Run the CLI command
         logger.info(f'Running {tool} on {repo.name} using command: {command}')
@@ -302,7 +309,7 @@ class Analysis:
             if 'coverage' in str(file_path) and file_path.suffix == '.xml':
                 # Try to parse the coverage XML file
                 try:
-                    attributes = ElementTree.parse(file_path).getroot().attrib
+                    attributes = ElementTree.parse(file_path).getroot().attrib  # type: ignore
                 except ElementTree.ParseError as e:
                     raise ValueError(f'Error parsing coverage XML file: {file_path}') from e
                 # Extract the coverage results
@@ -436,10 +443,11 @@ class Analysis:
         :return dict: The frequencies of the message types.
         """
         results: dict[str, float] = {}
+        results['Prospector Num. Issues'] = output_json['summary']['message_count']
         # Count errors by tool and message type
         for message in output_json['messages']:
             # Count errors by tool
-            tool = f'{message["source"].title()} Score'
+            tool = f'{message["source"].title()} Num. Issues'
             results[tool] = results.get(tool, 0.0) + 1.0
             # Count the frequencies of each message type
             tool_error = f"{message['source']}_{message['code']}"
@@ -649,7 +657,7 @@ class Analysis:
         :return dict: The updated results.
         """
         # Filter out ignored metrics
-        measures = [m for m in measures if m['metric'] not in SONAR_IGNORED]
+        measures = [m for m in measures if m['metric'] not in IGNORED_COLS['sonar']]
 
         # Record the measures as floats
         for measure in measures:

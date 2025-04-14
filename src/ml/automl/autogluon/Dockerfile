@@ -63,7 +63,7 @@ RUN "${CI_DIR}/test_install.sh"
 ##### Run the test scripts #####
 # Format commands
 RUN cd $CI_DIR && \
-    (find . -type f -exec sed -i.bak "s/--junitxml=results.xml/--cov-append --cov-report xml:coverage.xml --cov=. --cov-fail-under=1/g" {} \;) && \
+    (find . -type f -exec sed -i.bak "s/--junitxml=results.xml/--cov-branch --cov-append --cov-report xml:coverage.xml --cov=. --cov-fail-under=1/g" {} \;) && \
     cd ..
 
 # Run the test scripts

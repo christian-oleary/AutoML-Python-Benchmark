@@ -278,16 +278,16 @@ for repo_path in $repositories; do
         print_line "Docker image ${image_name} built successfully."
     fi
 
-    ##################################################
-    # Copy contents of relevant coverage files to host
-    ##################################################
+    ##################
+    # Remove old files
+    ##################
     rm -f "${TARGET_DIR}/.coverage" "${TARGET_DIR}/coverage.xml" "${TARGET_DIR}/report.xml" \
         "${TARGET_DIR}/**/coverage.xml" "${TARGET_DIR}/**/report.xml" "${TARGET_DIR}/**/.coverage" \
         .coverage coverage.xml report.xml
 
-    ##############
-    # coverage.xml
-    ##############
+    ##################################################
+    # Copy contents of relevant coverage files to host
+    ##################################################
     print_line "Reading coverage.xml from Docker container..."
     docker run --gpus all --rm --name $repo_name "${image_name}" \
         bash -c "cat coverage.xml" > "${OUTPUT_DIR}/coverage.xml" # || continue

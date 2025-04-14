@@ -27,7 +27,7 @@ RUN python3 -m pip install --upgrade pip && \
 ARG run_tests
 RUN if [ "$run_tests" = "true" ]; then \
         echo "Running unit tests..." && \
-        (python3 -m pytest ./test/unit/ --cov-report xml:coverage.xml --cov=. || ls coverage.xml) && \
+        (python3 -m pytest ./test/unit/ --cov-branch --cov-report xml:coverage.xml --cov=. || ls coverage.xml) && \
         (cat coverage.xml | grep "hits=" | grep -Eo '[0-9]+' | grep -v '^0$' | wc -l || (echo "No coverage data" && exit 1)) && \
         echo "Tests complete"; \
     else \

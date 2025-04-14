@@ -31,7 +31,7 @@ RUN if [ "$run_tests" = "true" ]; then \
         echo "Running unit tests..." && \
         rm -rf coverage.xml && \
         cp -r ./tests/data_for_tests ./data_for_tests && \
-        python -m pytest --cov-report xml:coverage.xml --cov=. && \
+        python -m pytest --cov-branch --cov-report xml:coverage.xml --cov=. && \
         cat coverage.xml | grep "hits=" | grep -Eo '[0-9]+' | grep -v '^0$' | wc -l && \
         echo "Tests complete"; \
     else \

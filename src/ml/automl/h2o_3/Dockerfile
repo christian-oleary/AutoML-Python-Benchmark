@@ -49,11 +49,11 @@ ADD h2o.jar /opt/conda/h2o_jar/h2o.jar
 # Run tests
 ARG run_tests
 # RUN python3 -m pytest tests --cov-report xml:coverage.xml --cov=.
-RUN python3 -m pytest --cov-report xml:coverage.xml --cov=. || ls coverage.xml
+RUN python3 -m pytest --cov-branch --cov-report xml:coverage.xml --cov=. || ls coverage.xml
 
 RUN if [ "$run_tests" = "true" ]; then \
         echo "Running unit tests..." && \
-        (python3 -m pytest --cov-report xml:coverage.xml --cov=.) && \
+        (python3 -m pytest --cov-branch --cov-report xml:coverage.xml --cov=.) && \
         (cat coverage.xml | grep "hits=" | grep -Eo '[0-9]+' | grep -v '^0$' | wc -l || (echo "No coverage data" && exit 1)) && \
         echo "Tests complete"; \
     else \

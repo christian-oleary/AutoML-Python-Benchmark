@@ -51,7 +51,7 @@ RUN rm -f report.xml coverage.xml .coverage
 # RUN python3 -W ignore -m pytest ./test/test_evaluation/ --cov-report xml:coverage.xml --cov=. --cov-fail-under=1
 
 RUN  if [ "$run_tests" = "true" ]; then \
-        (python3 -W ignore -m pytest ./test/ -k 'not test_tabular_classification and not test_tabular_regression and not test_tabular_classification_test_evaluator and not test_nonsupported_arguments' --cov-report xml:coverage.xml --cov=. || ls coverage.xml) && \
+        (python3 -W ignore -m pytest ./test/ -k 'not test_tabular_classification and not test_tabular_regression and not test_tabular_classification_test_evaluator and not test_nonsupported_arguments' --cov-branch --cov-report xml:coverage.xml --cov=. || ls coverage.xml) && \
         (cat coverage.xml | grep "hits=" | grep -Eo '[0-9]+' | grep -v '^0$' | wc -l || (echo "FAILED" && exit 1)) \
     ; fi
 

@@ -18,7 +18,7 @@ RUN git submodule update --init --recursive && \
 ARG run_tests
 RUN if [ "$run_tests" = "true" ]; then \
         echo "Running unit tests..." && \
-        (python3 -m pytest --cov-report xml:coverage.xml --cov=. || ls coverage.xml) && \
+        (python3 -m pytest --cov-branch --cov-report xml:coverage.xml --cov=. || ls coverage.xml) && \
         cat coverage.xml | grep "hits=" | grep -Eo '[0-9]+' | grep -v '^0$' | wc -l && \
         echo "Tests complete"; \
     else \

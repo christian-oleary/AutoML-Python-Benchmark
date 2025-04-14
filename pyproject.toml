@@ -163,7 +163,7 @@ max-locals=16
 ################################################################################
 # PYTEST
 [tool.pytest.ini_options]
-addopts = "-ra --durations=10 --cov --cov-report xml:coverage.xml --junitxml=report.xml --basetemp=tests/tmp"
+addopts = "-ra --durations=10 --cov --cov-report --cov-branch xml:coverage.xml --junitxml=report.xml --basetemp=tests/tmp"
 log_cli = true
 log_cli_level = "INFO"
 log_cli_format = "%(asctime)s [%(levelname)8s] %(message)s"

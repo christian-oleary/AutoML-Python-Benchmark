@@ -21,7 +21,7 @@ RUN python3 -m pip install -e .['additional'] pytest-cov
 # Run unit tests if the run_tests is set to "true"
 ARG run_tests
 RUN if [ "$run_tests" = true ]; then \
-        (python3 -W ignore -m pytest ./tests/ --cov-report xml:coverage.xml --cov=. --cov-fail-under=1 || ls coverage.xml) && \
+        (python3 -W ignore -m pytest ./tests/ --cov-branch --cov-report xml:coverage.xml --cov=. --cov-fail-under=1 || ls coverage.xml) && \
         (cat coverage.xml | grep "hits=" | grep -Eo '[0-9]+' | grep -v '^0$' | wc -l || (echo "FAILED" && exit 1)) \
     ; fi
 

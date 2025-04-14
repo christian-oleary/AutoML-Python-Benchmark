@@ -319,6 +319,7 @@ class Utils:
             plt.show()
         # Show plot as file
         if save_path is not None:
+            Path(save_path).parent.mkdir(parents=True, exist_ok=True)
             plt.savefig(save_path, bbox_inches='tight')
         # Clear for next plot
         plt.cla()

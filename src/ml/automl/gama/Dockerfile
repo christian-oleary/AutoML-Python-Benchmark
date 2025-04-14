@@ -20,7 +20,7 @@ RUN pip freeze | grep numpy && rm -rf coverage.xml
 ARG run_tests
 RUN if [ "$run_tests" = "true" ]; then \
         echo "Running unit tests..." && \
-        python -m pytest ./tests/unit --cov-report xml:coverage.xml --cov=. && \
+        python -m pytest ./tests/unit --cov-branch --cov-report xml:coverage.xml --cov=. && \
         (cat coverage.xml | grep "hits=" | grep -Eo '[0-9]+' | grep -v '^0$' | wc -l || (echo "No coverage data" && exit 1)) && \
         echo "Tests complete"; \
     else \

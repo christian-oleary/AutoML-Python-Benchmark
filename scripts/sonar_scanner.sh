@@ -187,8 +187,8 @@ print_line "Repository directories found:\n$repositories"
 #########################
 # Create logs directories
 #########################
-export SCA_LOGS_DIR="${RESULTS_DIR}/logs/sca/sonar/"
-mkdir -p "${SCA_LOGS_DIR}"
+# export SCA_LOGS_DIR="${RESULTS_DIR}/logs/sca/sonar/"
+# mkdir -p "${SCA_LOGS_DIR}"
 
 ################################################################################
 # LOOP OVER EACH REPOSITORY
@@ -419,7 +419,7 @@ EOL
         # Return if file does not exist
         [ -f "${file_path}" ] || return 0
         # Print number of lines in file
-        wc -l "${file_path}"
+        echo "Number of lines in ${file_path}: $(wc -l < "${file_path}")"
         # Add blank lines to file
         for _ in $(seq 1 $num_lines); do
             echo -en '\n' >> "${file_path}"
@@ -455,6 +455,10 @@ EOL
             "${TARGET_DIR}/timeseries/tests/unittests/test_ts_dataset.py"
             "${TARGET_DIR}/timeseries/tests/unittests/utils/test_features.py"
         )
+    elif [ "$repo_name" = "autots" ]; then
+        problematic_files=(
+            "${TARGET_DIR}/autots/models/prophet.py"
+        )
     elif [ "$repo_name" = "fedot" ]; then
         problematic_files=("${TARGET_DIR}/fedot/core/operations/evaluation/operation_implementations/models/boostings_implementations.py")
     elif [ "$repo_name" = "lightautoml" ]; then
@@ -462,6 +466,11 @@ EOL
             "${TARGET_DIR}/lightautoml/ml_algo/boost_lgbm.py"
             "${TARGET_DIR}/lightautoml/ml_algo/tuning/optuna.py"
             "${TARGET_DIR}/tests/integration/test_custom_2_level_stacking.py"
+        )
+    elif [ "$repo_name" = "mljar_supervised" ]; then
+        problematic_files=(
+            "${TARGET_DIR}/supervised/automl.py"
+            "${TARGET_DIR}/supervised/utils/automl_plots.py"
         )
     else
         problematic_files=()

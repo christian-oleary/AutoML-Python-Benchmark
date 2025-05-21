@@ -34,7 +34,7 @@ def run_analysis():
     # Run analysis on the specified directory
     logger.info(f'Running static code analysis on {input_dir}')
     _ = Analysis(input_dir, output_dir=output_dir).run()
-    logger.info(f'Saved results to {output_dir}')
+    logger.info(f'Saved results to "{output_dir}"')
 
 
 if __name__ == "__main__":

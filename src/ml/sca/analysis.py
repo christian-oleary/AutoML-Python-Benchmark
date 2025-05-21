@@ -14,22 +14,19 @@ import pandas as pd
 from ml.logs import logger
 from ml.sca.reporting import Reporting
 
-COVERAGE_MEANS = ['line-rate', 'branch-rate', 'complexity']
-COVERAGE_SUMS = ['lines-covered', 'lines-valid', 'branches-covered', 'branches-valid']
-IGNORED_COLS = {
-    'coverage': ['branches-covered', 'branch-rate', 'branches-valid'],  # Missing most scores
+IGNORED_COLS: dict[str, list[str]] = {
+    'coverage': [],
     'prospector': ['dodgy Score'],  # Missing most scores
     'sonar': [
+        'branch_coverage',  # almost identical to coverage's Branch Rate
+        'conditions_to_cover',  # almost identical to coverage's Branches Valid
+        'lines_to_cover',  # almost identical to coverage's Lines Valid
+        'line_coverage',  # almost identical to SonarQube's coverage
         'alert_status',
-        'branch_coverage',  # Fails to detect (probably due to coverage.py)
-        # 'comment_lines',  # Covered by other metrics
-        'conditions_to_cover',  # Fails to detect (probably due to coverage.py)
         'last_commit_date',  # irrelevant
-        # 'line_coverage',  # Almost identical scores to 'Coverage'
         'ncloc_language_distribution',  # Only Python examined here
         'quality_gate_details',  # Specific to SonarQube
         'quality_profiles',  # Specific to SonarQube
-        'uncovered_conditions',  # Fails to detect (probably due to coverage.py)
     ],
 }
 
@@ -57,7 +54,6 @@ class GitRepo:
         self.contributors = self.get_contributors()
         self.lines_of_code = self.get_lines_of_code()
         self.name = self.get_repo_name()
-        self.num_contributors = self.count_contributors()
         self.url = self.get_repo_url()
 
     def get_branches(self) -> list[str]:
@@ -129,25 +125,6 @@ class GitRepo:
         self.repo_url = self.repo.remotes.origin.url
         return self.repo_url
 
-    def count_contributions(self, email: str) -> int:
-        """Count the number of contributions by a given email address.
-
-        :param str email: The email address to count contributions for.
-        :return int: The number of contributions by the email address.
-        """
-        count = 0
-        for commit in self.repo.iter_commits():
-            if commit.author.email == email:
-                count += 1
-        return count
-
-    def count_contributors(self) -> int:
-        """Count the number of contributors to the repository.
-
-        :return int: The number of contributors to the repository.
-        """
-        return len(self.get_contributors())
-
 
 class Analysis:
     """Class for performing static code analysis (SCA) on a directory."""
@@ -179,7 +156,7 @@ class Analysis:
         # Save the results to a file if an output directory is provided
         if self.output_dir:
             self.df_results = pd.DataFrame(self.results)
-            # self.df_results = pd.read_csv(Path(self.output_dir, 'SUMMARY', 'results.csv'))
+            # self.df_results = pd.read_csv(Path(self.output_dir, 'SUMMARY', 'csv', 'results.csv'))
             Reporting.save_results(self.df_results, self.output_dir, IGNORED_COLS)
         return self.results
 
@@ -224,7 +201,10 @@ class Analysis:
         filename = f'_{repo_name}.json'
         # fmt: off
         commands = {
-            'bandit': ['bandit', '-r', '--format', 'json', '-o', f'bandit{filename}', '.'],
+            'bandit': [
+                'bandit', '-r', '--exclude', 'tests,unittests,test,docs',
+                '--format', 'json', '-o', f'bandit{filename}', '.'
+            ],
             # 'flake8': ['flake8', '--format=json-pretty', f'--output-file=flake8{filename}', '.'],  # JSON errors
             'prospector': [
                 'prospector', '-o', f'json:prospector{filename}',
@@ -261,12 +241,12 @@ class Analysis:
         :return dict: The frequencies of the tool errors.
         """
         # Check if the results file already exists
-        logger.info(f'{tool} - {repo.name}')
         result_path, frequencies, json_file = self.check_results_file(tool, repo, skip_existing)
 
         # Return the frequencies if they already exist
         if frequencies and skip_existing:
             return frequencies
+        logger.debug(f'Running {tool}...')
 
         # Avoid library specific configuration error
         if repo.name == 'auto_sklearn':
@@ -303,7 +283,7 @@ class Analysis:
         :param str pattern: The pattern to search for, defaults to 'coverage.xml'.
         """
         logger.info(f'Reading coverage XML file for {repo.name}...')
-        coverage_results: dict[str, Any] = {}
+        coverage_results: dict[str, float] = {}
         # Scan the repository for the coverage XML file
         for file_path in Path(repo.path).rglob('*'):
             if 'coverage' in str(file_path) and file_path.suffix == '.xml':
@@ -316,16 +296,9 @@ class Analysis:
                 del attributes['timestamp']
                 del attributes['version']
                 for key, value in attributes.items():
-                    if key not in coverage_results:
-                        coverage_results[key] = []
-                    coverage_results[key].append(float(value))
-
-        # Aggregate the coverage results
-        for metric, scores in coverage_results.copy().items():
-            if metric in COVERAGE_MEANS:
-                coverage_results[metric] = sum(scores) / len(scores)
-            elif metric in COVERAGE_SUMS:
-                coverage_results[metric] = float(sum(scores))
+                    if key in coverage_results:
+                        raise KeyError(f'Key "{key}" already exists in coverage results')
+                    coverage_results[key] = float(value)
         return coverage_results
 
     def check_results_file(self, tool: str, repo: GitRepo, skip_existing: bool) -> tuple:
@@ -345,7 +318,7 @@ class Analysis:
             results_file = Path(self.output_dir, tool, temp_file)
             # Load the output from a file if possible
             if skip_existing and results_file and results_file.exists():
-                logger.debug(f'Output file already exists: {results_file}')
+                # logger.debug(f'Output file already exists: {results_file}')
                 frequencies = json.loads(results_file.read_text(encoding='utf-8'))
 
         return results_file, frequencies, Path(repo.path, temp_file)
@@ -550,7 +523,7 @@ class Analysis:
         for error in output_json:
             error_code = error['code'] if error['code'] is not None else error['name']
             results[error_code] = error['count']
-        results['ruff Score'] = sum(results.values())
+        results['ruff Num. Issues'] = sum(results.values())
         return results
 
     def format_results(self, tool: str, results: dict) -> dict[str, float]:
@@ -577,12 +550,7 @@ class Analysis:
         :return dict: The analysis of the Git repository.
         """
         logger.debug(f'Git analysis of {repo.path}...')
-        analysis: dict[str, Any] = {
-            # 'Repository': repo.name, 'path': repo.path,
-            'LoC': repo.lines_of_code,
-            'Num. Commits': repo.commit_count,
-            'Num. Contributors': repo.num_contributors,
-        }
+        analysis: dict[str, Any] = {'LoC': repo.lines_of_code, 'Num. Commits': repo.commit_count}
         if verbose:
             analysis = {
                 **analysis,

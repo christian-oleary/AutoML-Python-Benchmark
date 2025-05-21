@@ -35,13 +35,6 @@ RUN echo "" >> pyproject.toml && \
     echo 'packages = ["autogluon","autogluon.common","autogluon.core","autogluon.eda","autogluon.features","autogluon.multimodal","autogluon.tabular","autogluon.timeseries"]' >> pyproject.toml && \
     echo "" >> pyproject.toml
 
-# Attempts to allow torch to access GPU.
-# RUN conda install -c conda-forge mamba
-# RUN mamba install -c conda-forge -c pytorch -c nvidia autogluon "pytorch=*=*cuda*"
-# RUN python -m pip install -q -e autogluon torch
-# RUN python -m pip install -q torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
-# RUN python -c "import torch;print('GPU STATUS:',torch.cuda.is_available())"
-
 # Install the required dependencies
 RUN ./full_install.sh && \
     python -m pip install -e autogluon[tabular,extra,timeseries] && \
@@ -63,12 +56,19 @@ RUN "${CI_DIR}/test_install.sh"
 ##### Run the test scripts #####
 # Format commands
 RUN cd $CI_DIR && \
-    (find . -type f -exec sed -i.bak "s/--junitxml=results.xml/--cov-branch --cov-append --cov-report xml:coverage.xml --cov=. --cov-fail-under=1/g" {} \;) && \
+    (find . -type f -exec sed -i.bak "s/--junitxml=results.xml/--cov-branch --cov-append --cov-report xml:coverage.xml --cov=./g" {} \;) && \
     cd ..
 
 # Run the test scripts
 RUN $CI_DIR/test_common.sh || ls common/.coverage
 RUN ls common/coverage.xml && wc -l common/coverage.xml
+
+# Attempts to allow torch to access GPU.
+RUN conda install -y -c conda-forge mamba
+RUN mamba install -y -c conda-forge -c pytorch -c nvidia autogluon "pytorch=*=*cuda*"
+# RUN python -m pip install -q -e autogluon torch
+RUN python -m pip install -q torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
+RUN python -c "import torch;print('GPU STATUS:',torch.cuda.is_available())"
 
 RUN $CI_DIR/test_core.sh || ls core/.coverage
 RUN ls core/coverage.xml && wc -l core/coverage.xml
@@ -89,67 +89,20 @@ RUN ls multimodal/coverage.xml && wc -l multimodal/coverage.xml
 RUN $CI_DIR/test_multimodal_others.sh --run_single_gpu || ls multimodal/.coverage
 RUN ls multimodal/coverage.xml && wc -l multimodal/coverage.xml
 
-# # Common
-# RUN sed -i 's/--junitxml=results.xml/--cov-report xml:coverage.xml --cov=. --cov-fail-under=1/g' $CI_DIR/test_common.sh && \
-#     $CI_DIR/test_common.sh && (ls common/.coverage || exit 1)
-
-# # Core
-# RUN sed -i 's/--junitxml=results.xml/--cov-report xml:coverage.xml --cov=. --cov-fail-under=1/g' $CI_DIR/test_core.sh && \
-#     $CI_DIR/test_core.sh && (ls core/.coverage || exit 1)
-
-# # EDA
-# # test_eda.sh fails. It is commented out in their CI.
-# # RUN sed -i 's/--junitxml=results.xml/--cov-report xml:coverage.xml --cov=. --cov-fail-under=1/g' $CI_DIR/test_eda.sh && \
-# #     $CI_DIR/test_eda.sh && (ls eda/.coverage || exit 1)
-
-# # Features
-# RUN sed -i 's/--junitxml=results.xml/--cov-report xml:coverage.xml --cov=. --cov-fail-under=1/g' $CI_DIR/test_features.sh && \
-#     $CI_DIR/test_features.sh && (ls features/.coverage || exit 1)
-
-# # Time series
-# RUN sed -i 's/--junitxml=results.xml/--cov-report xml:coverage.xml --cov=. --cov-fail-under=1/g' $CI_DIR/test_timeseries.sh && \
-#     $CI_DIR/test_timeseries.sh && (ls timeseries/.coverage || exit 1)
-
-# # Multimodal
-# # RUN sed -i 's/--junitxml=results.xml/--cov-report xml:coverage.xml --cov=. --cov-fail-under=1/g' $CI_DIR/test_multimodal.sh && \
-# #     $CI_DIR/test_multimodal.sh && (ls multimodal/.coverage || exit)
-
-# # Comment out "setup_hf_model_mirror "$SUB_FOLDER""
-# RUN sed -i 's/setup_hf_model_mirror "$SUB_FOLDER"/# setup_hf_model_mirror "$SUB_FOLDER"/g' $CI_DIR/test_multimodal.sh
-# RUN apt-get update && apt-get install -y g++ && g++ --version
-# RUN source $CI_DIR/env_setup.sh && setup_build_env
-# RUN install_local_packages "common/[tests]" "core/[all,tests]" "features/"
-# RUN install_multimodal "[tests]"
-# RUN sed -i 's/--junitxml=results.xml/--append --cov-report xml:coverage.xml --cov=. --cov-fail-under=1/g' $CI_DIR/test_multimodal_predictor.sh && \
-#     $CI_DIR/test_multimodal_predictor.sh && (ls multimodal/.coverage || exit 1)
-#     # --run_single_gpu
-# RUN ls multimodal/coverage.xml && wc -l multimodal/coverage.xml || exit 1
-
-# RUN sed -i 's/--junitxml=results.xml/--append --cov-report xml:coverage.xml --cov=. --cov-fail-under=1/g' $CI_DIR/test_multimodal_others.sh && \
-#     $CI_DIR/test_multimodal_others.sh && (ls multimodal/.coverage || exit 1)
-#     # --run_single_gpu
-# RUN ls multimodal/coverage.xml && wc -l multimodal/coverage.xml || exit 1
-
-# # Tabular
-# RUN sed -i 's/--junitxml=results.xml/--cov-report xml:coverage.xml --cov=. --cov-fail-under=1/g' $CI_DIR/test_tabular.sh && \
-#     $CI_DIR/test_tabular.sh && (ls tabular/.coverage || exit 1)
-
-# Combine .coverage files
-RUN python -m coverage combine --keep ./**/.coverage
-
-# Generate the coverage report
-RUN python -m coverage xml -i -o coverage.xml
-
-RUN coverage report -mi && \
+# Combine .coverage files, generate report, and show coverage
+# RUN python -m coverage combine --keep ./**/.coverage
+# RUN python -m coverage xml -i -o coverage.xml
+# RUN coverage report -mi && \
+RUN python -m coverage combine --keep ./**/.coverage && \
+    python -m coverage xml -i -o coverage.xml && \
+    coverage report -mi && \
     wc -l common/coverage.xml && \
     wc -l core/coverage.xml && \
     wc -l features/coverage.xml && \
     wc -l tabular/coverage.xml && \
     wc -l timeseries/coverage.xml && \
-    wc -l multimodal/coverage.xml
-
-# Print the number of lines with non-zero coverage
-RUN cat coverage.xml | grep "hits=" | grep -Eo '[0-9]+' | grep -v '^0$' | wc -l
+    wc -l multimodal/coverage.xml && \
+    cat coverage.xml | grep "hits=" | grep -Eo '[0-9]+' | grep -v '^0$' | wc -l
 
 # Print the GPU status
 RUN python -c "import torch;print('GPU STATUS:',torch.cuda.is_available())"

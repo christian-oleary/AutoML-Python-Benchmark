@@ -62,8 +62,8 @@ conda install pre-commit
 
 To run this code, you will need to install CUDA for TensorFlow and PyTorch.
 
-- CUDA compatibilities for TensorFlow are listed [here](https://www.tensorflow.org/install/source_windows).
-- CUDA compatibilities for PyTorch are listed [here](https://pytorch.org/blog/deprecation-cuda-python-support/)
+- CUDA compatibilities for [TensorFlow are listed here](https://www.tensorflow.org/install/source_windows).
+- CUDA compatibilities for [PyTorch are listed here](https://pytorch.org/blog/deprecation-cuda-python-support/)
 
 ## Datasets
 
@@ -143,7 +143,7 @@ coverage report --omit="env/*,venv/*,.env/*,.venv/*,*AppData*,*python37*,tests/*
 rm .coverage
 ``` -->
 
-## SonarQube
+## Source Code Analysis of AutoML Repositories with SonarQube
 
 This requires Docker.
 
@@ -164,18 +164,17 @@ sudo apt-get install -y nvidia-docker2
 sudo apt-get install nvidia-container-runtime nvidia-container-toolkit
 ```
 
-Set up SonarQube server via docker-compose:
+Set up SonarQube server via docker-compose and run analysis:
 
 ```bash
 # Start server
 docker-compose up --timeout 300 -d --build --force-recreate
-
 # Download repositories
-sh -i ./shell/repo_clone_or_pull.sh
-
+sh -i ./scripts/clone_or_pull.sh
 # Run sonar-scanner
-sh -i ./shell/repo_sonar_scanner.sh
-
+sh -i ./scripts/sonar_scanner.sh
+# Analyze results
+source_code_analysis.sh
 # Stop server:
 docker-compose down
 ```
@@ -186,7 +185,7 @@ Please feel free to get in touch at <christian.oleary@mtu.ie>
 
 ## Citation
 
-Christian O'Leary (2024) AutoML Python Benchmark.
+Christian O'Leary (2025) AutoML Python Benchmark.
 
 ```latex
 @software{AutoML-Python-Benchmark,

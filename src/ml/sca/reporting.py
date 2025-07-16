@@ -647,7 +647,7 @@ class Reporting:
         :param pd.DataFrame df: The DataFrame being processed.
         :param Path tex_path: The path to the LaTeX table file.
         :param int | None sort_index: The index of the column used to sort values.
-        :param str text_size: The font size for the LaTeX table, default is '\\small'.
+        :param str text_size: The font size for the LaTeX table, default is small.
         """
         # Additional TEX formatting
         with open(tex_path, 'r', encoding='utf-8') as f:

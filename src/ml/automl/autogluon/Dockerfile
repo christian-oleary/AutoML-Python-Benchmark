@@ -56,7 +56,7 @@ RUN "${CI_DIR}/test_install.sh"
 ##### Run the test scripts #####
 # Format commands
 RUN cd $CI_DIR && \
-    (find . -type f -exec sed -i.bak "s/--junitxml=results.xml/--cov-branch --cov-append --cov-report xml:coverage.xml --cov=./g" {} \;) && \
+    (find . -type f -exec sed -i.bak "s/--junitxml=results.xml/--cov-branch --cov-append --cov-report xml:coverage.xml --cov=. --cov-fail-under=1/g" {} \;) && \
     cd ..
 
 # Run the test scripts
@@ -106,3 +106,15 @@ RUN python -m coverage combine --keep ./**/.coverage && \
 
 # Print the GPU status
 RUN python -c "import torch;print('GPU STATUS:',torch.cuda.is_available())"
+
+RUN head -n 3 coverage.xml && \
+    echo "COMMON:" && \
+    head -n 3 common/coverage.xml && \
+    echo "CORE:" && \
+    head -n 3 core/coverage.xml && \
+    echo "TABULAR:" && \
+    head -n 3 tabular/coverage.xml && \
+    echo "TIMESERIES:" && \
+    head -n 3 timeseries/coverage.xml && \
+    echo "MULTIMODAL:" && \
+    head -n 3 multimodal/coverage.xml

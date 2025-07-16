@@ -777,7 +777,7 @@ class Reporting:
                     col = parts[2].strip()
                 else:
                     # Center-align, add vertical border
-                    align = 'c' if 'Sonar' in col or i > len(cols) - 1 else 'c|'
+                    align = 'c' if 'sonar' in col.lower() or i > len(cols) - 1 else 'c|'
                     row = row.replace(col, ' \\multicolumn{1}{' + align + '}{' + col + '} ')
             else:
                 # # Add arrow to the column name if used for sorting
@@ -795,8 +795,16 @@ class Reporting:
 
         # Check if footnotes are needed
         for key, footnote in cls.FOOTNOTES.items():
-            if key.lower() in row.lower():
+            row_text = row.lower()
+            if key.lower() == 'loc':  # Prevent 'loc' from matching 'block'
+                row_text = row_text.replace('block', '')
+            if key.lower() in row_text:  # Add footnote if key is in row text
                 footnotes.append(footnote)
+
+        # Hot fix: avoid last border next to 'Sonar' in non-landscape tables
+        if len(df.columns) <= 9:
+            row = row.replace('|}{Sonar', '}{Sonar')
+
         return row, footnotes
 
     @classmethod

@@ -72,6 +72,8 @@ share
 *.dot
 *.gv
 *.profile
+*.mmd
+*.puml
 
 # GCC
 .stackdump

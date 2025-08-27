@@ -10,7 +10,7 @@
 ###########################
 
 # Data/Backups
-data/
+data
 !data/*.dvc
 
 *.txt
@@ -20,11 +20,10 @@ data/
 *.csv
 *.json
 *.ignore
-*.svg
 *.txt
 *.wav
 *.xml
-tmp/
+tmp
 
 # Images
 *.gif
@@ -34,13 +33,13 @@ tmp/
 *.svg
 
 # Project-specific
-checkpoints/
+checkpoints
 env*/
-ignore/
-logs/
-papers/
-repositories/
-results/
+ignore
+logs
+papers
+repositories
+results
 
 *_ignore.ipynb
 *.ignore
@@ -60,7 +59,7 @@ results/
 
 # Generated
 bin
-cache/
+cache
 share
 *.dll
 *.exe
@@ -126,12 +125,13 @@ time_series_forecaster
 .lr_find_*
 
 # Byte-compiled / optimized / DLL files
-__pycache__/
+__pycache__
 *.py[cod]
 *$py.class
 
 # C extensions
 *.so
+
 # CatBoost
 catboost_info
 
@@ -149,38 +149,39 @@ cuda_*_linux.run
 *.fatbin
 
 # Cython debug symbols
-cython_debug/
+cython_debug
 
 # Distribution / packaging
 .Python
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
-pip-wheel-metadata/
-share/python-wheels/
-*.egg-info/
-.installed.cfg
+build
+develop-eggs
+dist
+downloads
 *.egg
+*.egg-info
+eggs
+.eggs
+.installed.cfg
+lib
+lib64
 MANIFEST
+parts
+pip-wheel-metadata
+sdist
+share/python-wheels
+var
+wheels
+*.whl
 
 # Environments
 .env
 .venv
-ENV/
-env/
-env.bak/
+ENV
+env
+env.bak
 pyvenv.cfg
-venv/
-venv.bak/
+venv
+venv.bak
 
 # Django stuff:
 *.log
@@ -189,7 +190,7 @@ db.sqlite3
 db.sqlite3-journal
 
 # Flask stuff:
-instance/
+instance
 .webassets-cache
 
 # Installer logs
@@ -197,7 +198,7 @@ pip-log.txt
 pip-delete-this-directory.txt
 
 # IPython
-profile_default/
+profile_default
 ipython_config.py
 
 # Jupyter Notebook
@@ -211,7 +212,7 @@ ipython_config.py
 /site
 
 # mypy
-.mypy_cache/
+.mypy_cache
 .dmypy.json
 dmypy.json
 
@@ -223,11 +224,11 @@ dmypy.json
 #   https://pdm.fming.dev/latest/usage/project/#working-with-version-control
 .pdm.toml
 .pdm-python
-.pdm-build/
+.pdm-build
 
 
 # PEP 582
-__pypackages__/
+__pypackages__
 
 # pipenv
 #   According to pypa/pipenv#598, it is recommended to include Pipfile.lock in version control.
@@ -244,8 +245,8 @@ __pypackages__/
 #poetry.lock
 
 # PyBuilder
-.pybuilder/
-target/
+.pybuilder
+target
 
 # PyCharm
 .idea
@@ -260,7 +261,7 @@ target/
 *.spec
 
 # Pyre type checker
-.pyre/
+.pyre
 
 # PyTorch (building from source)
 pytorch
@@ -282,9 +283,9 @@ docs/*.svg
 docs/*.md
 docs/*.html
 docs/_build/
-docs/sphinx/_build/
-docs/sphinx/source/
-docs/sphinx/tests/
+docs/sphinx/_build
+docs/sphinx/source
+docs/sphinx/tests
 
 # Spyder project settings
 .spyderproject

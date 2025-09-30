@@ -13,8 +13,8 @@ Primary Python version: 3.10.14
 
 1. [Publications](#publications)
 2. [Installation](#installation)
-3. [Datasets](#datasets)
-4. [CUDA](#cuda)
+3. [CUDA](#cuda)
+4. [Datasets](#datasets)
 5. [Installation](#installation)
 6. [Experiments](#experiments)
 7. [Development](#development)
@@ -30,6 +30,8 @@ Primary Python version: 3.10.14
   - [Tag](https://github.com/christian-oleary/AutoML-Python-Benchmark/releases/tag/electricity_price_forecasting)
   - [Code](https://github.com/christian-oleary/AutoML-Python-Benchmark/tree/c436f3f83e6872ab8a4bb430923fc5aaf64f5ade)
   - `These experiments are run with Python 3.9 and CUDA versions 11.2 and 11.7.
+
+## Installation
 
 - Step 1: Install conda via Miniconda or Anaconda. Then create environment with:
 

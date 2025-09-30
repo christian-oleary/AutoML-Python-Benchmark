@@ -23,13 +23,13 @@ Primary Python version: 3.10.14
 
 ## Publications
 
-A Comparative Analysis of Automated Machine Learning Libraries for Electricity Price Forecasting (2024)
+- An Empirical Study of Static Code Analysis in Python Automated Machine Learning Libraries (2025) - (awaiting review)
 
-- [Tag](https://github.com/christian-oleary/AutoML-Python-Benchmark/releases/tag/electricity_price_forecasting)
-- [Code](https://github.com/christian-oleary/AutoML-Python-Benchmark/tree/c436f3f83e6872ab8a4bb430923fc5aaf64f5ade)
-- These experiments are run with Python 3.9 and CUDA versions 11.2 and 11.7.
+- [A Comparative Analysis of Automated Machine Learning Libraries for Electricity Price Forecasting (2024)](https://sciendo.com/article/10.2478/acss-2024-0020)
 
-## Installation
+  - [Tag](https://github.com/christian-oleary/AutoML-Python-Benchmark/releases/tag/electricity_price_forecasting)
+  - [Code](https://github.com/christian-oleary/AutoML-Python-Benchmark/tree/c436f3f83e6872ab8a4bb430923fc5aaf64f5ade)
+  - `These experiments are run with Python 3.9 and CUDA versions 11.2 and 11.7.
 
 - Step 1: Install conda via Miniconda or Anaconda. Then create environment with:
 
@@ -60,7 +60,7 @@ conda install pre-commit
 
 ### CUDA
 
-To run this code, you will need to install CUDA for TensorFlow and PyTorch.
+To run code via GPUs, you will need to install CUDA for TensorFlow and PyTorch.
 
 - CUDA compatibilities for [TensorFlow are listed here](https://www.tensorflow.org/install/source_windows).
 - CUDA compatibilities for [PyTorch are listed here](https://pytorch.org/blog/deprecation-cuda-python-support/)
@@ -92,8 +92,6 @@ python run.py
 ``` -->
 
 ## Development
-
-Removed. To be redrafted.
 
 <!--
 After installation and the download of repositories and datasets, you can run functional tests with:
@@ -193,6 +191,6 @@ author = {Christian O'Leary},
 title = {AutoML Python Benchmark},
 doi = {10.5281/zenodo.13133203},
 howpublished = {\url{https://github.com/christian-oleary/AutoML-Python-Benchmark}},
-year = {2024}
+year = {2025}
 }
 ```

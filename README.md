@@ -1,7 +1,6 @@
 # AutoML-Python-Benchmark
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellowgreen.svg)](https://opensource.org/licenses/MIT)
-[![testing: bandit](https://github.com/christian-oleary/AutoML-Python-Benchmark/actions/workflows/bandit.yml/badge.svg)](https://github.com/christian-oleary/AutoML-Python-Benchmark/actions/workflows/bandit.yml)
 [![linting: pylint](https://github.com/christian-oleary/AutoML-Python-Benchmark/actions/workflows/pylint.yml/badge.svg)](https://github.com/christian-oleary/AutoML-Python-Benchmark/actions/workflows/pylint.yml)
 [![testing: pytest](https://github.com/christian-oleary/AutoML-Python-Benchmark/actions/workflows/pytest.yml/badge.svg)](https://github.com/christian-oleary/AutoML-Python-Benchmark/actions/workflows/pytest.yml)
 
@@ -29,7 +28,7 @@ Primary Python version: 3.10.14
 
   - [Tag](https://github.com/christian-oleary/AutoML-Python-Benchmark/releases/tag/electricity_price_forecasting)
   - [Code](https://github.com/christian-oleary/AutoML-Python-Benchmark/tree/c436f3f83e6872ab8a4bb430923fc5aaf64f5ade)
-  - `These experiments are run with Python 3.9 and CUDA versions 11.2 and 11.7.
+  - These experiments are run with Python 3.9 and CUDA versions 11.2 and 11.7.
 
 ## Installation
 
@@ -60,7 +59,7 @@ pip install -e .[all]        # Everything
 conda install pre-commit
 ```
 
-### CUDA
+## CUDA
 
 To run code via GPUs, you will need to install CUDA for TensorFlow and PyTorch.
 

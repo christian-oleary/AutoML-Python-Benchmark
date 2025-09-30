@@ -1,7 +1,0 @@
-autoPyTorch==0.2.1
-gluonts==0.12.7
-numpy==1.23.5
-pytorch_forecasting==0.10.3
-# autoPyTorch[forecasting]
-sktime
-swig==4.1.1

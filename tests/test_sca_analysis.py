@@ -114,7 +114,7 @@ def test_parse_pylint_empty_output(analysis: Analysis):
     """Test the parse_pylint method of the Analysis class with empty output."""
     output_json = {'statistics': {'messageTypeCount': {}, 'score': 0}, 'messages': []}
     expected = {'score': 0}
-    assert analysis.parse_pylint(output_json) == expected
+    assert analysis._parse_pylint(output_json) == expected
 
 
 def test_parse_pylint_single_message(analysis: Analysis):
@@ -123,19 +123,19 @@ def test_parse_pylint_single_message(analysis: Analysis):
         'statistics': {'messageTypeCount': {}, 'score': 10},
         'messages': [{'messageId': 'C0103'}],
     }
-    assert analysis.parse_pylint(output_json) == {'score': 10}
+    assert analysis._parse_pylint(output_json) == {'score': 10}
 
 
 def test_parse_json_bandit_empty_output(analysis: Analysis):
     """Test the parse_json_bandit method with empty output."""
     output_json = {'metrics': {'_totals': {}}, 'results': []}
-    assert analysis.parse_json_bandit(output_json) == {}
+    assert analysis._parse_json_bandit(output_json) == {}
 
 
 def test_parse_json_bandit_single_issue(analysis: Analysis):
     """Test the parse_json_bandit method with a single issue."""
     output_json = {'metrics': {'_totals': {'loc': 100}}, 'results': [{'test_id': 'B101'}]}
-    assert analysis.parse_json_bandit(output_json) == {'loc': 100, 'B101': 1.0}
+    assert analysis._parse_json_bandit(output_json) == {'loc': 100, 'B101': 1.0}
 
 
 def test_parse_json_bandit_multiple_issues(analysis: Analysis):
@@ -144,7 +144,7 @@ def test_parse_json_bandit_multiple_issues(analysis: Analysis):
         'metrics': {'_totals': {'loc': 100}},
         'results': [{'test_id': 'B101'}, {'test_id': 'B102'}],
     }
-    assert analysis.parse_json_bandit(output_json) == {'loc': 100, 'B101': 1.0, 'B102': 1.0}
+    assert analysis._parse_json_bandit(output_json) == {'loc': 100, 'B101': 1.0, 'B102': 1.0}
 
 
 @pytest.mark.parametrize(

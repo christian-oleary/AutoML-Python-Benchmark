@@ -9,7 +9,6 @@ from numpy import ndarray
 import pandas as pd
 
 from ml.logs import logger
-from ml.utils import Utils
 
 
 class Plotter:
@@ -40,47 +39,40 @@ class Plotter:
         save_path = Path(results_subdir, 'plots', f'{title}.svg')
         Path(results_subdir, 'plots').mkdir(parents=True, exist_ok=True)
         logger.debug(f'Saving plot: {save_path}')
-        Utils.save_plot(title, save_path=save_path, **kwargs)
+        Plotter.save_plot(title, save_path=save_path, **kwargs)
 
     @staticmethod
-    def save_plot(
-        title,
-        xlabel=None,
-        ylabel=None,
-        suptitle='',
-        show=False,
-        legend=None,
-        save_path=None,
-        yscale='linear',
-        **kwargs,
-    ):
+    def save_plot(title: str, save_path: str | Path | None = None, **kwargs):
         """Apply title and axis labels to plot. Show and save to file. Clear plot.
 
-        :param title: Title for plot
-        :param xlabel: Plot X-axis label
-        :param ylabel: Plot Y-axis label
-        :param title: Subtitle for plot
-        :param show: Show plot on screen, defaults to False
-        :param legend: Legend, defaults to None
-        :param save_path: Save plot to file if not None, defaults to None
-        :param yscale: Y-Scale ('linear' or 'log'), defaults to 'linear'
+        :param str title: Title for plot
+        :param str | Path | None save_path: Save plot to file if not None, defaults to None
+        :param str | None legend: Legend, defaults to None
+        :param bool show: Show plot on screen, defaults to False
+        :param str suptitle: Subtitle for plot
+        :param str xlabel: Plot X-axis label
+        :param str ylabel: Plot Y-axis label
+        :param str xscale: X-Scale ('linear' or 'log'), defaults to 'linear'
+        :param str yscale: Y-Scale ('linear' or 'log'), defaults to 'linear'
         """
-        if xlabel is not None:
-            plt.xlabel(xlabel)
-
-        if ylabel is not None:
-            plt.ylabel(ylabel)
-        plt.yscale(yscale)
-
+        # Axis labels
+        if kwargs.get('xlabel'):
+            plt.xlabel(kwargs['xlabel'])
+        if kwargs.get('ylabel'):
+            plt.ylabel(kwargs['ylabel'])
+        # Axis scaling
+        plt.xscale(kwargs.get('xscale', 'linear'))
+        plt.yscale(kwargs.get('yscale', 'linear'))
+        # Title and subtitle
         plt.title(title)
-        plt.suptitle(suptitle)
-        if legend is not None:
-            plt.legend(legend, loc='upper left')
-
+        plt.suptitle(kwargs.get('suptitle', ''))
+        # Legend
+        if kwargs.get('legend'):
+            plt.legend(kwargs['legend'], loc='upper left')
         # Show plot
-        if show:
+        if kwargs.get('show'):
             plt.show()
-        # Show plot as file
+        # Save plot as file
         if save_path is not None:
             Path(save_path).parent.mkdir(parents=True, exist_ok=True)
             plt.savefig(save_path, bbox_inches='tight')

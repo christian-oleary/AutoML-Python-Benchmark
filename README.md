@@ -77,6 +77,16 @@ Removed. To be redrafted.
 
 ## Experiments
 
+### Classification
+
+Experiments use [DVC](https://dvc.org/).
+
+```bash
+conda activate automl
+dvc pull
+dvc repro
+```
+
 ### Source Code Analysis
 
 ```bash

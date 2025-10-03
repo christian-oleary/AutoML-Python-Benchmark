@@ -147,6 +147,11 @@ class AudioClassificationDataset(ClassificationDataset):
 
     labels: list[str] = AUDIO_LABELS
 
+    @abstractmethod
+    def _init_dataset(self, **kwargs) -> Self:
+        """Fetch data relating to dataset."""
+        return self
+
 
 class RAVDESS(AudioClassificationDataset):
     """Ryerson Audio-Visual Database of Emotional Speech and Song (RAVDESS) dataset."""
@@ -396,7 +401,7 @@ class DataFormatter:
 #     # we do not consider the London smart meters, wind farms, solar power, and wind power datasets
 #     # for both univariate and global model evaluations, the Kaggle web traffic daily dataset for
 #     # the global model evaluations and the solar 10 minutely dataset for the WaveNet evaluation
-#     filter_forecast_datasets = True  # TODO: make an env variable
+#     filter_forecast_datasets = True  # To do:  make an env variable
 #     if filter_forecast_datasets and self.dataset_name in self.omitted_datasets:
 #         logger.debug(f'Skipping dataset {self.dataset_name}')
 #         continue
@@ -407,7 +412,7 @@ class DataFormatter:
 #     # if pd.isna(self.horizon):
 #     #     raise ValueError(f'Missing horizon in 0_metadata.csv for {csv_file}')
 #     # self.horizon = int(self.horizon)
-#     # # TODO: revise frequencies, determine and data formatting stage
+#     # # To do: revise frequencies, determine and data formatting stage
 #     # if pd.isna(self.frequency) and 'm3_other_dataset.csv' in csv_file:
 #     #     self.frequency = 'yearly'
 #     # self.actual = self.test_df.values

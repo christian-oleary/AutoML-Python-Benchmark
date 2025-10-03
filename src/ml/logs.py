@@ -11,6 +11,7 @@ logging.getLogger('matplotlib.font_manager').setLevel(logging.ERROR)
 
 
 def add_relative_path(record):
+    """WIP: Add relative path to loguru records. Currently incomplete."""
     record['extra']['relative_path'] = record['name'].replace('.', '/') + '.py'
 
 

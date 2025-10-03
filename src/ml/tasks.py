@@ -77,7 +77,6 @@ class TaskBuilder:
         logger.info(f'Initializing time series task: "{TaskName.CLASSIFICATION}"')
         if config.task == TaskName.CLASSIFICATION:
             return TSClassificationTask(config)
-        elif config.task == TaskName.PREPARE_DATA:
+        if config.task == TaskName.PREPARE_DATA:
             return PrepareDataTask(config)
-        else:
-            raise ValueError(f'Unknown task name: "{config.task}"')
+        raise ValueError(f'Unknown task name: "{config.task}"')

@@ -84,6 +84,8 @@ def cli_field(*args, **kwargs):
 
 
 class SettingsSource(CliSettingsSource):
+    """Configure pydantic CLI to consume known args and ignore the rest."""
+
     def _parse_args(self, parser, args):
         """Only consume known args; ignore the rest (e.g. pytest flags)."""
         known, _ = parser.parse_known_args(args)

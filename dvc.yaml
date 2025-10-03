@@ -1,0 +1,24 @@
+# See README.md for instructions to run stages
+
+stages:
+  prepare_dataset:
+    desc: 'Prepare dataset for training'
+    cmd: python -m ml --task prepare_data --dataset ${dataset}
+    deps:
+      - src/ml/__init__.py
+      - src/ml/configuration.py
+      - src/ml/dataset.py
+    outs:
+      - data/preprocessed/${dataset}/df.csv
+
+  # Train time series classification model on RAVDESS
+  # train_model:
+  #   cmd: python -m ml --task classification --dataset ${dataset} --libraries TODO_TODO_TODO --output_dir results --n_jobs 1
+  #   deps:
+  #     - src/ml/__init__.py
+  #     - src/ml/configuration.py
+  #     - src/ml/dataset.py
+  #     - src/ml/tasks.py
+  #     - data/preprocessed/${dataset}/df.csv
+  #   # outs:
+  #   #   - models/model.joblib

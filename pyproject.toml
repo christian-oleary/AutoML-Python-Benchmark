@@ -78,8 +78,8 @@ Issues = "https://github.com/christian-oleary/AutoML-Python-Benchmark/issues"
 ################################################################################
 # BANDIT
 [tool.bandit]
-exclude = ["tests", "docs", "repositories", "**/TSForecasting/*"]
-exclude_dirs = ["tests", "docs", "repositories", "**/TSForecasting/*"]
+exclude = ["archived", "docs", "repositories", "tests", "**/TSForecasting/*"]
+exclude_dirs = ["archived", "docs", "repositories", "tests", "**/TSForecasting/*"]
 
 [tool.bandit.scripts]
 exclude = ["*_test.py", "*test_*"]
@@ -114,7 +114,7 @@ directory = "./docs/coverage_html_report"
 ################################################################################
 # MYPY
 [tool.mypy]
-exclude = ["tests", "docs", "repositories", "**/TSForecasting/*"]
+exclude = '^(src/ml/archived/|docs/|repositories/|tests/|ignore/|TSForecasting/)'
 explicit_package_bases = true
 ignore_missing_imports = true
 namespace_packages = true
@@ -171,12 +171,12 @@ log_cli_date_format = "%Y-%m-%d %H:%M:%S"
 console_output_style = "progress"
 filterwarnings = "ignore::DeprecationWarning"
 testpaths = [ "tests" ]
-ignore = [ "data_loader.py" ]
+ignore = ["**/archived/*", "docs", "**/TSForecasting/*"]
 
 ################################################################################
 # RUFF
 [tool.ruff]
-exclude = ["docs"]
+exclude = ["**/archived/*", "docs", "**/TSForecasting/*"]
 output-format = "full"
 
 [tool.ruff.format]

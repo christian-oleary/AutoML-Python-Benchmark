@@ -30,6 +30,7 @@ repos:
         hooks:
         -   id: mypy
             args: ["--config-file=pyproject.toml"]
+            exclude: ^src/ml/archived/|docs/|repositories/|tests/|ignore/|TSForecasting/
 
     -   repo: https://github.com/pre-commit/pre-commit-hooks
         rev: v3.2.0
@@ -80,3 +81,22 @@ repos:
             entry: shellcheck
             language: python
             types: [shell]
+
+    -   repo: https://github.com/iterative/dvc
+        rev: 3.56.0
+        hooks:
+        -   id: dvc-pre-commit
+            language_version: python3
+            stages:
+            - pre-commit
+        -   id: dvc-pre-push
+            # use s3/gs/etc instead of all to only install specific cloud support
+            additional_dependencies: ['.[all]']
+            language_version: python3
+            stages:
+            - pre-push
+        -   always_run: true
+            id: dvc-post-checkout
+            language_version: python3
+            stages:
+            - post-checkout

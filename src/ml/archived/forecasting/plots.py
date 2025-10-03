@@ -1,29 +1,12 @@
-"""Utility functions."""
+"""Plotting functions."""
 
 from __future__ import annotations
 
-import csv
-import math
 import os
-import platform
-import time
-import warnings
 from pathlib import Path
-from typing import Any
 
 import matplotlib.pyplot as plt
-import numpy as np
 import pandas as pd
-import seaborn as sns
-from scipy.stats import ConstantInputWarning, gmean, pearsonr, spearmanr
-from sklearn.metrics import (
-    mean_absolute_error,
-    mean_absolute_percentage_error,
-    mean_squared_error,
-    median_absolute_error,
-    r2_score,
-)
-from sktime.performance_metrics.forecasting import MeanAbsoluteScaledError
 
 try:
     from pandas.errors import IndexingError
@@ -31,254 +14,30 @@ except ImportError:  # Older pandas
     from pandas.core.indexing import IndexingError
 
 from ml.logs import logger
-
-# Metrics
-CORR = 'Correlation'
-P_VALUE = 'P-value'
-
-GM_MAE_SRC = 'GM-MAE-SRC'
-GM_MASE_SRC = 'GM-MASE-SRC'
-
-PC = 'Pearson Correlation'
-PP = 'Pearson P-value'
-SRC = f'Spearman {CORR}'
-SP = f'Spearman {P_VALUE}'
-
-# SRC is not normally distributed
-PRIORITY_METRICS = ['GM-MAE-SR', 'MAE', 'MASE', 'MSE', 'RMSE']  # SRC removed
+from ml.utils import Utils
 
 
-class Utils:
-    """Utility functions."""
-
-    # Ignored AutoML library presets
-    ignored_presets: list[str] = []
-
-    # Optional imports
-    imported_status: dict[str, bool] = {}
-    imported_package: dict[str, Any] = {}
+class Plotter:
+    """Plotting functions."""
 
     @staticmethod
-    def regression_scores(
-        actual: np.ndarray,
-        predicted: np.ndarray,
-        y_train: np.ndarray,
-        scores_dir: str | Path | None = None,
-        forecaster_name: str | None = None,
-        multioutput: str = 'uniform_average',
-        **kwargs,
-    ) -> dict:
-        """Calculate forecasting metrics and optionally save results.
-
-        :param np.ndarray actual: Original time series values
-        :param np.ndarray predicted: Predicted time series values
-        :param np.ndarray y_train: Training values (required for MASE)
-        :param str scores_dir: Path to file to record scores (str or None), defaults to None
-        :param str forecaster_name: Name of forecaster
-        :param str multioutput: 'raw_values', 'uniform_average', defaults to 'uniform_average'
-        :raises TypeError: If forecaster_name is not provided when saving results to file
-        :return dict: Dictionary of forecasting metrics
-        """
-        # Convert pd.Series to NumPy Array
-        if predicted.shape == (actual.shape[0], 1) and not pd.core.frame.DataFrame:
-            predicted = predicted.flatten()
-
-        if predicted.shape != actual.shape:
-            raise ValueError(
-                f'Predicted ({predicted.shape}) and actual ({actual.shape}) shapes do not match!'
-            )
-
-        mase = MeanAbsoluteScaledError(multioutput='uniform_average')
-
-        with warnings.catch_warnings():
-            warnings.simplefilter('ignore', category=ConstantInputWarning)
-            pearson = Utils.correlation(actual, predicted, method='pearson')
-            spearman = Utils.correlation(actual, predicted, method='spearman')
-
-        results = {
-            'MAE': mean_absolute_error(actual, predicted, multioutput=multioutput),
-            'MAE2': median_absolute_error(actual, predicted),
-            'MAEover': Utils.mae_over(actual, predicted),
-            'MAEunder': Utils.mae_under(actual, predicted),
-            'MAPE': mean_absolute_percentage_error(actual, predicted, multioutput=multioutput),
-            'MASE': mase(actual, predicted, y_train=y_train),
-            'ME': np.mean(actual - predicted),
-            'MSE': mean_squared_error(actual, predicted, multioutput=multioutput),
-            PC: pearson[0],
-            PP: pearson[1],
-            'R2': r2_score(actual, predicted, multioutput=multioutput),
-            'RMSE': math.sqrt(mean_squared_error(actual, predicted, multioutput=multioutput)),
-            'sMAPE': Utils.smape(actual, predicted),
-            SRC: spearman[0],
-            SP: spearman[1],
-        }
-
-        # Grimes: "maximizing the geometric mean of (−MAE) and average daily Spearman correlation"
-        # This may be an error, as you cannot calculate geometric mean with negative numbers. This
-        # uses geometric mean of MAE and (1-SRC) with the intention of minimizing the metric.
-        results[GM_MAE_SRC] = Utils.geometric_mean(results['MAE'], results[SRC])
-        results[GM_MASE_SRC] = Utils.geometric_mean(results['MASE'], results[SRC])
-
-        # Record duration if provided
-        if 'duration' in kwargs:
-            results['duration'] = kwargs['duration']
-
-        # Save scores to file
-        if scores_dir is not None:
-            # Ensure forecaster name is provided
-            if forecaster_name is None:
-                raise TypeError('Forecaster name required to save scores')
-
-            # Create directory if it does not exist
-            os.makedirs(scores_dir, exist_ok=True)
-
-            # Add environment and device information
-            results = {
-                **results,
-                'environment': f'python_{platform.python_version()}-os_{platform.system()}',
-                'device': f'node_{platform.node()}-pro_{platform.processor()}',
-            }
-            # Save results to file
-            Utils.write_to_csv(os.path.join(scores_dir, f'{forecaster_name}.csv'), results)
-
-        return results
-
-    @staticmethod
-    def geometric_mean(error_score: float, rank_correlation_score: float) -> np.ndarray:
-        """Calculates the geometric mean of some mean error score and a mean rank correlation score.
-
-        :param float error_score: Mean error score
-        :param float rank_score: Mean rank correlation score
-        :return float: Geometric mean of error and 1-rank scores
-        """
-        # Grimes calls for "maximizing the geometric mean of (−MAE) and average daily Spearman correlation"
-        # It is not possible to calculate geometric mean with negative numbers without some conversion.
-        # Therefore, this work uses geometric mean of MAE and (1-SRC) with the intention of minimizing the metric.
-        return gmean([error_score, 1 - rank_correlation_score])
-
-    @staticmethod
-    def geometric_mean_mae_sr(actual: np.ndarray, predicted: np.ndarray) -> np.ndarray:
-        """Calculate geometric mean of MAE and a Spearman correlation score.
-
-        :param np.ndarray actual: Real values
-        :param np.ndarray predicted: Predicted values
-        :return float: Geometric mean of MAE and SRC
-        """
-        mae_score = mean_absolute_error(actual, predicted, multioutput='uniform_average')
-        src_score = Utils.correlation(actual, predicted, method='spearman')[0]
-        return Utils.geometric_mean(mae_score, src_score)  # type: ignore
-
-    @staticmethod
-    def correlation(actual, predicted, method='pearson'):
-        """Wrapper to extract correlations and p-values from scipy.
-
-        :param np.array actual: Actual values
-        :param np.array predicted: Predicted values
-        :param str method: Correlation type, defaults to 'pearson'
-        :raises ValueError: If unknown correlation method is passed
-        :return: Correlation (float) and pvalue (float)
-        """
-        if method == 'pearson':
-            result = pearsonr(actual, predicted)
-        elif method == 'spearman':
-            result = spearmanr(actual, predicted)
-        else:
-            raise ValueError(f'Unknown correlation method: {method}')
-
-        try:
-            correlation = result.correlation
-            pvalue = result.pvalue
-        except AttributeError:
-            correlation = result[0]
-            pvalue = result[1]
-
-        return correlation, pvalue
-
-    @staticmethod
-    def mae_over(actual, predicted):
-        """Overestimated predictions (from Grimes et al. 2014)."""
-        errors = predicted - actual
-        positive_errors = np.clip(errors, 0, errors.max())
-        return np.mean(positive_errors)
-
-    @staticmethod
-    def mae_under(actual, predicted):
-        """Underestimated predictions (from Grimes et al. 2014)."""
-        errors = predicted - actual
-        negative_errors = np.clip(errors, errors.min(), 0)
-        return np.absolute(np.mean(negative_errors))
-
-    @staticmethod
-    def smape(actual, predicted):
-        """Implementation of sMAPE."""
-        totals = np.abs(actual) + np.abs(predicted)
-        differences = np.abs(predicted - actual)
-        return 100 / len(actual) * np.sum(2 * differences / totals)
-        # return (
-        #     100
-        #     / len(actual)
-        #     * np.sum(2 * np.abs(predicted - actual) / (np.abs(actual) + np.abs(predicted)))
-        # )
-
-    @staticmethod
-    def write_to_csv(path, results):
-        """Record modelling results in a CSV file.
-
-        :param str path: the result file path
-        :param dict results: a dict containing results from running a model
-        """
-        np.set_printoptions(precision=4)
-        if len(results) > 0:
-            HEADERS = sorted(list(results.keys()), key=lambda v: str(v).upper())
-            if 'model' in HEADERS:
-                HEADERS.insert(0, HEADERS.pop(HEADERS.index('model')))
-
-            for key, value in results.items():
-                if value is None or value == '':
-                    results[key] = 'None'
-
-            try:
-                Utils._write_to_csv(path, results, HEADERS)
-            except OSError:
-                # try a second time: permission error can be due to Python not
-                # having closed the file fast enough after the previous write
-                time.sleep(1)  # in seconds
-                Utils._write_to_csv(path, results, HEADERS)
-
-    @staticmethod
-    def _write_to_csv(path, results, headers):
-        """Open and write results to CSV file.
-
-        :param str path: Path to file
-        :param dict results: Values to write
-        :param list headers: A list of strings to order values by
-        """
-        is_new_file = not os.path.exists(path)
-        with open(path, 'a+', newline='', encoding='utf-8') as f:
-            writer = csv.writer(f, delimiter=',')
-            if is_new_file:
-                writer.writerow(headers)
-            writer.writerow([results[header] for header in headers])
-
-    @staticmethod
-    def plot_forecast(actual, predicted, results_subdir, forecaster_name):
+    def plot_forecast(actual, predicted, results_subdir, library_name):
         """Plot forecasted vs actual values
 
         :param np.array actual: Original time series values
         :param np.array predicted: Forecasted values
         :param str results_subdir: Path to output directory
-        :param str forecaster_name: Model name
+        :param str library_name: Library/model name
         """
         plt.clf()
         pd.plotting.register_matplotlib_converters()
-
         # Create plot
         plt.figure(0, figsize=(20, 3))  # Pass plot ID to prevent memory issues
         plt.plot(actual, label='actual')
         plt.plot(predicted, label='predicted')
-        save_path = os.path.join(results_subdir, 'plots', f'{forecaster_name}.png')
-        os.makedirs(os.path.join(results_subdir, 'plots'), exist_ok=True)
-        Utils.save_plot(forecaster_name, save_path=save_path)
+        save_path = Path(results_subdir, 'plots', f'{library_name}.svg')
+        Path(results_subdir, 'plots').mkdir(parents=True, exist_ok=True)
+        Utils.save_plot(library_name, save_path=save_path)
 
     @staticmethod
     def save_plot(
@@ -660,72 +419,3 @@ class Utils:
                     os.path.join(stats_dir, 'heatmap.png'),
                 )
                 Utils.plot_test_scores(all_scores, stats_dir, plots)
-
-    @staticmethod
-    def save_heatmap(
-        df: pd.DataFrame,
-        csv_path: str,
-        png_path: str | None = None,
-        columns: str | list[str] | None = None,
-        figsize: tuple[int, int] | None = None,
-    ) -> pd.DataFrame:
-        """Save Pearson correlation matrix of metrics.
-
-        :param pd.DataFrame df: Results
-        :param str csv_path: Path to CSV file
-        :param str | None png_path: Path to PNG file, defaults to None
-        :param str | list[str] columns: Columns to include, defaults to PRIORITY_METRICS. Accepts 'all'.
-        :param tuple[int, int] figsize: Figure size, defaults to None
-        :return pd.DataFrame heatmap: Correlation matrix if successful
-        """
-        # Filter columns
-        if columns is None:
-            columns = PRIORITY_METRICS
-        elif columns == 'all':
-            columns = df.columns.tolist()
-
-        # Save Pearson correlation heatmap of metrics as an indication of agreement.
-        df[columns].to_csv('variables.csv')
-        heatmap = df[columns].corr(method='pearson')
-
-        # Save correlations as CSV and TEX
-        heatmap.to_csv(csv_path)  # Save correlations as CSV
-        heatmap.style.to_latex(csv_path.replace('.csv', '.tex'))  # Save correlations as .tex
-
-        # Save p-values as CSV
-        def p_value(x, y):
-            if x.shape == (1,) or y.shape == (1,):
-                p_value = float('nan')
-            else:
-                p_value = pearsonr(x, y)[1]
-            return p_value
-
-        p_path = csv_path.replace('.csv', '_pvalues.csv')
-        df[columns].corr(method=p_value).to_csv(p_path)  # type: ignore
-
-        if png_path is None:
-            return heatmap
-
-        # Save correlation heatmap as image
-        ax = None
-        if figsize is not None:
-            plt.figure(figsize=figsize)
-            _, ax = plt.subplots(figsize=figsize)
-        axes = sns.heatmap(
-            heatmap,
-            ax=ax,
-            annot=True,
-            cbar=False,
-            cmap='viridis',
-            fmt='.2f',
-            #    xticklabels=columns,
-            #    yticklabels=columns,
-            annot_kws={'size': 11},
-        )
-        axes.set_xticklabels(axes.get_xticklabels(), fontsize=11, rotation=45, ha='right')
-        axes.set_yticklabels(axes.get_yticklabels(), fontsize=11, rotation=45, va='top')
-        # axes.set_xticklabels(columns, fontsize=11, rotation=45, ha='right')
-        # axes.set_yticklabels(columns, fontsize=11, rotation=45, va='top')
-        plt.tight_layout()
-        Utils.save_plot('Pearson Correlation Heatmap', save_path=png_path)
-        return heatmap

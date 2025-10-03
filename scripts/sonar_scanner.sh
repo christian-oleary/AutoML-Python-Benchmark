@@ -202,9 +202,9 @@ for repo_path in $repositories; do
     repo_name=$(basename "$repo_path")
     image_name="christianoleary/${repo_name}"
 
-    ############
-    # Skip H2O-3
-    ############
+    #####################
+    # Skip H2O-3 and Kats
+    #####################
     if [ "$repo_name" = "h2o_3" ] || [ "$repo_name" = "kats" ]; then
         print_line "Skipping ${repo_name}..."
         continue

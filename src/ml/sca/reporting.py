@@ -11,9 +11,10 @@ import pandas as pd
 from scipy.stats import spearmanr
 import seaborn as sns
 
-from ml import LIBRARIES
+from ml import Library
 from ml.logs import logger
 
+LIBRARIES = {lib.value: lib for lib in Library}
 # LaTeX formatting
 BOLD = '\\textbf'
 ITALIC = '\\textit'
@@ -58,7 +59,7 @@ class Reporting:
         'Total CC',
         'Violations',
     ]
-    LONGEST_NAME = max(len(name) for name in LIBRARIES.values())
+    LONGEST_NAME = max(len(lib.value) for lib in Library)
     # fmt: off
     RANK_METRICS = [
         'bandit__Total Issues', 'coverage__line-rate', 'coverage__branch-rate',

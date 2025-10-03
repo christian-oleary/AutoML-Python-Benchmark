@@ -1,0 +1,5 @@
+# DVC parameters: https://dvc.org/doc/command-reference/params
+
+# CLI arguments
+dataset: ravdess      # Dataset to use: ravdess, iemocap, isem, isem2020
+task: classification  # Task type: anomaly_detection, classification, forecasting, prepare_data

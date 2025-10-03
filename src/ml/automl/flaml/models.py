@@ -8,7 +8,7 @@ import pandas as pd
 from ml.base import Forecaster
 from ml.errors import DatasetTooSmallError
 from ml.logs import logger
-from ml.util import Utils
+from ml.plots import Utils
 
 try:
     from flaml import AutoML

@@ -1,155 +1,82 @@
 """FLAML models."""
 
-import os
-
-import numpy as np
-import pandas as pd
-
-from ml.base import Forecaster
-from ml.errors import DatasetTooSmallError
-from ml.logs import logger
-from ml.plots import Utils
-
 try:
     from flaml import AutoML
 except ModuleNotFoundError:
     raise ModuleNotFoundError('FLAML not installed')
+from loguru import logger
+import pandas as pd
+
+from ml import TaskName
+from ml.automl import AutoMLEngine
+from ml.configuration import Configuration
+from ml.errors import DatasetTooSmallError
 
 
-class FLAMLForecaster(Forecaster):
-    """FLAML Forecaster"""
+class FLAMLEngine(AutoMLEngine):
+    """FLAMLEngine engine for time series modelling."""
 
-    name = 'FLAML'
+    config: Configuration
 
-    # Use 99% of maximum available time for model training in initial experiment
-    initial_training_fraction = 0.99
+    def __init__(self, config: Configuration):
+        super().__init__(config)
+        # 'classification', 'regression', 'ts_forecast''
+        if self.config.task == TaskName.CLASSIFICATION:
+            self.task = 'ts_forecast_classification'
+        elif self.config.task == TaskName.FORECAST_UNIVARIATE:
+            self.task = 'ts_forecast'
+        elif self.config.task == TaskName.FORECAST_MULTIVARIATE:
+            self.task = 'ts_forecast_panel'
+        else:
+            raise ValueError(f'Invalid task "{self.config.task}" for FLAML')
 
-    presets = ['auto']
-
-    def forecast(
+    def train(
         self,
-        train_df,
-        test_df,
-        forecast_type,
-        horizon,
-        limit,
-        frequency,
-        tmp_dir,
-        nproc=1,
-        preset='auto',
-        target_name=None,
+        X_train: pd.DataFrame,
+        y_train: pd.Series,
+        X_test: pd.DataFrame,
+        y_test: pd.Series,
+        **kwargs,
     ):
-        """Perform time series forecasting.
+        """Perform time series modelling.
 
-        :param pd.DataFrame train_df: Dataframe of training data
-        :param pd.DataFrame test_df: Dataframe of test data
-        :param str forecast_type: Type of forecasting, i.e. 'global', 'multivariate' or 'univariate'
-        :param int horizon: Forecast horizon (how far ahead to predict)
-        :param int limit: Time limit in seconds
-        :param int frequency: Data frequency
-        :param str tmp_dir: Path to directory to store temporary files
-        :param int nproc: Number of threads/processes allowed, defaults to 1
-        :param str preset: Model configuration to use, defaults to 'auto'
-        :param str target_name: Name of target variable for multivariate forecasting, defaults to None
-        :return predictions: Numpy array of predictions
+        :param pd.DataFrame X_train: Input training features of shape [n_samples, n_features]
+        :param pd.Series y_train: target training data of length [n_samples]
+        :param pd.DataFrame X_test: Test or val. features of shape [n_samples, n_features]
+        :param pd.Series y_test: Unused. Test or val. labels of shape [n_samples]
         """
-        if len(test_df) <= horizon + 1:  # 4 = lags
+        if kwargs.get('horizon') and len(X_test) <= kwargs['horizon'] + 1:  # 4 = lags
             raise DatasetTooSmallError('Dataset too small for FLAML', ValueError())
 
-        os.makedirs(tmp_dir, exist_ok=True)
+        extra_kwargs = {}
+        if 'forecast' in self.task:
+            extra_kwargs['period'] = kwargs['horizon']
 
-        if forecast_type == 'univariate':
-            target_name = 'target'
-            train_df.columns = [target_name]
-            test_df.columns = [target_name]
-
-            if 'ISEM_prices' in tmp_dir:
-                train_df.index = pd.to_datetime(train_df.index, format='%d/%m/%Y %H:%M')
-                train_df.index = pd.date_range(
-                    start=train_df.index.min(), freq='H', periods=len(train_df)
-                )
-                test_df.index = pd.to_datetime(test_df.index, format='%d/%m/%Y %H:%M')
-
-                # Not required as FLAML is using timestamps as features
-                # test_df['flaml_datetime'] = test_df.index
-                # test_df['flaml_datetime'] = pd.to_datetime(test_df['flaml_datetime'], errors='coerce')
-                # test_df = test_df[test_df['flaml_datetime'].dt.hour == 0]
-                # test_df = test_df.drop('flaml_datetime', axis=1)
-                # test_df = test_df[test_df.index.dt.hour == 0]
-
-            else:
-                train_df.index = pd.to_datetime(train_df.index, unit='D')
-                test_df.index = pd.to_datetime(test_df.index, unit='D')
-
-            y_train = train_df[target_name]
-
-        else:
-            raise NotImplementedError()
-            train_df.index = pd.to_datetime(train_df.index)
-            test_df.index = pd.to_datetime(test_df.index)
+        # "For time series forecast tasks, the first column of X_train must be
+        # the timestamp column (datetime type). Other columns in the dataframe
+        # are assumed to be exogenous variables (categorical or numeric)."
 
         automl = AutoML()
-        logger.debug('Training models...')
+        logger.debug('Training models via FLAML...')
         automl.fit(
-            X_train=train_df.index.to_series(name='ds').values,
+            X_train=X_train,  # train_df.index.to_series(name='ds').values,
             y_train=y_train,
-            estimator_list=preset,
+            estimator_list='auto',
             eval_method='auto',
-            log_file_name=os.path.join(tmp_dir, 'ts_forecast.log'),
-            n_jobs=nproc,
-            period=horizon,
-            task='ts_forecast',
-            time_budget=limit,  # seconds
+            n_jobs=self.config.n_jobs,
+            task=self.task,
             verbose=0,  # Higher = more messages
+            # time_budget=limit,  # seconds
+            # log_file_name=os.path.join(tmp_dir, self.task, f'{self.task}.log'),
         )
-        logger.debug('Training finished.')
+        logger.debug('Training with FLAML finished.')
+        # predictions = automl.predict(test_df.index.to_series(name='ds').values, period=horizon).values
+        # return predictions
 
-        predictions = automl.predict(
-            test_df.index.to_series(name='ds').values, period=horizon
-        ).values
+    def predict(self, X_test: pd.DataFrame) -> pd.Series:
+        """Make predictions.
 
-        # predictions = self.rolling_origin_forecast(automl, train_df.index.to_series(name='ds').values,
-        #                                            test_df.index.to_series().to_frame(), horizon)
-        # predictions = predictions[:len(test_df)].values
-        return predictions
-
-    def estimate_initial_limit(self, time_limit, preset):
-        """Estimate initial limit to use for training models.
-
-        :param time_limit: Maximum amount of time allowed for forecast() (int)
-        :param str preset: Model configuration to use
-        :return: Time limit in seconds (int)
+        :param pd.DataFrame X_test: Test or validation features of shape [n_samples, n_features]
+        :return pd.Series: Predictions
         """
-        return int(time_limit * self.initial_training_fraction)
-
-    def rolling_origin_forecast(self, model, X_train, X_test, horizon):
-        """Iteratively forecast over increasing dataset.
-
-        :param model: Forecasting model, must have predict()
-        :param X_train: Training feature data (pandas DataFrame)
-        :param X_test: Test feature data (pandas DataFrame)
-        :param horizon: Forecast horizon (int)
-        :return: Predictions (numpy array)
-        """
-        # Split test set
-        test_splits = Utils.split_test_set(X_test, horizon)
-
-        # Make predictions
-        preds = model.predict(X_train)[-horizon:]
-        predictions = [preds]
-
-        # predictions = []
-        for s in test_splits:
-            s = s.index.to_series(name='ds').values
-            if len(s) < horizon:
-                s = X_test.tail(horizon).index.to_series(name='ds').values
-            preds = model.predict(s)[-horizon:]
-            predictions.append(preds)
-
-        # Flatten predictions and truncate if needed
-        try:
-            predictions = np.concatenate([p.flatten() for p in predictions])
-        except AttributeError:
-            predictions = np.concatenate([p.values.flatten() for p in predictions])
-        predictions = predictions[: len(X_test)]
-        return predictions
+        raise NotImplementedError('FLAML predict not implemented yet')

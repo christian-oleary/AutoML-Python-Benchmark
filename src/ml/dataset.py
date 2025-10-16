@@ -1,7 +1,6 @@
 """Data formatting functions."""
 
-import os
-from abc import ABCMeta, abstractmethod
+from abc import ABC, abstractmethod
 from datetime import datetime
 from pathlib import Path
 
@@ -11,13 +10,13 @@ from pandas import DataFrame
 from typing_extensions import Self
 
 # from ml.frequencies import frequencies
-from ml import AUDIO_LABELS, TaskName
+from ml import AUDIO_LABELS, AudioColumns, TaskName
 from ml.configuration import Configuration
 from ml.logs import logger
 from ml.utils import Utils
 
 
-class Dataset(metaclass=ABCMeta):
+class Dataset(ABC):
     """Base class for datasets."""
 
     # Default location to store datasets
@@ -26,14 +25,13 @@ class Dataset(metaclass=ABCMeta):
     df_path: str | Path = Path('data', 'preprocessed', 'df.csv')
 
     # Dataset aliases, name and Hugging Face Hub alias
-    aliases: list[str] = ['_base_dataset']
+    aliases: list[str] = []
     name: str | Path | None = None
     hub_name: str | None = None
 
     # Dataframes
     df: pd.DataFrame
-    train_df: pd.DataFrame
-    test_df: pd.DataFrame
+    target_cols: list[str] | None = None
 
     # Task Type
     task: TaskName = TaskName.NONE
@@ -46,6 +44,7 @@ class Dataset(metaclass=ABCMeta):
         """
         self.name = kwargs.get('name', self.name)
         self.data_dir = kwargs.get('data_dir', self.data_dir)
+        self.target_cols = kwargs.get('target_cols', self.target_cols)
 
         # Validate name
         if not self.name:
@@ -61,19 +60,10 @@ class Dataset(metaclass=ABCMeta):
         if kwargs.get('init_dataset', True):
             self._init_dataset(**kwargs)
             self.ensure_data()
-            # self.split_data()
 
     @abstractmethod
     def _init_dataset(self, **kwargs) -> Self:
         """Fetch data relating to dataset."""
-        raise NotImplementedError
-
-    def split_data(self) -> tuple[pd.DataFrame, pd.DataFrame]:
-        """Split data into training and test sets."""
-        self.ensure_data()
-        self.train_df = self.df.head(int(len(self.df) * 0.8))
-        self.test_df = self.df.tail(int(len(self.df) * 0.2))
-        return self.train_df, self.test_df
 
     def ensure_data(self):
         """Ensure dataset is not empty.
@@ -83,58 +73,48 @@ class Dataset(metaclass=ABCMeta):
         if self.df is None or len(self.df) == 0:
             raise ValueError('Empty dataset!')
 
-    def _download_from_huggingface(self, n_jobs: int = 1) -> Path:
+    def _download_from_huggingface(self, n_jobs: int = 1) -> tuple[Path, datasets.DatasetDict]:
         """Download dataset from Hugging Face Hub.
 
         :param int n_jobs: Number of processes to use for download, defaults to 1
+        :return tuple[Path, datasets.DatasetDict]: Path to data directory and dataset object
         """
         output_dir = Path(self.data_dir, str(self.name))
         if output_dir.exists():
-            logger.debug(f'{self.name} data dir already found at: {output_dir}')
-            return output_dir
+            self.dataset: datasets.DatasetDict = datasets.load_from_disk(str(output_dir))
+            logger.debug(f'Using existing dataset at: {output_dir}')
+        else:
+            # Remove existing intermediate directory
+            # cache_dir = Path(self.data_dir, f'{self.name}_DOWNLOAD_TEMP')
+            # if cache_dir.exists():
+            #     Utils.delete_paths(cache_dir)
+            # cache_dir.mkdir(exist_ok=True, parents=True)
+            # Start download
+            logger.info(f'Downloading "{self.name}" from Hugging Face Hub at: "{self.hub_name}"')
+            self.dataset = datasets.load_dataset(
+                str(self.hub_name),
+                num_proc=n_jobs,
+                split=None,
+                trust_remote_code=True,
+                # data_dir=str(cache_dir), # cache_dir=str(cache_dir),
+            )
+            logger.info(f'Downloaded dataset. Saving to: {output_dir}')
+            self.dataset.save_to_disk(output_dir, num_proc=n_jobs)
+            self.dataset.cleanup_cache_files()
 
-        # Specify intermediate directory
-        temp_dir = Path(self.data_dir, f'{self.name}_DOWNLOAD_TEMP')
-        # Remove existing intermediate directory
-        if temp_dir.exists():
-            Utils.delete_paths(temp_dir)
-        temp_dir.mkdir(exist_ok=True, parents=True)
-
-        # Start download
-        logger.info(f'Downloading "{self.name}" from Hugging Face Hub at: {self.hub_name}')
-        result = datasets.load_dataset(
-            str(self.hub_name),
-            num_proc=n_jobs,
-            split=None,
-            trust_remote_code=True,
-            data_dir=str(temp_dir),
-            cache_dir=str(temp_dir),
-        )
-        logger.info(f'Download result: {result}')
-
-        # Get name of download directory (dynamically generated name)
-        data_dir = Path(temp_dir, 'downloads', 'extracted')
-        data_dir = Path(str(list(data_dir.glob('*'))[0]).replace('.lock', ''))
-
-        # Move dataset to expected location
-        os.rename(data_dir, output_dir)
-
-        # Check if dataset is empty
+        logger.info(f'Dataset: {self.dataset} ({type(self.dataset)})')
         if len(list(output_dir.glob('*'))) == 0:
             raise FileNotFoundError('Downloaded dataset directory is empty!')
-
-        # Delete temporary download directory
-        Utils.delete_paths(temp_dir)
-
-        return output_dir
+        # Utils.delete_paths(cache_dir)  # Delete temporary download directory
+        return output_dir, self.dataset
 
 
 class ClassificationDataset(Dataset):
     """Base class for classification datasets."""
 
-    aliases: list[str] = ['_base_classification_dataset']
     task: TaskName = TaskName.CLASSIFICATION
     labels: list[str] = []
+    target_cols: list[str] = [AudioColumns.LABEL.value]
 
     @abstractmethod
     def _init_dataset(self, **kwargs) -> Self:
@@ -166,6 +146,7 @@ class RAVDESS(AudioClassificationDataset):
     def _init_dataset(self, **kwargs) -> Self:
         """Fetch RAVDESS data."""
         self.unused_labels = kwargs.get('unused_labels', self.unused_labels)
+        self.target_cols = [AudioColumns.LABEL.value]
         # Download data
         self._download_from_huggingface(int(kwargs.get('n_jobs', 1)))
         # Read labels
@@ -191,30 +172,78 @@ class RAVDESS(AudioClassificationDataset):
             if emotion not in self.unused_labels:  # type: ignore
                 entry = {
                     'path': file_path,
-                    'label': emotion,
+                    self.target_cols[0]: emotion,
                     'text': statement_map[parts[4]],
                     # 'modality': modality_map[parts[0]],
                     # 'vocal_channel': vocal_channel_map[parts[1]],
                     # 'intensity': intensity_map[parts[3]],
                     # 'repetition': repetition_map[parts[5]],
-                    # 'actor': parts[6],
+                    'speaker': parts[6],
                 }
                 data.append(entry)
         # Validate data
         self.df = pd.DataFrame(data)
         if len(self.df) != self.expected_rows:
-            raise ValueError(
-                f'Wrong number of rows in {self.name}. Expected '
-                f'{self.expected_rows}. Got: {len(self.df)}'
-            )
+            raise ValueError(f'Wrong row count: {len(self.df)}. Expected: {self.expected_rows}')
         return self
 
+    # def handle_downloaded_data(self, **kwargs):
+    #     """Handle downloaded data from Hugging Face Hub."""
+    #     # Get name of download directory (dynamically generated name)
+    #     data_dir = Path(kwargs['cache_dir'], 'downloads', 'extracted')
+    #     data_dir = Path(str(list(data_dir.glob('*'))[0]).replace('.lock', ''))
+    #     # Move dataset to expected location
+    #     os.rename(data_dir, kwargs['output_dir'])
 
-class ForecastingDataset(Dataset):
+
+class IEMOCAP(AudioClassificationDataset):
+    """Interactive Emotional Dyadic Motion Capture (IEMOCAP) dataset."""
+
+    aliases: list[str] = ['iemocap']
+    name = 'iemocap'
+    hub_name = 'AbstractTTS/IEMOCAP'
+    columns: dict = {
+        AudioColumns.PATH.value: 'file',
+        AudioColumns.AUDIO.value: 'audio',
+        AudioColumns.LABEL.value: 'major_emotion',
+        AudioColumns.TEXT.value: 'transcription',
+    }
+    # feature_cols = ['speaking_rate', 'pitch_mean', 'pitch_std', 'rms', 'relative_db']
+
+    expected_rows: int = 10039
+    unused_labels: list[str] = []
+
+    def _init_dataset(self, **kwargs) -> Self:
+        """Fetch IEMOCAP data."""
+        self.unused_labels = kwargs.get('unused_labels', self.unused_labels)
+        self.target_cols = [AudioColumns.LABEL.value]
+        # Download (or load) data
+        self._download_from_huggingface(int(kwargs.get('n_jobs', 1)))
+        # Convert to pandas dataframe
+        self._ds_to_pandas()  # .to_csv(Path('test.csv'), index=False)
+        if len(self.df) != self.expected_rows:
+            raise ValueError(f'Wrong row count: {len(self.df)}. Expected: {self.expected_rows}')
+        return self
+
+    def _ds_to_pandas(self) -> pd.DataFrame:
+        """Convert a datasets.DatasetDict to a pandas DataFrame."""
+        if not isinstance(self.dataset, datasets.DatasetDict):
+            raise ValueError('Dataset is not a datasets.DatasetDict object')
+        # Filter columns, add split name, and concatenate splits into a dataframe
+        splits = [
+            self.dataset[key].select_columns(self.columns.values()).to_pandas().assign(split=key)
+            for key in self.dataset.keys()
+        ]
+        self.df = pd.concat(splits, ignore_index=True)
+        # Rename columns to standard names
+        self.df = self.df.rename(columns={v: k for k, v in self.columns.items()})
+        return self.df
+
+
+class ForecastUnivariateDataset(Dataset):
     """Base class for forecasting datasets."""
 
-    aliases: list[str] = ['_base_forecasting_dataset']
-    task: TaskName = TaskName.FORECASTING
+    task: TaskName = TaskName.FORECAST_UNIVARIATE
 
     # Forecasting horizon and frequency
     frequency: str
@@ -253,7 +282,7 @@ class ISEMDataset(Dataset):
 
     aliases: list[str] = ['isem']
     name: str = 'isem'
-    task: TaskName = TaskName.FORECASTING
+    task: TaskName = TaskName.FORECAST_UNIVARIATE
 
     frequency: str = '24H'
     horizon: int = 24
@@ -310,6 +339,8 @@ class DatasetReader:
         """Determine if data is a named dataset or a path."""
         if self.config.dataset in RAVDESS.aliases:
             self.dataset = RAVDESS(data_dir=self.config.data_dir)
+        elif self.config.dataset in IEMOCAP.aliases:
+            self.dataset = IEMOCAP(data_dir=self.config.data_dir)
         else:
             raise NotImplementedError(f'Dataset {self.config.dataset} is not supported')
         return self.dataset
@@ -321,21 +352,21 @@ class DataFormatter:
     def __init__(self, config: Configuration):
         self.config = config
 
-    def preprocess(self, dataset: Dataset):
+    def preprocess(self, dataset: Dataset) -> Dataset:
         """Preprocess a dataset for a specific task type.
 
         :param Dataset dataset: Dataset to be processed
         """
         if self.config.task in [TaskName.CLASSIFICATION, TaskName.PREPARE_DATA]:
             if isinstance(dataset, AudioClassificationDataset):
-                dataset = self.preprocess_audio(dataset)
+                dataset = self._preprocess_audio(dataset)
             else:
                 raise NotImplementedError
         else:
             raise NotImplementedError
         return dataset
 
-    def preprocess_audio(self, dataset: Dataset) -> Dataset:
+    def _preprocess_audio(self, dataset: Dataset) -> Dataset:
         """Preprocess audio data for time series classification.
 
         :param Dataset dataset: Dataset to be processed
@@ -350,17 +381,17 @@ class DataFormatter:
         dataset.df_path = self.df_path
 
         # If preprocessed data already exists, return that
-        if self.df_path.exists():
-            logger.info(f'Using existing dataframe at: {self.df_path}')
-            dataset.df = pd.read_csv(self.df_path)
-            return dataset
+        # if self.df_path.exists():
+        #     logger.info(f'Using existing dataframe at: {self.df_path}')
+        #     dataset.df = pd.read_csv(self.df_path)
+        #     return dataset
 
         # Drop unused labels and check data shapes
         if isinstance(dataset, AudioClassificationDataset):
             # Drop unused labels
             logger.debug(f'{dataset.name} original shape: {dataset.df.shape}')
             original_length = len(dataset.df)
-            dataset.df = dataset.df[dataset.df['label'].isin(dataset.labels)]
+            dataset.df = dataset.df[dataset.df[AudioColumns.LABEL.value].isin(dataset.labels)]
             # Check new dataframe length
             new_length = original_length - len(dataset.df)
             logger.debug(f'Removed {new_length} rows. Shape: {dataset.df.shape}')
@@ -375,9 +406,9 @@ class DataFormatter:
             raise ValueError('At least two labels are required for classification')
 
         # Save preprocessed data
-        self.preprocessed_dir.mkdir(parents=True, exist_ok=True)
-        dataset.df.to_csv(self.df_path, index=False)
-        logger.info(f'Saved dataframe "df" to: {self.df_path}')
+        # self.preprocessed_dir.mkdir(parents=True, exist_ok=True)
+        # dataset.df.to_csv(self.df_path, index=False)
+        # logger.info(f'Saved dataframe "df" to: {self.df_path}')
         return dataset
 
 

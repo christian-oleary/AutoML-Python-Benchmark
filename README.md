@@ -6,7 +6,7 @@
 
 Benchmarks of AutoML Frameworks for time series forecasting, anomaly detection and classification.
 
-Primary Python version: 3.10.14
+This requires [Docker](https://docs.docker.com/). Primary Python version: 3.10.14
 
 ## Table of Contents
 

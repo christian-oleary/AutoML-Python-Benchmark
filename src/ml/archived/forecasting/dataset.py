@@ -197,7 +197,7 @@ class ForecastingDataset(Dataset):
     """Base class for forecasting datasets."""
 
     aliases: list[str] = ['_base_forecasting_dataset']
-    task: TaskName = TaskName.FORECASTING
+    task: TaskName = TaskName.UNIVARIATE_FORECASTING
     # Forecasting horizon and frequency
     frequency: str
     horizon: int

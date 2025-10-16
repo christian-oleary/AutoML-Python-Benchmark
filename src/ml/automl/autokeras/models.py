@@ -73,7 +73,7 @@ class AutoKerasForecaster(Forecaster):
         shutil.rmtree(tmp_dir, ignore_errors=True)
 
         self.forecast_type = forecast_type
-        if self.forecast_type == TaskName.FORECASTING:
+        if self.forecast_type == TaskName.UNIVARIATE_FORECASTING:
             target_name = 'target'
             train_df.columns = [target_name]
             test_df.columns = [target_name]
@@ -109,7 +109,7 @@ class AutoKerasForecaster(Forecaster):
         clf = ak.TimeseriesForecaster(**params)
         logger.debug(params)
 
-        # "lookback" must be divisable by batch size due to library bug:
+        # "lookback" must be divisible by batch size due to library bug:
         # https://github.com/keras-team/autokeras/issues/1720
         # Start at 1024 as batch size and decrease until a factor is found
         # Counting down prevents unnecessarily small batch sizes being selected

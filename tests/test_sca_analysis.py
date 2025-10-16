@@ -95,11 +95,11 @@ def analysis(tmp_path):
 def test_analyze_repo(analysis: Analysis, git_repo: GitRepo, tmp_path):
     """Test the analyze_repo method of the Analysis class."""
     with (
-        patch.object(Analysis, 'parse_sonar_scanner_json', return_value={'lines': 1}),
-        patch.object(Analysis, 'read_coverage_xml', return_value={'lines': 1}),
-        patch.object(Analysis, 'git_analysis', return_value={'lines': 1}),
+        patch.object(Analysis, '_parse_sonar_scanner_json', return_value={'lines': 1}),
+        patch.object(Analysis, '_read_coverage_xml', return_value={'lines': 1}),
+        patch.object(Analysis, '_git_analysis', return_value={'lines': 1}),
         patch.object(Analysis, 'build_commands', return_value={}),
-        patch.object(Analysis, 'run_cli_command', return_value={}),
+        patch.object(Analysis, '_run_cli_command', return_value={}),
     ):
 
         result = analysis.analyze_repo(tmp_path)

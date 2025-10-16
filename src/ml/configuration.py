@@ -71,6 +71,10 @@ SETTINGS: dict = {
         'default': None,
         'description': 'Task type. If None, program will end.',
     },
+    'validation': {
+        'default': 'cv-5',
+        'description': 'Cross-validation. Default is stratified 5-fold CV',
+    },
     'verbosity': {
         'default': 1,
         'description': 'Verbosity level.',
@@ -106,6 +110,7 @@ class Configuration(BaseSettings):
     :param str | Path preprocessed_subdir: Subdirectory in data_dir for preprocessed datasets.
     :param int random_state: Random seed for reproducibility.
     :param str | None task: Task type. If None, program will end.
+    :param str validation: Cross-validation strategy. Default is stratified 5-fold CV.
     :param int verbosity: Verbosity level.
     """
 
@@ -120,6 +125,7 @@ class Configuration(BaseSettings):
     preprocessed_subdir: str | Path = cli_field(**SETTINGS['preprocessed_subdir'])
     random_state: int = cli_field(**SETTINGS['random_state'])
     task: str | None = cli_field(**SETTINGS['task'])
+    validation: str = cli_field(**SETTINGS['validation'])
     verbosity: int = cli_field(**SETTINGS['verbosity'])
 
     # Pydantic parameters

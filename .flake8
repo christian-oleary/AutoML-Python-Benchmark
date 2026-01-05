@@ -1,6 +1,10 @@
 [flake8]
 application_import_names = ml
+
 max-line-length = 120
 max-complexity = 10
+
 ignore=E203,I201
+ignore-names=X,X_train,X_val,X_train_val,X_test,y
+
 jobs=1

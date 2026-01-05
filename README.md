@@ -6,7 +6,7 @@
 
 Benchmarks of AutoML Frameworks for time series forecasting, anomaly detection and classification.
 
-Primary Python version: 3.10.14
+This requires [Docker](https://docs.docker.com/). Primary Python version: 3.10.14
 
 ## Table of Contents
 
@@ -23,6 +23,9 @@ Primary Python version: 3.10.14
 ## Publications
 
 - An Empirical Study of Static Code Analysis in Python Automated Machine Learning Libraries (2025) - (awaiting review)
+
+  - [Tag](https://github.com/christian-oleary/AutoML-Python-Benchmark/releases/tag/source_code_analysis)
+  - [Code](https://github.com/christian-oleary/AutoML-Python-Benchmark/tree/2fc678f77ce4dae8da7541f49e3e216ac48d3153)
 
 - [A Comparative Analysis of Automated Machine Learning Libraries for Electricity Price Forecasting (2024)](https://sciendo.com/article/10.2478/acss-2024-0020)
 
@@ -73,6 +76,16 @@ Removed. To be redrafted.
 <!-- Before running the code, datasets and repositories must be downloaded -->
 
 ## Experiments
+
+### Classification
+
+Experiments use [DVC](https://dvc.org/).
+
+```bash
+conda activate automl
+dvc pull
+dvc repro
+```
 
 ### Source Code Analysis
 

@@ -177,18 +177,18 @@ class Analysis:
         repo = GitRepo(target_dir)
 
         # Run Coverage, git and Sonar analysis on the repository
-        sonar_results = self.parse_sonar_scanner_json(repo, self.output_dir, skip_existing_sonar)
+        sonar_results = self._parse_sonar_scanner_json(repo, self.output_dir, skip_existing_sonar)
         results = {
             'name': repo.name,
             'path': repo.path,
-            **{f'coverage__{k}': v for k, v in self.read_coverage_xml(repo).items()},
+            **{f'coverage__{k}': v for k, v in self._read_coverage_xml(repo).items()},
             # **{f'git__{k}': v for k, v in self.git_analysis(repo, verbose=False).items()},
             **{f'sonar__{k}': v for k, v in sonar_results.items()},
         }
 
         # Run other (CLI) tools on the repository
         for tool, command in self.build_commands(repo.name).items():
-            outputs = self.run_cli_command(tool, command, repo, skip_existing_sca)
+            outputs = self._run_cli_command(tool, command, repo, skip_existing_sca)
             results.update({f'{tool}__{k}': v for k, v in outputs.items()})
         return results
 
@@ -222,7 +222,7 @@ class Analysis:
         # fmt: on
         return commands
 
-    def run_cli_command(
+    def _run_cli_command(
         self,
         tool: str,
         command: list,
@@ -241,7 +241,7 @@ class Analysis:
         :return dict: The frequencies of the tool errors.
         """
         # Check if the results file already exists
-        result_path, frequencies, json_file = self.check_results_file(tool, repo, skip_existing)
+        result_path, frequencies, json_file = self._check_results_file(tool, repo, skip_existing)
 
         # Return the frequencies if they already exist
         if frequencies and skip_existing:
@@ -273,10 +273,10 @@ class Analysis:
             raise ValueError(f'Output file not found: {json_file}')
 
         # Parse the results file
-        frequencies = self.parse_results_file(tool, result_path, json_file)
+        frequencies = self._parse_results_file(tool, result_path, json_file)
         return frequencies
 
-    def read_coverage_xml(self, repo: GitRepo):
+    def _read_coverage_xml(self, repo: GitRepo):
         """Read the coverage XML file from the repository if present.
 
         :param GitRepo repo: The Git repository object.
@@ -301,7 +301,7 @@ class Analysis:
                     coverage_results[key] = float(value)
         return coverage_results
 
-    def check_results_file(self, tool: str, repo: GitRepo, skip_existing: bool) -> tuple:
+    def _check_results_file(self, tool: str, repo: GitRepo, skip_existing: bool) -> tuple:
         """Check if the results file already exists, and return the path if it does.
 
         :param str tool: The tool to check the results file for.
@@ -323,7 +323,7 @@ class Analysis:
 
         return results_file, frequencies, Path(repo.path, temp_file)
 
-    def parse_results_file(self, tool: str, results_file: Path, temp_file: str | Path) -> dict:
+    def _parse_results_file(self, tool: str, results_file: Path, temp_file: str | Path) -> dict:
         """Parse the results file from the specified tool.
 
         :param str tool: The tool to parse the results file for.
@@ -336,7 +336,7 @@ class Analysis:
             output = json.load(f)
 
         # Count message frequencies
-        frequencies = self.parse_json(tool, output)
+        frequencies = self._parse_json(tool, output)
         logger.debug(f'{tool}: {frequencies}')
 
         # Save results to a file if an output directory is provided
@@ -351,7 +351,7 @@ class Analysis:
             os.remove(temp_file)
         return frequencies
 
-    def parse_json(self, tool: str, output: dict) -> dict:
+    def _parse_json(self, tool: str, output: dict) -> dict:
         """Parse the JSON output from the specified tool.
 
         :param str tool: The tool to parse the JSON output for.
@@ -359,29 +359,29 @@ class Analysis:
         :return dict: The parsed results from the JSON output.
         """
         if tool == 'bandit':
-            results = self.parse_json_bandit(output)
+            results = self._parse_json_bandit(output)
         elif tool == 'flake8':
-            results = self.parse_json_flake8(output)
+            results = self._parse_json_flake8(output)
         elif tool == 'prospector':
-            results = self.parse_prospector(output)
+            results = self._parse_prospector(output)
         elif tool == 'pylint':
-            results = self.parse_pylint(output)
+            results = self._parse_pylint(output)
         elif tool == 'radon-cc':
-            results = self.parse_radon_cyclomatic(output)
+            results = self._parse_radon_cyclomatic(output)
         elif tool == 'radon-hal':
-            results = self.parse_radon_halstead(output)
+            results = self._parse_radon_halstead(output)
         elif tool == 'radon-mi':
-            results = self.parse_radon_maintainability(output)
+            results = self._parse_radon_maintainability(output)
         elif tool == 'radon-raw':
-            results = self.parse_radon_raw(output)
+            results = self._parse_radon_raw(output)
         elif tool == 'ruff':
-            results = self.parse_ruff(output)
+            results = self._parse_ruff(output)
         else:
             # logger.error(f'output: {json.dumps(output, indent=4)}')
             raise NotImplementedError(f'Parsing for {tool} not implemented')
         return self.format_results(tool, results)
 
-    def parse_json_bandit(self, output_json: dict) -> dict:
+    def _parse_json_bandit(self, output_json: dict) -> dict:
         """Parse the output of bandit to get the frequencies of the message types.
 
         :param dict bandit_output: The output of running 'bandit'.
@@ -395,7 +395,7 @@ class Analysis:
             results[test_id] = results.get(test_id, 0.0) + 1.0
         return results
 
-    def parse_json_flake8(self, output_json: dict) -> dict:
+    def _parse_json_flake8(self, output_json: dict) -> dict:
         """Parse the output of flake8 to get the frequencies of the message types.
 
         :param dict output_json: The output of running 'flake8'.
@@ -409,7 +409,7 @@ class Analysis:
                     results[code] = error.get(code, 0.0) + 1.0
         return results
 
-    def parse_prospector(self, output_json: dict) -> dict:
+    def _parse_prospector(self, output_json: dict) -> dict:
         """Parse the output of prospector to get the frequencies of the message types.
 
         :param dict output_json: The output of running 'prospector'.
@@ -427,7 +427,7 @@ class Analysis:
             results[tool_error] = results.get(tool_error, 0.0) + 1.0
         return results
 
-    def parse_pylint(self, output_json: dict) -> dict:
+    def _parse_pylint(self, output_json: dict) -> dict:
         """Parse the output of pylint to get the frequencies of the message types.
 
         :param dict output_json: The output of running 'pylint'.
@@ -443,7 +443,7 @@ class Analysis:
         #     results[message_id] = results.get(message_id, 0.0) + 1.0
         return results
 
-    def parse_radon_cyclomatic(self, output_json: dict) -> dict:
+    def _parse_radon_cyclomatic(self, output_json: dict) -> dict:
         """Parse radon output to get cyclomatic complexity metrics.
 
         :param dict output_json: The output of running 'radon cc'.
@@ -463,7 +463,7 @@ class Analysis:
             results[f'total-cc_{key}'] = sum(value)
         return results
 
-    def parse_radon_halstead(self, output_json: dict) -> dict:
+    def _parse_radon_halstead(self, output_json: dict) -> dict:
         """Parse radon output to get Halstead complexity metrics.
 
         :param dict output_json: The output of running 'radon hal'.
@@ -478,7 +478,7 @@ class Analysis:
             **{f'Total Halstead {k.title()}': v for k, v in results.sum().to_dict().items()},
         }
 
-    def parse_radon_maintainability(self, output_json: dict) -> dict:
+    def _parse_radon_maintainability(self, output_json: dict) -> dict:
         """Parse radon output to get maintainability index scores.
 
         :param dict output_json: The output of running 'radon mi'.
@@ -490,7 +490,7 @@ class Analysis:
             'Mean Maintainability Index': sum(scores) / len(scores),
         }
 
-    def parse_radon_raw(self, output_json: dict) -> dict:
+    def _parse_radon_raw(self, output_json: dict) -> dict:
         """Parse radon output to get raw analysis results.
 
         :param dict output_json: The output of running 'radon raw'.
@@ -513,7 +513,7 @@ class Analysis:
                 frequencies[metric_names[metric]] += float(value)
         return frequencies
 
-    def parse_ruff(self, output_json: dict) -> dict:
+    def _parse_ruff(self, output_json: dict) -> dict:
         """Parse ruff output to get the frequencies of the message types.
 
         :param dict output_json: The output of running 'ruff'.
@@ -542,7 +542,7 @@ class Analysis:
             raise e
         return results
 
-    def git_analysis(self, repo: GitRepo, verbose: bool = False) -> dict:
+    def _git_analysis(self, repo: GitRepo, verbose: bool = False) -> dict:
         """Analyze the Git repository.
 
         :param GitRepo repo: The Git repository object.
@@ -560,7 +560,7 @@ class Analysis:
             }
         return analysis
 
-    def parse_sonar_scanner_json(
+    def _parse_sonar_scanner_json(
         self, repo: GitRepo, output_dir: str | Path | None, skip_existing: bool = True
     ) -> dict:
         """Parse the JSON output from SonarScanner.
@@ -601,7 +601,7 @@ class Analysis:
             # Parse the JSON line and extract the measures
             if 'component' in line:
                 measures = json.loads(line)['component']['measures']
-                results = self.parse_sonar_scanner_line(measures, results)
+                results = self._parse_sonar_scanner_line(measures, results)
             elif 'errors' in line:
                 results['errors'] = len(json.loads(line)['errors'])
             else:
@@ -614,7 +614,7 @@ class Analysis:
 
         return results
 
-    def parse_sonar_scanner_line(
+    def _parse_sonar_scanner_line(
         self, measures: list[dict], results: dict[str, float | int]
     ) -> dict:
         """Parse a line of measures from SonarScanner output.

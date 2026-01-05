@@ -1,0 +1,22 @@
+schema: '2.0'
+stages:
+  prepare_dataset:
+    cmd: python -m ml --task prepare_data --dataset ravdess
+    deps:
+    - path: src/ml/__init__.py
+      hash: md5
+      md5: a7dea62602cd14c80785f5757f0b8cca
+      size: 1005
+    - path: src/ml/configuration.py
+      hash: md5
+      md5: f79b84106d50b30ff67ac7b8b6164798
+      size: 5902
+    - path: src/ml/dataset.py
+      hash: md5
+      md5: 0d4709f4b33cfa5f244bdf7dea90504d
+      size: 15948
+    outs:
+    - path: data/preprocessed/ravdess/df.csv
+      hash: md5
+      md5: 2eef8e7d6963e6cbebfff94079fba245
+      size: 55601

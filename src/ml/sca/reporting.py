@@ -11,9 +11,10 @@ import pandas as pd
 from scipy.stats import spearmanr
 import seaborn as sns
 
-from ml import LIBRARIES
+from ml import Library
 from ml.logs import logger
 
+LIBRARIES = {lib.value: lib for lib in Library}
 # LaTeX formatting
 BOLD = '\\textbf'
 ITALIC = '\\textit'
@@ -58,7 +59,7 @@ class Reporting:
         'Total CC',
         'Violations',
     ]
-    LONGEST_NAME = max(len(name) for name in LIBRARIES.values())
+    LONGEST_NAME = max(len(lib.value) for lib in Library)
     # fmt: off
     RANK_METRICS = [
         'bandit__Total Issues', 'coverage__line-rate', 'coverage__branch-rate',
@@ -630,7 +631,7 @@ class Reporting:
         :param float extra_width: Extra width to add to the column, default is 0.0.
         :return str: The column width for the LaTeX table.
         """
-        longest = max([len(word) for word in name.split()])
+        longest = max(len(word) for word in name.split())
         longest = max(4, longest, len(str(series.max())))
         return 'm{' + str(round(extra_width + (0.135 * longest), 3)) + 'cm}'
 
@@ -736,7 +737,7 @@ class Reporting:
 
     @classmethod
     def format_header_row(
-        cls, df: pd.DataFrame, row: str, sort_index: int | None, indent: str, footnotes: list[str]
+        cls, df: pd.DataFrame, row: str, _: int | None, indent: str, footnotes: list[str]
     ) -> tuple:
         """Format the header rows of the LaTeX table.
 
@@ -1200,7 +1201,7 @@ class Reporting:
                 if compact and row >= col:
                     continue
                 # Skip diagonal and lower triangle, i.e. not compact -> p-values in upper triangle
-                elif not compact and row <= col:
+                if not compact and row <= col:
                     continue
 
                 # Skip NaN p-values and perfect correlations

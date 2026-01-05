@@ -11,10 +11,10 @@ import numpy as np
 import pandas as pd
 
 from ml.base import Forecaster
-from ml.datasets import Dataset, DatasetFormatter
+from ml.dataset import Dataset, DatasetReader
 from ml.errors import AutomlLibraryError, DatasetTooSmallError
 from ml.logs import logger
-from ml.util import Utils
+from ml.plots import Utils
 from ml.validation import Task
 
 
@@ -45,7 +45,7 @@ class Forecasting:
     ]
 
     def __init__(self):
-        self.dataset_formatter = DatasetFormatter()
+        self.dataset_formatter = DatasetReader()
 
     def run_forecasting_libraries(self, config: Namespace):
         """Entrypoint to run forecasting libraries on available datasets.

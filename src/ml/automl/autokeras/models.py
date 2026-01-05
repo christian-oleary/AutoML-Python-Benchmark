@@ -10,11 +10,11 @@ import pandas as pd
 from sklearn.model_selection import train_test_split
 from tensorflow.keras.callbacks import EarlyStopping  # type: ignore
 
+from ml import TaskName
 from ml.base import Forecaster
 from ml.errors import AutomlLibraryError
 from ml.logs import logger
-from ml.util import Utils
-from ml.validation import Task
+from ml.plots import Utils
 
 try:
     import autokeras as ak  # type: ignore
@@ -73,7 +73,7 @@ class AutoKerasForecaster(Forecaster):
         shutil.rmtree(tmp_dir, ignore_errors=True)
 
         self.forecast_type = forecast_type
-        if self.forecast_type == Task.UNIVARIATE_FORECASTING.value:
+        if self.forecast_type == TaskName.UNIVARIATE_FORECASTING:
             target_name = 'target'
             train_df.columns = [target_name]
             test_df.columns = [target_name]
@@ -109,7 +109,7 @@ class AutoKerasForecaster(Forecaster):
         clf = ak.TimeseriesForecaster(**params)
         logger.debug(params)
 
-        # "lookback" must be divisable by batch size due to library bug:
+        # "lookback" must be divisible by batch size due to library bug:
         # https://github.com/keras-team/autokeras/issues/1720
         # Start at 1024 as batch size and decrease until a factor is found
         # Counting down prevents unnecessarily small batch sizes being selected
@@ -192,7 +192,8 @@ class AutoKerasForecaster(Forecaster):
         # Make predictions
         data = X_train
         predicted = model.predict(data)[-1]
-        assert len(predicted.flatten()) > 0
+        if len(predicted.flatten()) == 0:
+            raise ValueError('Model produced empty predictions')
         predictions = [predicted]
 
         for i, s in enumerate(test_splits):

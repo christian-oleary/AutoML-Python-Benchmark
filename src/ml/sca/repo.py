@@ -409,7 +409,7 @@ if __name__ == '__main__':
         repo = GitRepo.from_package_name(
             name=library_name,
             github_token=TOKEN,
-            clone_path=CLONE_PATH,
+            clone_path=CLONE_PATH / library_name,
             results_dir=RESULTS_DIR,
             skip_existing=SKIP_EXISTING,
         )

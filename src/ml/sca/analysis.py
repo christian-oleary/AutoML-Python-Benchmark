@@ -459,13 +459,25 @@ class Analysis:
         :return dict: The analysis of the Git repository.
         """
         logger.debug(f'Git analysis of {repo.path}...')
-        analysis: dict[str, Any] = {'LoC': repo.lines_of_code, 'Num. Commits': repo.commit_count}
+        analysis: dict[str, Any] = {
+            'LoC': repo.lines_of_code,
+            'Num. Commits': repo.num_commits,
+            'Num. Files': repo.num_files,
+            'Num. Python Files': repo.num_files_python,
+        }
         if verbose:
             analysis = {
                 **analysis,
+                'Created At': repo.created_at,
+                'Latest Commit': repo.updated_at,
                 'Branches': ', '.join(repo.get_branches()),
-                'Contributors': ', '.join(repo._get_contributors()),
-                'Latest Commit': repo._get_latest_commit(),
+                'Default Branch': repo.default_branch,
+                'Num. Branches': repo.num_branches,
+                'Num. Contributors': repo.num_contributors,
+                'Num. Forks': repo.num_forks,
+                'Num. Releases': repo.num_releases,
+                'Num. Stars': repo.num_stars,
+                'Num. Tags': repo.num_tags,
             }
         return analysis
 

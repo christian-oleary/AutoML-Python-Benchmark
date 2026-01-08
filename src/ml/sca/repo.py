@@ -37,7 +37,10 @@ class GitRepo:
     num_branches: int
     num_commits: int
     num_contributors: int
+    num_files: int
+    num_files_python: int
     updated_at: str
+
     # From PyGithub
     created_at: str
     issues_closed: int
@@ -204,6 +207,7 @@ class GitRepo:
         self._time_since_update()
         self._get_num_contributors()
         self._get_lines_of_code()
+        self._get_num_python_files()
 
     def _get_num_contributors(self) -> int:
         """Get the contributors to the repository.
@@ -264,6 +268,17 @@ class GitRepo:
                     # Count lines of code
                     self.lines_of_code += num_lines
         return self.lines_of_code
+
+    def _get_num_python_files(self):
+        """Get the number of Python files in the repository."""
+        if self.repo is None:
+            raise ValueError('Git repository is not initialized.')
+        self.num_files = 0
+        self.num_files_python = 0
+        # Iterate through the files in the repository
+        for _, __, files in os.walk(self.repo.working_dir):
+            self.num_files += len(files)
+            self.num_files_python += len([f for f in files if f.endswith('.py')])
 
     def _fetch_github_stats(self, github_token: Optional[str] = None) -> None:
         """Fetch GitHub statistics for the repository.
@@ -379,6 +394,7 @@ class GitRepo:
 if __name__ == '__main__':
     # Example usage:
 
+    CLONE_PATH = Path('repositories/')
     RESULTS_DIR = Path('results/sca/git_analysis/')
     SKIP_EXISTING = True
     TOKEN = os.getenv('GITHUB_TOKEN')
@@ -393,6 +409,7 @@ if __name__ == '__main__':
         repo = GitRepo.from_package_name(
             name=library_name,
             github_token=TOKEN,
+            clone_path=CLONE_PATH,
             results_dir=RESULTS_DIR,
             skip_existing=SKIP_EXISTING,
         )

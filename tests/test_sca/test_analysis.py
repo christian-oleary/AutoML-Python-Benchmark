@@ -1,43 +1,57 @@
 """Tests for the sca.analysis module."""
 
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 import pytest
 
-from ml.sca.repo import GitRepo
+from ml import Library
 from ml.sca.analysis import Analysis
+from ml.sca.repo import GitRepo
 
-# pylint: disable=redefined-outer-name,unused-argument
+# pylint: disable=protected-access,redefined-outer-name,unused-argument
+
 
 # DEFAULTS
-DEFAULT_BRANCHES = ['main']
-
-
-DEFAULT_COMMIT = 'latest_commit'
+DEFAULT_NAME = 'test-repo'
 DEFAULT_EMAIL = 'test@example.com'
-DEFAULT_NAME = 'repo'
 DEFAULT_URL = 'https://github.com/user/repo.git'
 INPUT_PATH = 'input'
 OUTPUT_PATH = 'output'
 
 
-class MockGitRepo:
-    """Mock GitRepo class for testing."""
-
-    def __init__(self, name, url, path):
-        self.name = name
-        self.url = url
-        self.path = path
+@pytest.fixture
+def mock_library():
+    """Create a mock Library object."""
+    lib = Mock(spec=Library)
+    lib.git_name = 'test-repo'
+    lib.git_url = 'https://github.com/user/test-repo.git'
+    lib.package_name = 'test'
+    return lib
 
 
 @pytest.fixture
-def analysis(tmp_path):
+def mock_git_repo(mock_library: Mock):
+    """Fixture to return a mock GitRepo object."""
+
+    def _create_mock_git_repo(name, url, path):
+        git_repo = Mock(spec=GitRepo)
+        git_repo.library = mock_library
+        git_repo.library.git_name = name
+        git_repo.library.git_url = url
+        git_repo.path = path
+        return git_repo
+
+    return _create_mock_git_repo
+
+
+@pytest.fixture
+def analysis(tmp_path: Path):
     """Fixture to return an Analysis object."""
     return Analysis(input_dir=Path(tmp_path, INPUT_PATH), output_dir=Path(tmp_path, OUTPUT_PATH))
 
 
-def test_analyze_repo(analysis: Analysis, tmp_path):
+def test_analyze_repo(analysis: Analysis, tmp_path: Path, mock_library: Mock, mock_git_repo):
     """Test the analyze_repo method of the Analysis class."""
     with (
         patch.object(Analysis, '_parse_sonar_scanner_json', return_value={'lines': 1}),
@@ -48,7 +62,7 @@ def test_analyze_repo(analysis: Analysis, tmp_path):
         patch.object(
             GitRepo,
             'from_package_name',
-            return_value=MockGitRepo(DEFAULT_NAME, DEFAULT_URL, tmp_path),
+            return_value=mock_git_repo(DEFAULT_NAME, DEFAULT_URL, tmp_path),
         ),
     ):
 

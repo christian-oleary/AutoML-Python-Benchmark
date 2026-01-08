@@ -13,7 +13,7 @@ from sklearn.model_selection import (
     train_test_split,
 )
 
-from ml import Library, TaskName
+from ml import all_libraries, Library, TaskName, EVAL_ML, FLAML
 from ml.automl import AutoMLEngine
 from ml.configuration import Configuration
 from ml.dataset import (
@@ -75,6 +75,9 @@ class BaseTask(ABC):
             return
         # Call each library
         for library in self.config.libraries:
+            if isinstance(library, Library):
+                library = library.package_name
+
             # Check if a Dockerfile exists for the library
             dockerfile_path = Path('src', 'ml', 'automl', library, 'Dockerfile')
             if not dockerfile_path.exists():
@@ -279,13 +282,13 @@ class TSClassificationTask(BaseTask):
         """
         # pylint: disable=C0415:import-outside-toplevel
         # fmt: off
-        if library == Library.EvalML:
+        if library == EVAL_ML.package_name:
             from ml.automl.evalml.models import EvalMLEngine
             engine = EvalMLEngine(config=self.config)
-        if library == Library.FLAML:
+        if library == FLAML.package_name:
             from ml.automl.flaml.models import FLAMLEngine
             engine = FLAMLEngine(config=self.config)
-        elif library in Library.list():
+        elif library in all_libraries:
             engine = None
             logger.warning(f'Library {library} not implemented for task {self.config.task}')
         else:

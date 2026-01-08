@@ -9,6 +9,7 @@ pandas==2.3.3            # Data manipulation
 # pandas==1.4.1          # Data manipulation
 pydantic==2.9.2          # Configuration validation
 pydantic-settings==2.6.1 # Configuration management
+PyGithub==2.8.1          # GitHub API
 scikit-learn             # Machine learning
 seaborn                  # Plots
 setuptools               # Package setup

@@ -12,6 +12,7 @@ from git.exc import InvalidGitRepositoryError
 import pandas as pd
 
 from ml.logs import logger
+from ml.sca.repo import GitRepo
 from ml.sca.reporting import Reporting
 
 IGNORED_COLS: dict[str, list[str]] = {
@@ -29,101 +30,6 @@ IGNORED_COLS: dict[str, list[str]] = {
         'quality_profiles',  # Specific to SonarQube
     ],
 }
-
-
-class GitRepo:
-    """Class to represent a Git repository."""
-
-    name: str
-    path: str | Path
-    url: str
-    commit_count: int
-    contributors: list[str]
-    latest_commit: str
-    lines_of_code: int
-
-    def __init__(self, repo_path: str | Path):
-        """Initialize the Git repository.
-
-        :param str | Path repo_path: Path to repository.
-        """
-        self.path = repo_path
-        self.repo = Repo(self.path)
-
-        self.commit_count = self.get_commit_count()
-        self.contributors = self.get_contributors()
-        self.lines_of_code = self.get_lines_of_code()
-        self.name = self.get_repo_name()
-        self.url = self.get_repo_url()
-
-    def get_branches(self) -> list[str]:
-        """Get the branches in the repository.
-
-        :return list[str]: The branches in the repository.
-        """
-        return [str(branch) for branch in self.repo.branches]
-
-    def get_commit_count(self, **kwargs) -> int:
-        """Get the number of commits in the repository.
-
-        :return int: The number of commits in the repository.
-        """
-        self.commit_count = len(list(self.repo.iter_commits(**kwargs)))
-        return self.commit_count
-
-    def get_contributors(self) -> list[str]:
-        """Get the contributors to the repository.
-
-        :return list[str]: The contributors to the repository.
-        """
-        contributors = set()
-        for commit in self.repo.iter_commits():
-            contributors.add(str(commit.author.email))
-        self.contributors = list(contributors)
-        return self.contributors
-
-    def get_latest_commit(self) -> str:
-        """Get the latest commit in the repository."""
-        self.latest_commit = str(self.repo.head.commit)
-        return self.latest_commit
-
-    def get_repo_name(self) -> str:
-        """Get the name of the repository.
-
-        :return str: The name of the repository.
-        """
-        self.repo_name = self.repo.remotes.origin.url.split('/')[-1].replace('.git', '')
-        return self.repo_name
-
-    def get_lines_of_code(self) -> int:
-        """Get the number of lines of code in the repository.
-
-        :return int: The number of lines of code in the repository
-        """
-        self.lines_of_code = 0
-        # Iterate through the files in the repository
-        for root, _, files in os.walk(self.repo.working_dir):
-            # Only count Python files
-            for file in [f for f in files if f.endswith('.py')]:
-                # Count the lines of code in the file
-                with open(Path(root, file), 'r', encoding='utf-8') as f:
-                    # Try to read file
-                    try:
-                        num_lines = len(f.readlines())
-                    except UnicodeDecodeError:
-                        logger.debug(f'Could not read {file}. Skipping...')
-                        continue
-                    # Count lines of code
-                    self.lines_of_code += num_lines
-        return self.lines_of_code
-
-    def get_repo_url(self) -> str:
-        """Get the URL of the repository.
-
-        :return str: The URL of the repository.
-        """
-        self.repo_url = self.repo.remotes.origin.url
-        return self.repo_url
 
 
 class Analysis:
@@ -173,13 +79,16 @@ class Analysis:
         :param bool skip_existing_sca: Whether to skip existing CLI SCA tool results, defaults to True.
         :return dict: The analysis of the Git repository.
         """
+        if target_dir is None:
+            raise ValueError('No target directory specified for analysis')
+
         logger.info(f'Analyzing {target_dir}...')
-        repo = GitRepo(target_dir)
+        repo = GitRepo.from_package_name(str(Path(target_dir).name), target_path=target_dir)
 
         # Run Coverage, git and Sonar analysis on the repository
         sonar_results = self._parse_sonar_scanner_json(repo, self.output_dir, skip_existing_sonar)
         results = {
-            'name': repo.name,
+            'name': repo.library.git_name,
             'path': repo.path,
             **{f'coverage__{k}': v for k, v in self._read_coverage_xml(repo).items()},
             # **{f'git__{k}': v for k, v in self.git_analysis(repo, verbose=False).items()},
@@ -187,7 +96,7 @@ class Analysis:
         }
 
         # Run other (CLI) tools on the repository
-        for tool, command in self.build_commands(repo.name).items():
+        for tool, command in self.build_commands(repo.library.git_name).items():
             outputs = self._run_cli_command(tool, command, repo, skip_existing_sca)
             results.update({f'{tool}__{k}': v for k, v in outputs.items()})
         return results
@@ -555,8 +464,8 @@ class Analysis:
             analysis = {
                 **analysis,
                 'Branches': ', '.join(repo.get_branches()),
-                'Contributors': ', '.join(repo.get_contributors()),
-                'Latest Commit': repo.get_latest_commit(),
+                'Contributors': ', '.join(repo._get_contributors()),
+                'Latest Commit': repo._get_latest_commit(),
             }
         return analysis
 

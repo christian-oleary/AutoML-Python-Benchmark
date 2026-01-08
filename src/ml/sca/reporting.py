@@ -11,10 +11,10 @@ import pandas as pd
 from scipy.stats import spearmanr
 import seaborn as sns
 
-from ml import Library
+from ml import all_libraries
 from ml.logs import logger
 
-LIBRARIES = {lib.value: lib for lib in Library}
+# LIBRARIES = {lib.value: lib for lib in Library}
 # LaTeX formatting
 BOLD = '\\textbf'
 ITALIC = '\\textit'
@@ -59,7 +59,7 @@ class Reporting:
         'Total CC',
         'Violations',
     ]
-    LONGEST_NAME = max(len(lib.value) for lib in Library)
+    LONGEST_NAME = max(len(lib_name) for lib_name in all_libraries.keys())
     # fmt: off
     RANK_METRICS = [
         'bandit__Total Issues', 'coverage__line-rate', 'coverage__branch-rate',
@@ -121,7 +121,8 @@ class Reporting:
         Path(output_dir, 'tex').mkdir(parents=True, exist_ok=True)
 
         # Ensure correct library names
-        df['name'].replace(LIBRARIES, inplace=True)
+        # df['name'].replace(LIBRARIES, inplace=True)
+        df['name'].replace(all_libraries, inplace=True)
 
         # Save all results to a CSV file
         results_file = Path(output_dir, 'csv', 'results.csv')

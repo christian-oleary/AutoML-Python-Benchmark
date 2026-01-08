@@ -2,7 +2,7 @@
 
 import pytest
 
-from ml import Library
+from ml import all_libraries
 from ml.configuration import Configuration, LogLevelEnum
 
 
@@ -24,7 +24,7 @@ def test_default_configuration():
 
 def test_configuration_with_all_libraries(monkeypatch):
     config = Configuration(libraries=['all'])
-    all_libs = [lib.value for lib in Library]
+    all_libs = [lib_name for lib_name in all_libraries.keys()]
     assert sorted(config.libraries) == sorted(all_libs)
 
 
@@ -44,7 +44,7 @@ def test_configuration_with_invalid_library():
 
 
 def test_configuration_with_valid_libraries():
-    libs = [lib.value for lib in Library][:2]
+    libs = [lib_name for lib_name in list(all_libraries.keys())[:2]]
     config = Configuration(libraries=libs)
     assert sorted(config.libraries) == sorted(libs)
 

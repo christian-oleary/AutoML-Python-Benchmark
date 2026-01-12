@@ -59,7 +59,7 @@ class GitRepo:
         clone_path: Optional[str | Path] = None,
         github_token: Optional[str] = None,
         results_dir: Optional[str | Path] = None,
-        skip_existing: bool = False,
+        skip_existing: Optional[bool] = False,
         **kwargs,
     ):
         """Initialize the GitRepo object. Clone and scrape the repository.
@@ -78,8 +78,8 @@ class GitRepo:
 
         # Set the local OS path to clone the repository to
         if clone_path is None:
-            clone_path = Path(DEFAULT_REPOSITORIES_PATH, str(library.git_name))
-        self.path = Path(clone_path)
+            clone_path = Path(DEFAULT_REPOSITORIES_PATH)
+        self.path = Path(clone_path, str(library.git_name))
 
         # Authenticate to GitHub if needed
         if 'github' in self.library.git_url.lower():
@@ -129,6 +129,7 @@ class GitRepo:
             if skip_existing and csv_path.exists():
                 logger.debug(f'Results already exist at {csv_path}. Skipping...')
                 self.df = pd.read_csv(csv_path)
+                self._from_dataframe(self.df)
                 return self
 
         if not isinstance(self.path, Path):
@@ -370,6 +371,19 @@ class GitRepo:
         self.df = pd.DataFrame(data)
         return self.df
 
+    def _from_dataframe(self, df: pd.DataFrame) -> GitRepo:
+        """Load repository information from a DataFrame.
+
+        :param pd.DataFrame df: DataFrame containing the repository information.
+        :return GitRepo: The GitRepo object with loaded information.
+        """
+        for column in df.columns:
+            if column == 'library':
+                continue
+            setattr(self, column, df.at[0, column])
+        self.library = all_libraries[self.library.package_name]
+        return self
+
     def __repr__(self) -> str:
         return f'GitRepo({self.library.package_name})'
 
@@ -409,7 +423,7 @@ if __name__ == '__main__':
         repo = GitRepo.from_package_name(
             name=library_name,
             github_token=TOKEN,
-            clone_path=CLONE_PATH / library_name,
+            clone_path=CLONE_PATH,
             results_dir=RESULTS_DIR,
             skip_existing=SKIP_EXISTING,
         )
@@ -420,3 +434,5 @@ if __name__ == '__main__':
     if len(dataframes) > 0:
         df_all = pd.concat(dataframes, ignore_index=True)
         df_all.to_csv(RESULTS_DIR / '1_ALL_LIBRARIES.csv', index=False)
+        # Save dataframe as tex file
+        df_all.to_latex(RESULTS_DIR / '1_ALL_LIBRARIES.tex', index=False)

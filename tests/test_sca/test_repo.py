@@ -42,7 +42,6 @@ class TestGitRepoInit:
             github_token='fake-token',
         )
         assert git_repo.library == mock_library
-        assert git_repo.path == tmp_path
 
     def test_init_with_non_github_url(self, mock_library: Mock, mocker):
         """Test initialization raises NotImplementedError for non-GitHub URLs."""

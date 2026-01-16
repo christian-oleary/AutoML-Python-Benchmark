@@ -9,7 +9,7 @@ from time import sleep
 from typing import Optional
 
 from git import Repo
-from git.exc import InvalidGitRepositoryError
+from git.exc import GitCommandError, InvalidGitRepositoryError
 from github import Auth, Github
 from loguru import logger
 import pandas as pd
@@ -58,6 +58,7 @@ class GitRepo:
         library: Library,
         clone_path: Optional[str | Path] = None,
         github_token: Optional[str] = None,
+        pull_changes: bool = False,
         results_dir: Optional[str | Path] = None,
         skip_existing: Optional[bool] = False,
         **kwargs,
@@ -67,6 +68,7 @@ class GitRepo:
         :param Library library: Library object representing the Git repository.
         :param str | Path | None clone_path: Local path to clone the repository to.
         :param str | None github_token: GitHub token for authentication.
+        :param bool pull_changes: Pull the latest changes if the repository already exists.
         :param str | Path | None results_dir: Directory to save results to.
         :param bool skip_existing: Skip analysis if results already exist.
         """
@@ -90,6 +92,7 @@ class GitRepo:
         # Clone and scrape the repository
         self.clone_and_scrape(
             github_token=github_token,
+            pull_changes=pull_changes,
             results_dir=results_dir,
             skip_existing=skip_existing,
             **kwargs,
@@ -117,6 +120,7 @@ class GitRepo:
         :return GitRepo: The GitRepo object with scraped information.
         """
         github_token = kwargs.get('github_token', None)
+        pull_changes = kwargs.get('pull_changes', False)
         results_dir = kwargs.get('results_dir', None)
         skip_existing = kwargs.get('skip_existing', False)
 
@@ -135,24 +139,8 @@ class GitRepo:
         if not isinstance(self.path, Path):
             raise ValueError('Target path for cloning the repository is not set.')
 
-        # Clone the repository if it does not exist
-        if not self.path.exists() or not os.listdir(self.path):
-            logger.debug(f'Cloning from {self.library.git_url} to: {self.path}...')
-            self.repo = Repo.clone_from(self.library.git_url, self.path)
-        else:
-            logger.debug(f'Repository already exists at: {self.path}')
-            self.repo = Repo(self.path)
-
-        # Pull the latest changes
-        logger.debug(f'Pulling latest changes for {self.library.git_name}...')
-        self.repo.remotes.origin.pull()
-
-        # Verify that the repository is valid
-        try:
-            _ = self.repo.git_dir
-        except InvalidGitRepositoryError as e:
-            logger.error(f'Invalid Git repository at {self.path}: {e}')
-            raise
+        # Clone the repository or pull the latest changes
+        self._clone_and_pull(pull_changes=pull_changes)
 
         # Get basic repository information using GitPython
         self._fetch_basic_info()
@@ -194,6 +182,31 @@ class GitRepo:
         if name not in all_libraries:
             raise ValueError(f'Library {name} not found in known libraries.')
         return cls(library=all_libraries[name], **kwargs)
+
+    def _clone_and_pull(self, pull_changes: bool = False) -> None:
+        """Clone the repository or pull the latest changes.
+
+        :param bool pull_changes: Pull the latest changes if the repository already exists.
+        """
+        # Clone the repository if it does not exist
+        if not Path(self.path).exists() or not os.listdir(self.path):
+            logger.debug(f'Cloning from {self.library.git_url} to: {self.path}...')
+            self.repo = Repo.clone_from(self.library.git_url, self.path)
+        else:
+            logger.debug(f'Repository already exists at: {self.path}')
+            self.repo = Repo(self.path)
+            # Pull the latest changes if requested
+            if pull_changes:
+                try:
+                    self.repo.remotes.origin.pull()
+                except GitCommandError as e:
+                    logger.error(f'Failed to pull latest changes for {self.library.git_name}: {e}')
+        # Verify that the repository is valid
+        try:
+            _ = self.repo.git_dir
+        except InvalidGitRepositoryError as e:
+            logger.error(f'Invalid Git repository at {self.path}: {e}')
+            raise
 
     def _fetch_basic_info(self) -> None:
         """Fetch basic repository information using GitPython."""
@@ -410,7 +423,7 @@ if __name__ == '__main__':
 
     CLONE_PATH = Path('repositories/')
     RESULTS_DIR = Path('results/sca/git_analysis/')
-    SKIP_EXISTING = True
+    SKIP_EXISTING = False
     TOKEN = os.getenv('GITHUB_TOKEN')
     if TOKEN is None:
         raise EnvironmentError('GITHUB_TOKEN environment variable not set.')

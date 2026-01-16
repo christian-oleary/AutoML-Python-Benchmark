@@ -36,7 +36,7 @@ AUTOGLUON = Library(
 )
 AUTO_KERAS = Library(
     git_name='AutoKeras',
-    git_url='https://github.com/keras-team/autokeras.git',
+    git_url='https://github.com/keras-team/autokeras',
     package_name='autokeras',
 )
 AUTO_TS = Library(
@@ -128,6 +128,7 @@ all_libraries = {
     AUTO_KERAS.package_name: AUTO_KERAS,
     AUTO_TS.package_name: AUTO_TS,
     EVAL_ML.package_name: EVAL_ML,
+    FEDOT.package_name: FEDOT,
     FEDOT_INDUSTRIAL.package_name: FEDOT_INDUSTRIAL,
     FLAML.package_name: FLAML,
     GAMA.package_name: GAMA,
@@ -141,12 +142,13 @@ all_libraries = {
     PYCARET.package_name: PYCARET,
     TPOT.package_name: TPOT,
 }
+package_names = {lib.git_name: lib.package_name for lib in all_libraries.values()}
 # Other libraries considered but not included:
-# "https://github.com/tensorflow/adanet.git" # Not AutoML
-# "https://github.com/tinkoff-ai/etna"       # ETNA has been archived by owner
-# "https://github.com/daochenzha/Meta-AAD"   # No updates
-# "https://github.com/yzhao062/MetaOD"       # No updates
-# "https://github.com/datamllab/pyodds"      # No updates since 2019
+# "https://github.com/tensorflow/adanet"    # Not AutoML
+# "https://github.com/tinkoff-ai/etna"      # ETNA has been archived by owner
+# "https://github.com/daochenzha/Meta-AAD"  # No updates
+# "https://github.com/yzhao062/MetaOD"      # No updates
+# "https://github.com/datamllab/pyodds"     # No updates since 2019
 
 
 class BaseEnum(Enum):

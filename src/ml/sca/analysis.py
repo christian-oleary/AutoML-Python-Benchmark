@@ -6,11 +6,14 @@ import subprocess  # nosec
 from pathlib import Path
 from typing import Any
 
+from cohesion import module
+from complexipy import file_complexity
 from defusedxml import ElementTree
 from git import Repo
 from git.exc import InvalidGitRepositoryError
 import pandas as pd
 
+from ml import all_libraries, package_names
 from ml.logs import logger
 from ml.sca.repo import GitRepo
 from ml.sca.reporting import Reporting
@@ -83,13 +86,29 @@ class Analysis:
             raise ValueError('No target directory specified for analysis')
 
         logger.info(f'Analyzing {target_dir}...')
-        repo = GitRepo.from_package_name(str(Path(target_dir).name), target_path=target_dir)
+
+        # Initialize the Git repository object
+        package_name = str(Path(target_dir).name)
+        if package_name not in all_libraries:
+            package_name = package_names.get(package_name, package_name)
+
+        repo = GitRepo.from_package_name(
+            name=package_name,
+            clone_path=self.input_dir,
+            results_dir=self.output_dir / 'git_analysis',
+            skip_existing=skip_existing_sca,
+        )
+
+        # Find all Python files in the repository
+        py_files = self.get_all_py_files(Path(repo.path))
 
         # Run Coverage, git and Sonar analysis on the repository
         sonar_results = self._parse_sonar_scanner_json(repo, self.output_dir, skip_existing_sonar)
         results = {
             'name': repo.library.git_name,
             'path': repo.path,
+            **{f'cohesion__{k}': v for k, v in self.cohesion_analysis(py_files).items()},
+            **{f'complexity__{k}': v for k, v in self.cognitive_complexity(py_files).items()},
             **{f'coverage__{k}': v for k, v in self._read_coverage_xml(repo).items()},
             # **{f'git__{k}': v for k, v in self.git_analysis(repo, verbose=False).items()},
             **{f'sonar__{k}': v for k, v in sonar_results.items()},
@@ -131,6 +150,84 @@ class Analysis:
         # fmt: on
         return commands
 
+    def cohesion_analysis(self, py_files: list[Path]) -> dict:
+        """Calculate class cohesion (higher is better) for Python files.
+
+        :param list[Path] py_files: List of Python file paths.
+        :return dict: The class cohesion results.
+        """
+        cohesion = 0
+        num_classes = 0
+        failed = 0
+        # Analyze each Python file
+        for py_path in py_files:
+            try:
+                mod = module.Module.from_file(str(py_path))
+                classes = mod.classes()
+                for class_ in classes:
+                    cohesion += mod.class_cohesion_percentage(class_)
+                    num_classes += 1
+            except (SyntaxError, UnicodeDecodeError):
+                failed += 1
+
+        # Determine number of passes and fails
+        passed = len(py_files) - failed
+        if failed > 0:
+            logger.warning(f'Analyzed {passed} files. Failed to analyze {failed} files.')
+
+        results = {
+            'Total Cohesion': cohesion,
+            'Mean Cohesion by Class': cohesion / num_classes if num_classes > 0 else 0,
+            'Mean Cohesion by File': cohesion / passed if passed > 0 else 0,
+            'Files Analyzed': passed,
+            'Files Failed': failed,
+        }
+        logger.debug(f'Class Cohesion Results:\n{results}')
+        return results
+
+    def cognitive_complexity(self, py_files: list[Path]) -> dict:
+        """Calculate cognitive complexity for Python files.
+
+        :param list[Path] py_files: List of Python file paths.
+        :return dict: The cognitive complexity results.
+        """
+        complexity = 0
+        failed = 0
+        # Analyze each Python file
+        for py_path in py_files:
+            try:
+                result = file_complexity(str(py_path))
+                complexity += result.complexity
+            except ValueError:
+                failed += 1
+
+        # Determine number of passes and fails
+        passed = len(py_files) - failed
+        if failed > 0:
+            logger.warning(f'Analyzed {passed} files. Failed to analyze {failed} files.')
+
+        results = {
+            'Total Cognitive Complexity': complexity,
+            'Mean Cognitive Complexity': complexity / passed if passed > 0 else 0,
+            'Files Analyzed': passed,
+            'Files Failed': failed,
+        }
+        logger.debug(f'Cognitive Complexity Results:\n{results}')
+        return results
+
+    def get_all_py_files(self, base_dir: Path) -> list[Path]:
+        """Get all Python files in the repository.
+
+        :param Path base_dir: The base directory of the repository.
+        :return list[Path]: List of all Python files in the repository.
+        """
+        py_files = []
+        for root, _, files in os.walk(base_dir):
+            for file in files:
+                if file.endswith('.py'):
+                    py_files.append(Path(root) / file)
+        return py_files
+
     def _run_cli_command(
         self,
         tool: str,
@@ -158,11 +255,11 @@ class Analysis:
         logger.debug(f'Running {tool}...')
 
         # Avoid library specific configuration error
-        if repo.name == 'auto_sklearn':
+        if repo.library.git_name == 'auto_sklearn':
             command[-1] += '/auto-sklearn'
 
         # Run the CLI command
-        logger.info(f'Running {tool} on {repo.name} using command: {command}')
+        logger.info(f'Running {tool} on {repo.library.git_name} using command: {command}')
         result = subprocess.run(  # nosec
             command,
             capture_output=True,
@@ -185,13 +282,13 @@ class Analysis:
         frequencies = self._parse_results_file(tool, result_path, json_file)
         return frequencies
 
-    def _read_coverage_xml(self, repo: GitRepo):
+    def _read_coverage_xml(self, repo: GitRepo) -> dict:
         """Read the coverage XML file from the repository if present.
 
         :param GitRepo repo: The Git repository object.
-        :param str pattern: The pattern to search for, defaults to 'coverage.xml'.
+        :return dict: The coverage results from the XML file.
         """
-        logger.info(f'Reading coverage XML file for {repo.name}...')
+        logger.info(f'Reading coverage XML file for {repo.library.git_name}...')
         coverage_results: dict[str, float] = {}
         # Scan the repository for the coverage XML file
         for file_path in Path(repo.path).rglob('*'):
@@ -218,9 +315,9 @@ class Analysis:
         :param bool skip_existing: Whether to skip existing results.
         :return tuple: The results file, frequencies, and temporary file.
         """
-        results_file, frequencies = None, None
+        results_file, results = None, None
         # Temporary output file. Deleted later.
-        temp_file: str | Path = f'{tool}_{repo.name}.json'
+        temp_file: str | Path = f'{tool}_{repo.library.git_name}.json'
 
         # File to save formatted results
         if self.output_dir:
@@ -228,9 +325,9 @@ class Analysis:
             # Load the output from a file if possible
             if skip_existing and results_file and results_file.exists():
                 # logger.debug(f'Output file already exists: {results_file}')
-                frequencies = json.loads(results_file.read_text(encoding='utf-8'))
+                results = json.loads(results_file.read_text(encoding='utf-8'))
 
-        return results_file, frequencies, Path(repo.path, temp_file)
+        return results_file, results, Path(repo.path, temp_file)
 
     def _parse_results_file(self, tool: str, results_file: Path, temp_file: str | Path) -> dict:
         """Parse the results file from the specified tool.
@@ -496,17 +593,19 @@ class Analysis:
 
         sonar_dir = Path(output_dir, 'sonar', Path(repo.path).name)
         if not sonar_dir.is_dir():
-            logger.debug(f'No SonarScanner output found for {repo.name}')
+            logger.debug(f'No SonarScanner output found for {repo.library.git_name}')
             return {}
 
         # Find the measures file in the SonarScanner output
         measures_file = Path(sonar_dir, 'measures.json')
         if not measures_file.is_file():
-            logger.debug(f'No measures file found for {repo.name}')
+            logger.debug(f'No measures file found for {repo.library.git_name}')
             return {}
 
         # Load and return parsed measures if available
-        parsed_measures_file = Path(output_dir, 'sonar_parsed', f'sonar_{repo.name}.json')
+        parsed_measures_file = Path(
+            output_dir, 'sonar_parsed', f'sonar_{repo.library.git_name}.json'
+        )
         if skip_existing and parsed_measures_file.exists():
             logger.debug(f'Loading parsed measures from {parsed_measures_file}')
             return json.loads(parsed_measures_file.read_text(encoding='utf-8'))

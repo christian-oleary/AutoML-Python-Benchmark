@@ -200,7 +200,9 @@ for repo_path in $repositories; do
     # Get the name of the repository from directory path
     ####################################################
     repo_name=$(basename "$repo_path")
-    image_name="christianoleary/${repo_name}"
+    # To lowercase and replace hyphens with underscores
+    repo_name_lowercase=$(echo "$repo_name" | tr '[:upper:]' '[:lower:]' | tr '-' '_')
+    image_name="christianoleary/${repo_name_lowercase}"
 
     #####################
     # Skip H2O-3 and Kats
@@ -467,7 +469,7 @@ EOL
             "${TARGET_DIR}/lightautoml/ml_algo/tuning/optuna.py"
             "${TARGET_DIR}/tests/integration/test_custom_2_level_stacking.py"
         )
-    elif [ "$repo_name" = "mljar_supervised" ]; then
+    elif [ "$repo_name" = "mljar_supervised" ] || [ "$repo_name" = "mljar-supervised" ]; then
         problematic_files=(
             "${TARGET_DIR}/supervised/automl.py"
             "${TARGET_DIR}/supervised/utils/automl_plots.py"

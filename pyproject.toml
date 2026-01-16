@@ -32,6 +32,8 @@ docs = [
 # Source code analysis.
 sca = [
     "bandit",             # Security checks
+    "cohesion",           # Class cohesion
+    "complexipy",         # Cognitive complexity
     "coverage",           # Code coverage
     "defusedxml==0.7.1",  # XML security
     "radon[toml]",        # Code metrics
@@ -46,7 +48,7 @@ sca = [
     "pylint-flask", "pylint-mccabe", "pylint-pytest",
     ##############
     # Deprecated: frosted, pydocstyle (and therefore "flake8-docstrings")
-    # Redundant: autoflake, hacking, mccabe, pep8, pycodestyle, pyflakes, unimport, zimports
+    # Redundant: autoflake, hacking, lizard, mccabe, pep8, pycodestyle, pyflakes, unimport, zimports
     # Lacking CLI scores reporting: autopep8, black, dead, doc8, docformatter, it, rope, uncalled, vulture, "yapf"
 ]
 

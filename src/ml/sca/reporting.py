@@ -11,7 +11,7 @@ import pandas as pd
 from scipy.stats import spearmanr
 import seaborn as sns
 
-from ml import all_libraries, package_names
+from ml import all_libraries, display_names
 from ml.logs import logger
 
 # LIBRARIES = {lib.value: lib for lib in Library}
@@ -121,7 +121,7 @@ class Reporting:
         Path(output_dir, 'tex').mkdir(parents=True, exist_ok=True)
 
         # Ensure correct library names
-        df['name'].replace(package_names, inplace=True)
+        df['name'].replace(display_names, inplace=True)  # package_names
 
         # Save all results to a CSV file
         results_file = Path(output_dir, 'csv', 'results.csv')

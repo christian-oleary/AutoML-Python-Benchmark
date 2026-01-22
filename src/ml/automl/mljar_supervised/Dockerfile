@@ -5,13 +5,13 @@ FROM python:3.9-slim
 # Install git
 RUN apt-get update && \
     apt-get install -y git libgomp1 && \
-    rm -rf /src/mljar_supervised
+    rm -rf /src/mljar-supervised
 
 # Clone the mljar repository
-RUN git clone https://github.com/mljar/mljar-supervised.git /src/mljar_supervised
+RUN git clone https://github.com/mljar/mljar-supervised.git /src/mljar-supervised
 
 # Change working directory to mljar
-WORKDIR /src/mljar_supervised
+WORKDIR /src/mljar-supervised
 
 # Install the required dependencies
 RUN pip install -r requirements.txt && \
@@ -30,4 +30,4 @@ RUN if [ "$run_tests" = "true" ]; then \
         echo "Skipping tests"; \
     fi
 
-RUN cat coverage.xml | grep "hits=" | grep -Eo '[0-9]+' | grep -v '^0$' | wc -l
+# RUN cat coverage.xml | grep "hits=" | grep -Eo '[0-9]+' | grep -v '^0$' | wc -l

@@ -9,17 +9,15 @@ ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get install -y git || (apt-get update --fix-missing && apt-get install -y git)
 
 # Clone the auto-sklearn repository which contains source code and tests
-RUN git clone https://github.com/automl/auto-sklearn.git /src/auto_sklearn
+RUN git clone https://github.com/automl/auto-sklearn.git /src/auto-sklearn
 
 # Set the working directory to the auto-sklearn source code
-WORKDIR /src/auto_sklearn/
-
-# Initialize any submodules
-RUN git submodule update --init --recursive
+WORKDIR /src/auto-sklearn/
 
 # Install the required dependencies
-RUN python3 -m pip install --upgrade pip
-RUN python3 -m pip install -e .[test,examples]
+RUN git submodule update --init --recursive && \
+    python3 -m pip install --upgrade pip && \
+    python3 -m pip install -e .[test,examples]
 
 # Run tests
 ARG run_tests
@@ -28,4 +26,4 @@ RUN if [ "$run_tests" = true ]; then \
         (cat coverage.xml | grep "hits=" | grep -Eo '[0-9]+' | grep -v '^0$' | wc -l || (echo "FAILED" && exit 1)) \
     ; fi
 
-RUN cat coverage.xml | grep "hits=" | grep -Eo '[0-9]+' | grep -v '^0$' | wc -l
+# RUN cat coverage.xml | grep "hits=" | grep -Eo '[0-9]+' | grep -v '^0$' | wc -l

@@ -13,7 +13,7 @@ from sklearn.model_selection import (
     train_test_split,
 )
 
-from ml import all_libraries, Library, TaskName, EVAL_ML, FLAML
+from ml import EVAL_ML, FLAML, Library, TaskName, all_libraries
 from ml.automl import AutoMLEngine
 from ml.configuration import Configuration
 from ml.dataset import (

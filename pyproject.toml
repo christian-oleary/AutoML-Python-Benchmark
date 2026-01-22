@@ -42,7 +42,7 @@ sca = [
     # "tox",              # To be considered
     "tables", "tabulate", # pandas export to tex
     # Linting
-    # "flake8", "flake8-bugbear", "flake8-import-order",
+    "flake8", "flake8-bugbear",
     "prospector[with_everything]==1.14.0",
     "pylint", "pylint-celery", "pylint-django",
     "pylint-flask", "pylint-mccabe", "pylint-pytest",

@@ -207,6 +207,9 @@ uploads
 h2o-3.*
 h2o/
 
+# Import-linter
+.import_linter_cache
+
 # Installer logs
 pip-log.txt
 pip-delete-this-directory.txt

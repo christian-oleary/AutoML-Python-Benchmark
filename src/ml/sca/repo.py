@@ -8,6 +8,7 @@ from pathlib import Path
 from time import sleep
 from typing import Optional
 
+from dotenv import load_dotenv
 from git import Repo
 from git.exc import GitCommandError, InvalidGitRepositoryError
 from github import Auth, Github
@@ -124,23 +125,23 @@ class GitRepo:
         results_dir = kwargs.get('results_dir', None)
         skip_existing = kwargs.get('skip_existing', False)
 
-        # Specify path to save results
-        if results_dir is not None:
-            results_dir = Path(results_dir)
-            csv_path = results_dir / f'{self.library.package_name}.csv'
-
-            # Check if results already exist and skip if needed
-            if skip_existing and csv_path.exists():
-                logger.debug(f'Results already exist at {csv_path}. Skipping...')
-                self.df = pd.read_csv(csv_path)
-                self._from_dataframe(self.df)
-                return self
-
         if not isinstance(self.path, Path):
             raise ValueError('Target path for cloning the repository is not set.')
 
         # Clone the repository or pull the latest changes
         self._clone_and_pull(pull_changes=pull_changes)
+
+        # Specify path to save results
+        if results_dir is not None:
+            results_dir = Path(results_dir)
+            csv_path = results_dir / f'{self.library.package_name}.csv'
+
+            # Check if results already exist and skip analysis if needed
+            if skip_existing and csv_path.exists():
+                logger.debug(f'Results already exist at {csv_path}. Skipping...')
+                self.df = pd.read_csv(csv_path)
+                self._from_dataframe(self.df)
+                return self
 
         # Get basic repository information using GitPython
         self._fetch_basic_info()
@@ -178,7 +179,7 @@ class GitRepo:
 
         :param str name: Name of library to scrape.
         """
-        logger.info(f'Creating GitRepo for library: {name}')
+        logger.debug(f'Creating GitRepo for library: {name}')
         if name not in all_libraries:
             raise ValueError(f'Library {name} not found in known libraries.')
         return cls(library=all_libraries[name], **kwargs)
@@ -344,8 +345,15 @@ class GitRepo:
 
             while url:
                 # Make the API request
-                r = requests.get(url, headers=headers, params=params, timeout=30)
-                r.raise_for_status()
+                try:
+                    r = requests.get(url, headers=headers, params=params, timeout=30)
+                    r.raise_for_status()
+                except requests.exceptions.HTTPError as e1:
+                    logger.error(f'Error while fetching issues:\n{e1}\nTrying without token...')
+                    del headers['Authorization']  # Retry without auth
+                    r = requests.get(url, headers=headers, params=params, timeout=30)
+                    r.raise_for_status()
+
                 # Count issues
                 for item in r.json():
                     if 'pull_request' not in item:  # exclude PRs
@@ -418,34 +426,67 @@ class GitRepo:
         return text
 
 
-if __name__ == '__main__':
-    # Example usage:
+def prepare_repositories(
+    clone_path: Path,
+    results_dir: Path,
+    pull_changes: bool = False,
+    skip_existing: bool = True,
+    github_token: str | None = None,
+) -> pd.DataFrame:
+    """Clone repositories, pull if needed, scrape information and save git analysis to csv/tex
 
-    CLONE_PATH = Path('repositories/')
-    RESULTS_DIR = Path('results/sca/git_analysis/')
-    SKIP_EXISTING = False
-    TOKEN = os.getenv('GITHUB_TOKEN')
-    if TOKEN is None:
+    :param Path clone_path: Directory to clone repositories into.
+    :param Path results_dir: Directory to save results.
+    :param bool pull_changes: Whether to pull changes for existing repositories, defaults to False
+    :param bool skip_existing: Whether to skip analysis for existing repositories, defaults to True
+    :param str | None github_token: GitHub token for authentication, defaults to None
+    :raises EnvironmentError: If the GitHub token is not provided and not in environment.
+    :return pd.DataFrame: DataFrame containing the combined repository information.
+    """
+    if github_token is None:
+        github_token = os.getenv('GITHUB_TOKEN')
+    if github_token is None:
         raise EnvironmentError('GITHUB_TOKEN environment variable not set.')
 
+    # Clone and analyze each repository
     dataframes = []
-    # libraries = ['autosklearn']
     libraries = list(all_libraries.keys())
 
     for library_name in libraries:
         repo = GitRepo.from_package_name(
             name=library_name,
-            github_token=TOKEN,
-            clone_path=CLONE_PATH,
-            results_dir=RESULTS_DIR,
-            skip_existing=SKIP_EXISTING,
+            clone_path=clone_path,
+            github_token=github_token,
+            results_dir=results_dir,
+            pull_changes=pull_changes,
+            skip_existing=skip_existing,
         )
         dataframes.append(repo.df)
-        print(repo)
+        # logger.info(repo)
+
+    # Check if any dataframes were created
+    if len(dataframes) == 0:
+        raise FileNotFoundError('No dataframes to concatenate.')
 
     # Join dataframes
-    if len(dataframes) > 0:
-        df_all = pd.concat(dataframes, ignore_index=True)
-        df_all.to_csv(RESULTS_DIR / '1_ALL_LIBRARIES.csv', index=False)
-        # Save dataframe as tex file
-        df_all.to_latex(RESULTS_DIR / '1_ALL_LIBRARIES.tex', index=False)
+    df_all = pd.concat(dataframes, ignore_index=True)
+    df_all.to_csv(results_dir / '1_ALL_LIBRARIES.csv', index=False)
+    # Save dataframe as tex file
+    df_all.to_latex(results_dir / '1_ALL_LIBRARIES.tex', index=False)
+    return df_all
+
+
+if __name__ == '__main__':
+    # Example usage:
+    if not os.getenv('GITHUB_TOKEN'):
+        load_dotenv()
+
+    df_ = prepare_repositories(
+        clone_path=Path('repositories/'),
+        pull_changes=False,
+        results_dir=Path('results/sca/git_analysis/'),
+        skip_existing=True,
+        github_token=os.getenv('GITHUB_TOKEN'),
+    )
+
+    logger.success(df_.drop(['csv_path', 'path'], axis=1))

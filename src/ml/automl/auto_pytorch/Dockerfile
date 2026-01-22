@@ -11,10 +11,10 @@ RUN g++ -v && \
     (ln -s /usr/bin/swig3.0 /usr/bin/swig || echo "swig already exists")
 
 # Clone the Auto-PyTorch repository which contains source code and tests
-RUN git clone https://github.com/automl/Auto-PyTorch.git /src/auto_pytorch
+RUN rm -rf /src/Auto-PyTorch && git clone https://github.com/automl/Auto-PyTorch.git /src/Auto-PyTorch
 
 # Set the working directory to the Auto-PyTorch source code
-WORKDIR /src/auto_pytorch/
+WORKDIR /src/Auto-PyTorch/
 
 # Auto-PyTorch requires(?) the submodules to be initialized for tests
 RUN git submodule update --init --recursive
@@ -60,6 +60,6 @@ RUN  if [ "$run_tests" = "true" ]; then \
 # RUN python3 -W ignore -m pytest ./test/test_api/test_api.py -k 'not test_tabular_classification and not test_tabular_regression and not test_tabular_classification_test_evaluator and not test_nonsupported_arguments' --cov-report xml:coverage.xml --cov=. || ls coverage.xml
 # RUN python3 -W ignore -m pytest ./test/ -k 'not test_tabular_classification and not test_tabular_regression and not test_tabular_classification_test_evaluator and not test_nonsupported_arguments' --cov-report xml:coverage.xml --cov=. || ls coverage.xml
 
-RUN cat coverage.xml | grep "hits=" | grep -Eo '[0-9]+' | grep -v '^0$' | wc -l
+# RUN cat coverage.xml | grep "hits=" | grep -Eo '[0-9]+' | grep -v '^0$' | wc -l
 
 RUN python3 -c "import torch;print('GPU STATUS:',torch.cuda.is_available())"

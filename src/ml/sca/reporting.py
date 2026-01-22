@@ -11,7 +11,7 @@ import pandas as pd
 from scipy.stats import spearmanr
 import seaborn as sns
 
-from ml import all_libraries
+from ml import all_libraries, package_names
 from ml.logs import logger
 
 # LIBRARIES = {lib.value: lib for lib in Library}
@@ -121,8 +121,7 @@ class Reporting:
         Path(output_dir, 'tex').mkdir(parents=True, exist_ok=True)
 
         # Ensure correct library names
-        # df['name'].replace(LIBRARIES, inplace=True)
-        df['name'].replace(all_libraries, inplace=True)
+        df['name'].replace(package_names, inplace=True)
 
         # Save all results to a CSV file
         results_file = Path(output_dir, 'csv', 'results.csv')
@@ -278,7 +277,8 @@ class Reporting:
         dropped += [k for k in keys_by_tool['pylint'] if k != 'pylint__score']
 
         # Ruff: only keep score
-        df_summary['ruff__Score'] = df_summary['ruff__ruff Score']
+        # df_summary['ruff__Score'] = df_summary['ruff__ruff Score']
+        df_summary['ruff__Score'] = df_summary['ruff__ruff Num. Issues']
         dropped += keys_by_tool['ruff']
 
         # Sonar: rename Coverage to 'Line Rate' for consistency with Coverage.py
@@ -298,8 +298,10 @@ class Reporting:
             k.replace('sonar', 'Sonar (Duplications)').replace('duplicated_', '')
             for k in duplications
         ]
-        for i, key in enumerate(keys_by_tool['Sonar - Duplications']):
-            df_summary[key] = df_summary[duplications[i]]
+        df_summary = df_summary.copy()
+        # for i, key in enumerate(keys_by_tool['Sonar - Duplications']): df_summary[key] = df_summary[duplications[i]]
+        df_summary[keys_by_tool['Sonar - Duplications']] = df_summary[duplications]
+        # df_summary = df_summary.rename(columns=dict(zip(duplications, keys_by_tool['Sonar - Duplications'])))
 
         # Set index, sort columns, drop path column
         df_summary.drop(columns=dropped, inplace=True, errors='ignore')
@@ -536,8 +538,15 @@ class Reporting:
                 if 'density' in col.lower() or 'per' in col.lower():  # exceptions
                     continue
                 if 'num. issues' in col.lower() or 'conditions' in col.lower():
-                    df[col].fillna(0, inplace=True)
-                df[col] = df[col].astype(int, errors='raise')
+                    df[col] = df[col].fillna(0)
+                try:
+                    df[col] = df[col].astype(int, errors='raise')
+                except pd.errors.IntCastingNaNError as e:
+                    df[col].to_csv('debug_int_conversion.csv', index=True)
+                    raise ValueError(
+                        f'Error converting column "{col}" to integer: {e}\n'
+                        'See debug_int_conversion.csv\n'
+                    ) from e
         return df
 
     @classmethod
@@ -884,6 +893,7 @@ class Reporting:
             .rename(columns={'name': 'Library'})
             .melt(id_vars=['Library'], var_name='Median Rank')
         )
+        df_melted['value'] = df_melted['value'].astype(int)
         title = 'AutoML library ranks for all SCA metrics'
         cls.plot_libraries(df_melted, 'box', title, output_dir, (10, 5))
 
@@ -980,7 +990,7 @@ class Reporting:
             palette=sns.dark_palette('seagreen', n_colors=data.shape[0]),
             ax=ax,
         )
-        y_ticks = [int(label.get_text()) for label in ax.get_yticklabels()]
+        y_ticks = [int(float(label.get_text())) for label in ax.get_yticklabels()]
         y_ticks = list(range(min(y_ticks) + 1, max(y_ticks) - 1))
         ax.set_yticks(y_ticks)
         ax.set_yticklabels([str(t) for t in y_ticks], fontsize=fontsize - 2)  # type: ignore

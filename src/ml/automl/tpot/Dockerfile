@@ -2,7 +2,14 @@
 FROM python:3.10-slim
 
 # Install git
-RUN apt-get update && apt-get install -y git
+# RUN apt-get update && apt-get install -y git
+
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+        git \
+        libgomp1 \
+    && rm -rf /var/lib/apt/lists/*
+
 
 # Clone the TPOT repository
 RUN rm -rf /src/tpot && git clone https://github.com/EpistasisLab/tpot /src/tpot
@@ -10,16 +17,12 @@ RUN rm -rf /src/tpot && git clone https://github.com/EpistasisLab/tpot /src/tpot
 # Change working directory to TPOT
 WORKDIR /src/tpot
 
-# [OLD] Install the required dependencies
-# RUN pip install -r requirements.txt
-# RUN pip install -r optional-requirements.txt
-# RUN pip install . pytest-cov
-
-# [UPDATED April 2025] Install the required dependencies
-RUN pip install .
-RUN pip install .[extra]
-RUN pip install .[extra] pytest-cov
-RUN pip install -r requirements_dev.txt
+# Install the required dependencies
+# RUN pip install -r requirements.txt && pip install -r optional-requirements.txt && pip install . pytest-cov
+# [UPDATED April 2025]
+# RUN pip install .[extra] pytest-cov && pip install -r requirements_dev.txt
+# [UPDATED January 2026]
+RUN pip install .[skrebate,mdr,sklearnex,amltk,testing]
 
 # Run tests
 ARG run_tests
@@ -33,4 +36,4 @@ RUN if [ "$run_tests" = "true" ]; then \
         echo "Skipping tests"; \
     fi
 
-RUN cat coverage.xml | grep "hits=" | grep -Eo '[0-9]+' | grep -v '^0$' | wc -l
+# RUN cat coverage.xml | grep "hits=" | grep -Eo '[0-9]+' | grep -v '^0$' | wc -l

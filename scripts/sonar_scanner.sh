@@ -98,7 +98,7 @@ print_line "SKIP_REBUILDING_IMAGES=${SKIP_REBUILDING_IMAGES}"
 print_line "SONAR_SCANNER_DOCKER=${SONAR_SCANNER_DOCKER}"
 
 print_line "API_URL=${API_URL}"
-print_line "DELETE_EXISTING_PROJECTS=${REPOSITORIES_DIR}"
+print_line "DELETE_EXISTING_PROJECTS=${DELETE_EXISTING_PROJECTS}"
 print_line "SONAR_HOST_URL=${SONAR_HOST_URL}"
 print_line "SONAR_LOGIN=${SONAR_LOGIN}"
 print_line "SONAR_PASSWORD=${SONAR_PASSWORD}"
@@ -200,12 +200,14 @@ for repo_path in $repositories; do
     # Get the name of the repository from directory path
     ####################################################
     repo_name=$(basename "$repo_path")
-    image_name="christianoleary/${repo_name}"
+    # To lowercase and replace hyphens with underscores
+    repo_name_lowercase=$(echo "$repo_name" | tr '[:upper:]' '[:lower:]' | tr '-' '_')
+    image_name="christianoleary/${repo_name_lowercase}"
 
     #####################
     # Skip H2O-3 and Kats
     #####################
-    if [ "$repo_name" = "h2o_3" ] || [ "$repo_name" = "kats" ]; then
+    if [ "$repo_name_lowercase" = "h2o_3" ] || [ "$repo_name_lowercase" = "kats" ]; then
         print_line "Skipping ${repo_name}..."
         continue
     fi
@@ -270,10 +272,13 @@ for repo_path in $repositories; do
     if [ -z "$(docker images -q ${image_name} 2> /dev/null)" ] || [ "$SKIP_REBUILDING_IMAGES" == "false" ]; then
         print_line "Building Docker image ${image_name}..."
 
+        # Determine dockerfile directory name
+        dockerfile_dir=$(echo $repo_name | tr '[:upper:]' '[:lower:]' | tr '-' '_')
+
         # Build image with tests enabled and save logs to file
         #  2>&1 | tee "${SCA_LOGS_DIR}/${repo_name}.log") # || continue
         docker build --build-arg run_tests=true --progress plain -t "${image_name}" \
-            -f ./src/ml/automl/$repo_name/Dockerfile . || exit 1
+            -f ./src/ml/automl/$dockerfile_dir/Dockerfile . || exit 1
 
         print_line "Docker image ${image_name} built successfully."
     fi
@@ -395,6 +400,8 @@ sonar.token=$SONAR_TOKEN
 sonar.language=py
 sonar.python.coverage.reportPaths=$TARGET_DIR/coverage.xml
 sonar.scm.disabled=true
+sonar.exclusions=**/*.ts,**/*.tsx,**/*.js,**/*.jsx,**/*.tsx,**/*.java,**/*.c,**/*.cpp,**/*.h,**/*.cs,**/*.go,**/*.rb,**/*.php
+sonar.inclusions=**/*.py
 EOL
 
     cat "${OUTPUT_DIR}/sonar-project.properties"
@@ -467,7 +474,7 @@ EOL
             "${TARGET_DIR}/lightautoml/ml_algo/tuning/optuna.py"
             "${TARGET_DIR}/tests/integration/test_custom_2_level_stacking.py"
         )
-    elif [ "$repo_name" = "mljar_supervised" ]; then
+    elif [ "$repo_name" = "mljar_supervised" ] || [ "$repo_name" = "mljar-supervised" ]; then
         problematic_files=(
             "${TARGET_DIR}/supervised/automl.py"
             "${TARGET_DIR}/supervised/utils/automl_plots.py"

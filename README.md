@@ -58,8 +58,11 @@ pip install -e .[sca]        # Source Code Analysis
 
 pip install -e .[all]        # Everything
 
+# For source code analysis:
+conda install gh -y
+
 # Optionally, for development:
-conda install pre-commit
+conda install pre-commit -y
 ```
 
 ## CUDA

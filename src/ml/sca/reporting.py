@@ -11,10 +11,10 @@ import pandas as pd
 from scipy.stats import spearmanr
 import seaborn as sns
 
-from ml import Library
+from ml import all_libraries, display_names
 from ml.logs import logger
 
-LIBRARIES = {lib.value: lib for lib in Library}
+# LIBRARIES = {lib.value: lib for lib in Library}
 # LaTeX formatting
 BOLD = '\\textbf'
 ITALIC = '\\textit'
@@ -59,7 +59,7 @@ class Reporting:
         'Total CC',
         'Violations',
     ]
-    LONGEST_NAME = max(len(lib.value) for lib in Library)
+    LONGEST_NAME = max(len(lib_name) for lib_name in all_libraries.keys())
     # fmt: off
     RANK_METRICS = [
         'bandit__Total Issues', 'coverage__line-rate', 'coverage__branch-rate',
@@ -71,6 +71,7 @@ class Reporting:
         'radon-hal__Mean Halstead Bugs', 'radon-hal__Total Halstead Bugs',  # Halstead
         'radon-hal__Mean Halstead Effort', 'radon-hal__Total Halstead Effort',
         'radon-hal__Mean Halstead Difficulty', 'radon-hal__Total Halstead Difficulty',
+        # 'radon-hal__Mean Halstead Time', 'radon-hal__Total Halstead Time',
         'radon-hal__Mean Halstead Volume', 'radon-hal__Total Halstead Volume',
         'radon-mi__Mean Maintainability Index',  # Maintainability
         # ##### SonarQube #####
@@ -94,11 +95,13 @@ class Reporting:
     ]
     # fmt: on
     SORT_COLUMNS = {
+        'All Metrics': ('sonar__violations', True),
         'Complexity': ('sonar__complexity', True),
         'Test Coverage': ('coverage__line-rate', False),
         'Duplication': ('Sonar (Duplications)__lines', True),
         'Linting': ('sonar__violations', True),
         'Maintainability and Reliability': ('sonar__sqale_index', True),
+        'Radon Metrics': ('radon-hal__Total Halstead Bugs', True),
         'Program Size': ('radon-hal__Total Halstead Volume', True),
     }
     SUMMARY_DIR = 'SUMMARY'
@@ -121,12 +124,13 @@ class Reporting:
         Path(output_dir, 'tex').mkdir(parents=True, exist_ok=True)
 
         # Ensure correct library names
-        df['name'].replace(LIBRARIES, inplace=True)
+        df['name'].replace(display_names, inplace=True)  # package_names
 
         # Save all results to a CSV file
         results_file = Path(output_dir, 'csv', 'results.csv')
         df.to_csv(results_file, index=False)
         logger.info(f'Saved results to {results_file}')
+        df_orig = df.copy()
 
         # Filter, combine and/or format columns
         dropped_cols, df_summary, keys_by_tool = cls.filter_rename_columns(df, ignored_keys_by_tool)
@@ -134,6 +138,11 @@ class Reporting:
         # Summarize results and export to CSV, Markdown, and LaTeX
         used_cols, _, median_ranks = cls.summarize_by_category(df_summary, keys_by_tool, output_dir)
         unused_cols = [col for col in df_summary.columns if col not in used_cols]
+
+        # Sanity checks
+        for col in [unused_cols + dropped_cols]:
+            if col in used_cols:
+                raise ValueError(f'Found "{col}" in both used and unused cols lists')
 
         # Save metadata to a JSON file
         metadata = {
@@ -147,6 +156,9 @@ class Reporting:
         with open(metadata_file, 'w', encoding='utf-8') as f:
             json.dump(metadata, f, indent=4)
         logger.info(f'Saved metadata to {metadata_file}')
+
+        # Save unused to CSV
+        df_orig[['name'] + unused_cols].to_csv(Path(output_dir, 'csv', '_unused_cols.csv'))
 
         # Plots
         logger.debug('Saving plots...')
@@ -277,7 +289,10 @@ class Reporting:
         dropped += [k for k in keys_by_tool['pylint'] if k != 'pylint__score']
 
         # Ruff: only keep score
-        df_summary['ruff__Score'] = df_summary['ruff__ruff Score']
+        if 'ruff__ruff Num. Issues' in df_summary.columns:
+            df_summary['ruff__Score'] = df_summary['ruff__ruff Num. Issues']
+        else:
+            df_summary['ruff__Score'] = df_summary['ruff__ruff Score']
         dropped += keys_by_tool['ruff']
 
         # Sonar: rename Coverage to 'Line Rate' for consistency with Coverage.py
@@ -297,8 +312,10 @@ class Reporting:
             k.replace('sonar', 'Sonar (Duplications)').replace('duplicated_', '')
             for k in duplications
         ]
-        for i, key in enumerate(keys_by_tool['Sonar - Duplications']):
-            df_summary[key] = df_summary[duplications[i]]
+        df_summary = df_summary.copy()
+        # for i, key in enumerate(keys_by_tool['Sonar - Duplications']): df_summary[key] = df_summary[duplications[i]]
+        df_summary[keys_by_tool['Sonar - Duplications']] = df_summary[duplications]
+        # df_summary = df_summary.rename(columns=dict(zip(duplications, keys_by_tool['Sonar - Duplications'])))
 
         # Set index, sort columns, drop path column
         df_summary.drop(columns=dropped, inplace=True, errors='ignore')
@@ -332,11 +349,21 @@ class Reporting:
                 'sonar__code_smells', 'sonar__development_cost', 'sonar__sqale_debt_ratio', 'sonar__sqale_index',
                 'sonar__bugs', 'sonar__reliability_remediation_effort', 'sonar__security_hotspots'
             ],
+            # 'Radon Metrics': [
+            #     'radon-cc__mean-cc_class', 'radon-cc__total-cc_class',  # Complexity
+            #     'radon-cc__mean-cc_function', 'radon-cc__total-cc_function',
+            #     'radon-cc__mean-cc_method', 'radon-cc__total-cc_method',
+            #     'radon-hal__Mean Halstead Bugs', 'radon-hal__Total Halstead Bugs',  # Halstead
+            #     'radon-hal__Mean Halstead Effort', 'radon-hal__Total Halstead Effort',
+            #     'radon-hal__Mean Halstead Difficulty', 'radon-hal__Total Halstead Difficulty',
+            #     'radon-hal__Mean Halstead Volume', 'radon-hal__Total Halstead Volume',
+            #     'radon-mi__Mean Maintainability Index',  # Maintainability
+            # ],
             'Program Size': [
                 # 'radon-mi__Num. Files', # 'radon-raw__Blank Lines', 'radon-raw__LLoC',
                 # 'radon-raw__Multi-Line String Lines', 'radon-raw__Single Line Comments',
                 'radon-raw__LoC', 'radon-raw__SLoC', 'radon-raw__Comments',
-                *[f'radon-hal__Total Halstead {c}' for c in ['Difficulty', 'Time', 'Volume']],
+                *[f'radon-hal__Total Halstead {c}' for c in ['Bugs', 'Difficulty', 'Effort', 'Volume']],  # 'Time'
                 'sonar__classes', 'sonar__comment_lines_density', 'sonar__files',
                 'sonar__functions', 'sonar__ncloc', 'sonar__statements'  # 'sonar__comment_lines', 'sonar__lines',
             ],
@@ -345,6 +372,10 @@ class Reporting:
             ],
         }
         # fmt: on
+
+        # All used metrics in one group for overall ranking
+        # groups['All Metrics'] = {col for cols in groups.values() for col in cols}
+
         # Save category results as CSV and LaTeX
         used_cols: list[str] = []
         median_ranks = {}
@@ -535,8 +566,15 @@ class Reporting:
                 if 'density' in col.lower() or 'per' in col.lower():  # exceptions
                     continue
                 if 'num. issues' in col.lower() or 'conditions' in col.lower():
-                    df[col].fillna(0, inplace=True)
-                df[col] = df[col].astype(int, errors='raise')
+                    df[col] = df[col].fillna(0)
+                try:
+                    df[col] = df[col].astype(int, errors='raise')
+                except pd.errors.IntCastingNaNError as e:
+                    df[col].to_csv('debug_int_conversion.csv', index=True)
+                    raise ValueError(
+                        f'Error converting column "{col}" to integer: {e}\n'
+                        'See debug_int_conversion.csv\n'
+                    ) from e
         return df
 
     @classmethod
@@ -883,8 +921,13 @@ class Reporting:
             .rename(columns={'name': 'Library'})
             .melt(id_vars=['Library'], var_name='Median Rank')
         )
+        df_melted['value'] = df_melted['value'].astype(int)
+        # Landscape box plot
         title = 'AutoML library ranks for all SCA metrics'
         cls.plot_libraries(df_melted, 'box', title, output_dir, (10, 5))
+        # Portrait box plot
+        title = 'Ranks of AutoML libraries for all SCA metrics'
+        cls.plot_libraries(df_melted, 'boxh', title, output_dir, (5, 10))
 
         # Plot spearman rank correlation matrix
         df_ranks.corr(method='spearman').to_csv(Path(corr_dir, 'correlation_rank.csv'))
@@ -937,8 +980,8 @@ class Reporting:
         _, ax = plt.subplots(figsize=figsize)
 
         # Create plot
-        if kind == 'box':  # Seaborn box plot
-            file_name = cls._plot_box(data, metric, fontsize, ax)
+        if kind in ['box', 'boxh']:  # Seaborn box plot
+            file_name = cls._plot_box(data, metric, fontsize, ax, kind)
         elif kind == 'barh':
             file_name = cls._plot_bar(data, metric, fontsize, ax, figsize)
         elif kind in ['spearman']:
@@ -960,26 +1003,29 @@ class Reporting:
         plt.close('all')
 
     @classmethod
-    def _plot_box(cls, data: pd.DataFrame, metric: str, fontsize: int, ax: plt.Axes) -> str:
+    def _plot_box(
+        cls, data: pd.DataFrame, metric: str, fontsize: int, ax: plt.Axes, kind: str
+    ) -> str:
         """Plot a box plot of the data.
 
         :param pd.DataFrame data: The data to plot.
         :param str metric: Metric used to label the plot.
         :param int fontsize: The font size of the plot.
         :param plt.Axes ax: The axes of the plot.
+        :param str kind: The kind of plot to create, i.e. 'box' or 'boxh'.
         :return str: File name of the plot.
         """
         sns.boxplot(
             data=data,
             y='value',
             x='Library',
-            # orient='h',
+            orient='h' if kind == 'boxh' else None,
             fill=False,
             hue='Library',
             palette=sns.dark_palette('seagreen', n_colors=data.shape[0]),
             ax=ax,
         )
-        y_ticks = [int(label.get_text()) for label in ax.get_yticklabels()]
+        y_ticks = [int(float(label.get_text())) for label in ax.get_yticklabels()]
         y_ticks = list(range(min(y_ticks) + 1, max(y_ticks) - 1))
         ax.set_yticks(y_ticks)
         ax.set_yticklabels([str(t) for t in y_ticks], fontsize=fontsize - 2)  # type: ignore
@@ -987,7 +1033,7 @@ class Reporting:
         plt.xlabel(metric, fontsize=fontsize)
         plt.ylabel('SCA Metric Rank', fontsize=fontsize)
         plt.tight_layout()
-        return f'boxplot_{metric}'
+        return f'{kind}_{metric}'
 
     @classmethod
     def _plot_bar(

@@ -1,10 +1,14 @@
 """Main module for Git repository analysis."""
 
+import os
 import sys
 from pathlib import Path
 
+from dotenv import load_dotenv
+
 from ml.logs import logger
 from ml.sca.analysis import Analysis
+from ml.sca.repo import prepare_repositories
 
 
 def run_analysis():
@@ -31,10 +35,22 @@ def run_analysis():
     else:
         output_dir = Path('results/sca/')
 
+    # Prepare repositories
+    if not os.getenv('GITHUB_TOKEN'):
+        load_dotenv()
+
+    prepare_repositories(
+        clone_path=Path(input_dir),
+        pull_changes=False,
+        results_dir=Path(output_dir, 'git_analysis'),
+        skip_existing=True,
+        github_token=os.getenv('GITHUB_TOKEN'),
+    )
+
     # Run analysis on the specified directory
     logger.info(f'Running static code analysis on {input_dir}')
     _ = Analysis(input_dir, output_dir=output_dir).run()
-    logger.info(f'Saved results to "{output_dir}"')
+    logger.success(f'Saved results to "{output_dir}" directory')
 
 
 if __name__ == "__main__":

@@ -10,7 +10,7 @@ from loguru import logger
 from pydantic import Field
 from pydantic_settings import BaseSettings, CliSettingsSource
 
-from ml import Library
+from ml import all_libraries
 from ml.logs import Logs
 
 
@@ -41,7 +41,7 @@ SETTINGS: dict = {
     'libraries': {
         'default': ['none'],
         'description': 'List of libraries to use',
-        'options': ['all', 'none'] + [lib.value for lib in Library],
+        'options': ['all', 'none'] + list(all_libraries.keys()),
     },
     'log_file': {
         'default': None,
@@ -90,7 +90,7 @@ def cli_field(*args, **kwargs):
 class SettingsSource(CliSettingsSource):
     """Configure pydantic CLI to consume known args and ignore the rest."""
 
-    def _parse_args(self, parser, args):
+    def _parse_args(self, parser, args):  # pylint: disable=method-hidden
         """Only consume known args; ignore the rest (e.g. pytest flags)."""
         known, _ = parser.parse_known_args(args)
         return vars(known)
@@ -102,7 +102,7 @@ class Configuration(BaseSettings):
     :param bool cpu_only: Use CPU only, even if GPU is available.
     :param str dataset: Name of dataset
     :param str | Path data_dir: Path to the data directory
-    :param list[Library | str] libraries: AutoML libraries to run.
+    :param list[str] libraries: AutoML libraries to run.
     :param str | Path log_file: Log file path. If None, logs will not be saved to a file.
     :param LogLevelEnum log_level: Logging level. Options: DEBUG, INFO, WARNING, ERROR, CRITICAL.
     :param int n_jobs: Number of processes to run.
@@ -117,7 +117,7 @@ class Configuration(BaseSettings):
     cpu_only: bool = cli_field(**SETTINGS['cpu_only'])
     dataset: str | None = cli_field(**SETTINGS['dataset'])
     data_dir: str | Path = cli_field(**SETTINGS['data_dir'])
-    libraries: list[Library | str] = cli_field(**SETTINGS['libraries'])
+    libraries: list[str] = cli_field(**SETTINGS['libraries'])
     log_file: str | Path | None = cli_field(**SETTINGS['log_file'])
     log_level: LogLevelEnum = cli_field(**SETTINGS['log_level'])
     n_jobs: int = cli_field(**SETTINGS['n_jobs'])
@@ -129,7 +129,7 @@ class Configuration(BaseSettings):
     verbosity: int = cli_field(**SETTINGS['verbosity'])
 
     # Pydantic parameters
-    model_config = {
+    model_config = {  # type: ignore
         'cli_ignore_unknown_args': True,
         'cli_parse_args': True,
         'cli_settings_source': SettingsSource,  # Used to ignore unknown CLI arguments
@@ -148,19 +148,19 @@ class Configuration(BaseSettings):
 
     def _validate_libraries(self):
         """Validate the libraries list."""
-        all_libs = [lib.value for lib in Library]
+        all_libs = list(all_libraries.keys())
         if 'all' in self.libraries:
             self.libraries = all_libs
         elif 'none' in self.libraries or 'prepare_data' in self.libraries:
             self.libraries = []
         elif 'installed' in self.libraries:
             self.libraries = []
-            for lib in Library:
+            for lib in all_libraries.values():
                 try:
-                    __import__(lib.value)
-                    self.libraries.append(lib.value)
+                    __import__(lib.package_name)
+                    self.libraries.append(lib.package_name)
                 except ImportError:
-                    logger.warning(f'Library "{lib.value}" is not installed.')
+                    logger.warning(f'Library "{lib.package_name}" is not installed.')
         else:
             for lib in self.libraries:
                 if lib not in all_libs:

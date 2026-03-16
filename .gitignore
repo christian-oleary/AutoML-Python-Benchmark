@@ -54,6 +54,7 @@ main.tex
 *.pb
 *.index
 *variables.data-*
+*.tflite
 
 ###########################
 # Other
@@ -206,6 +207,9 @@ uploads
 # H2O.ai
 h2o-3.*
 h2o/
+
+# Import-linter
+.import_linter_cache
 
 # Installer logs
 pip-log.txt

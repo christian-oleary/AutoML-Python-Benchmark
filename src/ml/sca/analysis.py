@@ -1,18 +1,49 @@
 """Code for performing static code analysis (SCA) on a directory."""
 
+import io
 import json
 import os
 import subprocess  # nosec
+import sys
 from pathlib import Path
 from typing import Any
 
+from complexipy import file_complexity
 from defusedxml import ElementTree
 from git import Repo
 from git.exc import InvalidGitRepositoryError
+from module_coupling_metrics import metrics, reflection
 import pandas as pd
+import readability
 
+from ml import AUTOGLUON, H2O, IGNORED_LIBRARIES, all_libraries, package_names
 from ml.logs import logger
+from ml.sca.lcom import LCOMRunner
+from ml.sca.repo import GitRepo
 from ml.sca.reporting import Reporting
+
+# Try to import the cohesion module
+try:
+    from cohesion import module  # noqa: F401 # type: ignore
+
+    cohesion_installed = True
+except ImportError:
+    logger.warning('"cohesion" module not found. Omitting package.')
+    cohesion_installed = False
+
+# Try to import flake8 API
+try:
+    from flake8 import api as flake8
+
+    _ = flake8.get_style_guide()
+except (ImportError, AttributeError):
+    logger.warning('Failed to import flake8.api, falling back to flake8.api.legacy')
+    # See: https://flake8.pycqa.org/en/latest/user/python-api.html
+    # When Flake8 broke its hard dependency on the tricky internals of
+    # pycodestyle, it lost the easy backwards compatibility as well. To help
+    # existing users of that API we have flake8.api.legacy. This module includes
+    # a couple classes (which are documented below) and a function.
+    from flake8.api import legacy as flake8
 
 IGNORED_COLS: dict[str, list[str]] = {
     'coverage': [],
@@ -29,101 +60,6 @@ IGNORED_COLS: dict[str, list[str]] = {
         'quality_profiles',  # Specific to SonarQube
     ],
 }
-
-
-class GitRepo:
-    """Class to represent a Git repository."""
-
-    name: str
-    path: str | Path
-    url: str
-    commit_count: int
-    contributors: list[str]
-    latest_commit: str
-    lines_of_code: int
-
-    def __init__(self, repo_path: str | Path):
-        """Initialize the Git repository.
-
-        :param str | Path repo_path: Path to repository.
-        """
-        self.path = repo_path
-        self.repo = Repo(self.path)
-
-        self.commit_count = self.get_commit_count()
-        self.contributors = self.get_contributors()
-        self.lines_of_code = self.get_lines_of_code()
-        self.name = self.get_repo_name()
-        self.url = self.get_repo_url()
-
-    def get_branches(self) -> list[str]:
-        """Get the branches in the repository.
-
-        :return list[str]: The branches in the repository.
-        """
-        return [str(branch) for branch in self.repo.branches]
-
-    def get_commit_count(self, **kwargs) -> int:
-        """Get the number of commits in the repository.
-
-        :return int: The number of commits in the repository.
-        """
-        self.commit_count = len(list(self.repo.iter_commits(**kwargs)))
-        return self.commit_count
-
-    def get_contributors(self) -> list[str]:
-        """Get the contributors to the repository.
-
-        :return list[str]: The contributors to the repository.
-        """
-        contributors = set()
-        for commit in self.repo.iter_commits():
-            contributors.add(str(commit.author.email))
-        self.contributors = list(contributors)
-        return self.contributors
-
-    def get_latest_commit(self) -> str:
-        """Get the latest commit in the repository."""
-        self.latest_commit = str(self.repo.head.commit)
-        return self.latest_commit
-
-    def get_repo_name(self) -> str:
-        """Get the name of the repository.
-
-        :return str: The name of the repository.
-        """
-        self.repo_name = self.repo.remotes.origin.url.split('/')[-1].replace('.git', '')
-        return self.repo_name
-
-    def get_lines_of_code(self) -> int:
-        """Get the number of lines of code in the repository.
-
-        :return int: The number of lines of code in the repository
-        """
-        self.lines_of_code = 0
-        # Iterate through the files in the repository
-        for root, _, files in os.walk(self.repo.working_dir):
-            # Only count Python files
-            for file in [f for f in files if f.endswith('.py')]:
-                # Count the lines of code in the file
-                with open(Path(root, file), 'r', encoding='utf-8') as f:
-                    # Try to read file
-                    try:
-                        num_lines = len(f.readlines())
-                    except UnicodeDecodeError:
-                        logger.debug(f'Could not read {file}. Skipping...')
-                        continue
-                    # Count lines of code
-                    self.lines_of_code += num_lines
-        return self.lines_of_code
-
-    def get_repo_url(self) -> str:
-        """Get the URL of the repository.
-
-        :return str: The URL of the repository.
-        """
-        self.repo_url = self.repo.remotes.origin.url
-        return self.repo_url
 
 
 class Analysis:
@@ -148,7 +84,16 @@ class Analysis:
             self.results = [self.analyze_repo(self.input_dir)]
         else:
             # Otherwise, assume the directory contains Git repositories
-            repos = [d for d in self.input_dir.iterdir() if self.is_git_repo(d)]
+            repos = list()
+            for d in self.input_dir.iterdir():
+                # Skip ignored libraries
+                if d.name in IGNORED_LIBRARIES:
+                    logger.info(f'Skipping ignored library: {d.name}')
+                    continue
+                # Check if the directory is a Git repository
+                if self.is_git_repo(d):
+                    repos.append(d)
+
             if len(repos) == 0:
                 raise ValueError(f'No Git repositories found in directory: {self.input_dir}')
             self.results = [self.analyze_repo(repo) for repo in repos]
@@ -163,34 +108,80 @@ class Analysis:
     def analyze_repo(
         self,
         target_dir: str | Path,
-        skip_existing_sonar: bool = False,
+        skip_existing_sonar: bool = True,
         skip_existing_sca: bool = True,
     ) -> dict:
         """Analyze a single Git repository in the specified directory.
 
         :param str | Path target_dir: Path to the Git repository.
-        :param bool skip_existing_sonar: Whether to skip existing Sonar-Scanner results, defaults to False.
+        :param bool skip_existing_sonar: Whether to skip existing Sonar-Scanner results, defaults to True.
         :param bool skip_existing_sca: Whether to skip existing CLI SCA tool results, defaults to True.
         :return dict: The analysis of the Git repository.
         """
+        if target_dir is None:
+            raise ValueError('No target directory specified for analysis')
         logger.info(f'Analyzing {target_dir}...')
-        repo = GitRepo(target_dir)
 
-        # Run Coverage, git and Sonar analysis on the repository
+        # Initialize the Git repository object
+        package_name = str(Path(target_dir).name)
+        if package_name not in all_libraries:
+            package_name = package_names.get(package_name, package_name)
+
+        repo = GitRepo.from_package_name(
+            name=package_name,
+            clone_path=self.input_dir,
+            results_dir=self.output_dir / 'git_analysis',
+            skip_existing=skip_existing_sca,
+        )
+
+        # Run Sonar, git and Python tool analyses on the repository
+        # 2025 Source Code Analysis (SCA) paper:
+        coverage_results = self._read_coverage_xml(repo)
+        git_results = self._git_analysis(repo)
         sonar_results = self._parse_sonar_scanner_json(repo, self.output_dir, skip_existing_sonar)
+        # Added 2026:
+        # py_files = self.get_all_py_files(Path(repo.path))
+        # # cohesion_results = self.cohesion_analysis(py_files, repo, skip_existing_sca)
+        # cognitive_complexity_results = self.cognitive_complexity(py_files, repo, skip_existing_sca)
+        # # coupling_results = self.coupling_metrics(repo)  # Requires execution in lib's env
+        # flake8_results = self.flake8_analysis(py_files, repo, skip_existing_sca)
+        # lcom_results = self._lcom_analysis(py_files, repo, skip_existing_sca)
+        # readability_results = self.readability_analysis(py_files, repo, skip_existing_sca)
+
         results = {
-            'name': repo.name,
+            'name': repo.library.git_name,
             'path': repo.path,
-            **{f'coverage__{k}': v for k, v in self._read_coverage_xml(repo).items()},
-            # **{f'git__{k}': v for k, v in self.git_analysis(repo, verbose=False).items()},
+            # 2025 Source Code Analysis (SCA) paper:
+            **{f'coverage__{k}': v for k, v in coverage_results.items()},
+            **{f'git__{k}': v for k, v in git_results.items()},
             **{f'sonar__{k}': v for k, v in sonar_results.items()},
+            # Added 2026:
+            # # **{f'cohesion__{k}': v for k, v in cohesion_results.items()},
+            # **{f'cognitive_complexity__{k}': v for k, v in cognitive_complexity_results.items()},
+            # # **{f'coupling__{k}': v for k, v in coupling_results.items()},
+            # **{f'flake8__{k}': v for k, v in flake8_results.items()},
+            # **{f'lcom__{k}': v for k, v in lcom_results.items()},
+            # **{f'readability__{k}': v for k, v in readability_results.items()},
         }
 
         # Run other (CLI) tools on the repository
-        for tool, command in self.build_commands(repo.name).items():
+        for tool, command in self.build_commands(repo.library.git_name).items():
             outputs = self._run_cli_command(tool, command, repo, skip_existing_sca)
             results.update({f'{tool}__{k}': v for k, v in outputs.items()})
         return results
+
+    def get_all_py_files(self, base_dir: Path) -> list[Path]:
+        """Get all Python files in the repository.
+
+        :param Path base_dir: The base directory of the repository.
+        :return list[Path]: List of all Python files in the repository.
+        """
+        py_files = []
+        for root, _, files in os.walk(base_dir):
+            for file in files:
+                if file.endswith('.py'):
+                    py_files.append(Path(root) / file)
+        return py_files
 
     def build_commands(self, repo_name: str | Path) -> dict:
         """Build the CLI commands for the static code analysis tools.
@@ -222,13 +213,266 @@ class Analysis:
         # fmt: on
         return commands
 
+    def cohesion_analysis(
+        self, py_files: list[Path], repo: GitRepo, skip_existing: bool = True
+    ) -> dict:
+        """Calculate class cohesion (higher is better) for Python files.
+
+        DEPRECATED: made redundant by flake8
+
+        :param list[Path] py_files: List of Python file paths.
+        :param GitRepo repo: The Git repository object.
+        :param bool skip_existing: Whether to skip existing results, defaults to True.
+        :return dict: The class cohesion results.
+        """
+        # Return results if they already exist
+        results_path, results, _ = self._check_results_file('cohesion', repo, skip_existing)
+        if results and skip_existing:
+            return results
+
+        logger.debug(f'Running class cohesion analysis for {repo.library.git_name}...')
+        # Return if cohesion module is not installed
+        if not cohesion_installed:
+            return {}
+
+        # Analyze each Python file
+        cohesion, num_classes, failed = 0, 0, 0
+        for py_path in py_files:
+            try:
+                mod = module.Module.from_file(str(py_path))
+                classes = mod.classes()
+                for class_ in classes:
+                    cohesion += mod.class_cohesion_percentage(class_)
+                    num_classes += 1
+            except (SyntaxError, UnicodeDecodeError):
+                failed += 1
+
+        # Determine number of passes and fails
+        passed = len(py_files) - failed
+        if failed > 0:
+            logger.warning(f'Analyzed {passed} files. Failed to analyze {failed} files.')
+
+        results = {
+            'Total Cohesion': cohesion,
+            'Mean Cohesion by Class': cohesion / num_classes if num_classes > 0 else 0,
+            'Mean Cohesion by File': cohesion / passed if passed > 0 else 0,
+            'Files Analyzed': passed,
+            'Files Failed': failed,
+        }
+        logger.debug(f'Class Cohesion Results:\n{results}')
+
+        # Save results to a file if an output directory is provided
+        self._save_json(results_path, results, tool_name='complexipy')
+        return results
+
+    def cognitive_complexity(
+        self, py_files: list[Path], repo: GitRepo, skip_existing: bool = True
+    ) -> dict:
+        """Calculate cognitive complexity for Python files.
+
+        :param list[Path] py_files: List of Python file paths.
+        :param GitRepo repo: The Git repository object.
+        :param bool skip_existing: Whether to skip existing results, defaults to True.
+        :return dict: The cognitive complexity results.
+        """
+        results_path, results, _ = self._check_results_file('complexipy', repo, skip_existing)
+        # Return the results if they already exist
+        if results and skip_existing:
+            return results
+
+        logger.debug(f'Running cognitive complexity analysis for {repo.library.git_name}...')
+        # Analyze each Python file
+        complexity, failed = 0, 0
+        for py_path in py_files:
+            try:
+                result = file_complexity(str(py_path))
+                complexity += result.complexity
+            except (OSError, ValueError):
+                failed += 1
+
+        # Determine number of passes and fails
+        passed = len(py_files) - failed
+        if failed > 0:
+            logger.warning(f'Analyzed {passed} files. Failed to analyze {failed} files.')
+
+        results = {
+            'Total Cognitive Complexity': complexity,
+            'Mean Cognitive Complexity': complexity / passed if passed > 0 else 0,
+            'Files Analyzed': passed,
+            'Files Failed': failed,
+        }
+        logger.debug(f'Cognitive Complexity Results:\n{results}')
+
+        # Save results to a file if an output directory is provided
+        self._save_json(results_path, results, tool_name='complexipy')
+        return results
+
+    def coupling_analysis(self, repo: GitRepo, skip_existing: bool = True) -> dict:
+        """Coupling metrics from module_coupling_metrics: instability, abstractness, distance.
+
+        DEPRECATED: requires execution in library's environment due to dependencies.
+
+        :param GitRepo repo: The Git repository object.
+        :param bool skip_existing: Whether to skip existing results, defaults to True
+        :raises ValueError: If no components are found for analysis.
+        :return dict: The coupling metrics results.
+        """
+        results_path, results, _ = self._check_results_file('coupling', repo, skip_existing)
+        # Return the results if they already exist
+        if results and skip_existing:
+            return results
+        logger.debug(f'Running coupling metrics analysis for {repo.library.git_name}...')
+
+        # Specify the base directory of the package in its repository
+        base_dir = Path(repo.path)
+        if repo.library.package_name not in [AUTOGLUON.package_name, H2O.package_name]:
+            base_dir = base_dir / repo.library.package_name
+
+        # Run the coupling metrics analysis using module_coupling_metrics
+        project = reflection.load_project_structure(Path(repo.path) / repo.library.package_name)
+        metrics_results = metrics.compute(project)
+
+        # Aggregate the results
+        num_components = len(metrics_results)
+        instability, abstractness, distance = 0, 0, 0
+        for component in metrics_results.values():
+            instability += component.instability
+            abstractness += component.abstractness
+            distance += component.distance_from_main_sequence
+
+        if num_components == 0:
+            raise ValueError('No components found for coupling metrics analysis')
+
+        results = {
+            'Components Analyzed': num_components,
+            'Total Abstractness': abstractness,
+            'Total Distance': distance,
+            'Total Instability': instability,
+            'Mean Abstractness': abstractness / num_components,
+            'Mean Distance': distance / num_components,
+            'Mean Instability': instability / num_components,
+        }
+        logger.debug(f'Coupling Metrics Results:\n{results}')
+
+        # Save results to a file if an output directory is provided
+        self._save_json(results_path, results, tool_name='coupling')
+        return results
+
+    def flake8_analysis(
+        self, files: list[Path], repo: GitRepo, skip_existing: bool = True, **style_kwargs
+    ) -> dict:
+        """Flake8 static code analysis on Python files. The style_kwargs are passed to flake8.get_style_guide().
+
+        :param list[Path] files: List of Python file paths.
+        :param GitRepo repo: The Git repository object.
+        :param bool skip_existing: Whether to skip existing results, defaults to True.
+        :param style_kwargs: Additional keyword arguments for Flake8 style guide.
+        :return dict: The Flake8 analysis results.
+        """
+        results_path, results, _ = self._check_results_file('flake8', repo, skip_existing)
+        # Return the results if they already exist
+        if results and skip_existing:
+            return results
+
+        logger.debug(f'Running Flake8 analysis for {repo.library.git_name}...')
+        if len(files) == 0:
+            raise FileNotFoundError(f'No Python files found in repository: {repo.path}')
+
+        # Capture stdout to suppress output
+        stdout_ = sys.stdout
+        buffer = io.BytesIO()
+        text_wrapper = io.TextIOWrapper(buffer, encoding="utf-8")
+        sys.stdout = text_wrapper
+
+        # Run Flake8 analysis
+        try:
+            style_guide = flake8.get_style_guide(quiet=True, format='quiet', **style_kwargs)
+            report: flake8.Report = style_guide.check_files([str(f) for f in files])
+        finally:
+            sys.stdout = stdout_
+
+        # Aggregate the results
+        results = {
+            'Total Issues': report.total_errors,
+            'Warnings': len(report.get_statistics('W')),
+            'Errors': len(report.get_statistics('E')),
+            'Failures': len(report.get_statistics('F')),
+        }
+        results['Mean Issues per File'] = results['Total Issues'] / len(files)
+        results['Mean Warnings per File'] = results['Warnings'] / len(files)
+        results['Mean Errors per File'] = results['Errors'] / len(files)
+        results['Mean Failures per File'] = results['Failures'] / len(files)
+
+        logger.debug(f'Flake8 results:\n{results}')
+
+        # Save results to a file if an output directory is provided
+        self._save_json(results_path, results, tool_name='flake8')
+        return results
+
+    def readability_analysis(
+        self, py_files: list[Path], repo: GitRepo, skip_existing_sca: bool = True
+    ) -> dict:
+        """Readability analysis via the readability package.
+
+        See https://github.com/cdimascio/py-readability-metrics for more information.
+
+        :param list[Path] py_files: List of Python file paths.
+        :param GitRepo repo: The Git repository object.
+        :param bool skip_existing_sca: Whether to skip existing results, defaults to True.
+        :return dict: The readability analysis results.
+        """
+        results_path, results, _ = self._check_results_file('readability', repo, skip_existing_sca)
+        # Return the results if they already exist
+        if results and skip_existing_sca:
+            return results
+        logger.debug(f'Running readability analysis for {repo.library.git_name}...')
+
+        # Parse text in each python file to compute metrics
+        results = {}
+        failed = 0
+        for py_path in py_files:
+            try:
+                with open(py_path, 'r', encoding='utf-8') as f:
+                    text = f.read()
+
+                # Calculate readability metrics if text is long enough
+                if len(text.split()) <= 100:
+                    continue
+
+                r = readability.Readability(text)
+                results['flesch_kincaid'] = (
+                    results.get('flesch_kincaid', 0) + r.flesch_kincaid().score
+                )
+                results['flesch'] = results.get('flesch', 0) + r.flesch().score
+                results['gunning_fog'] = results.get('gunning_fog', 0) + r.gunning_fog().score
+                results['coleman_liau'] = results.get('coleman_liau', 0) + r.coleman_liau().score
+                results['dale_chall'] = results.get('dale_chall', 0) + r.dale_chall().score
+                results['ari'] = results.get('ari', 0) + r.ari().score
+                results['linsear_write'] = results.get('linsear_write', 0) + r.linsear_write().score
+                # results['smog'] = results.get('smog', 0) + r.smog().score  # Does not work with code
+                results['spache'] = results.get('spache', 0) + r.spache().score
+                # Include additional statistics
+                for key, value in r.statistics().items():
+                    results[key] = results.get(key, 0) + value
+            except (UnicodeDecodeError, readability.exceptions.ReadabilityException):
+                logger.warning(f'Failed to compute readability metrics for file: {py_path}')
+                failed += 1
+
+        # Average the results over all files
+        passed = len(py_files) - failed
+        if failed > 0:
+            logger.warning(f'Analyzed {passed} files. Failed to analyze {failed} files.')
+
+        for key, score in list(results.items()):
+            results[f'mean_{key}'] = score / passed if passed > 0 else 0
+        logger.debug(f'Readability Results:\n{results}')
+
+        # Save results to a file if an output directory is provided
+        self._save_json(results_path, results, tool_name='readability')
+        return results
+
     def _run_cli_command(
-        self,
-        tool: str,
-        command: list,
-        repo: GitRepo,
-        skip_existing: bool,
-        verbose: bool = True,
+        self, tool: str, command: list, repo: GitRepo, skip_existing: bool, verbose: bool = True
     ) -> dict:
         """Run a CLI command on the specified directory.
 
@@ -236,7 +480,7 @@ class Analysis:
         :param list command: The CLI command to run.
         :param GitRepo repo: The Git repository object.
         :param bool skip_existing: Whether to skip existing results.
-        :param bool verbose: Whether to include additional information, defaults to False.
+        :param bool verbose: Whether to include additional information, defaults to True.
         :raises ValueError: If the tool is not supported.
         :return dict: The frequencies of the tool errors.
         """
@@ -249,11 +493,11 @@ class Analysis:
         logger.debug(f'Running {tool}...')
 
         # Avoid library specific configuration error
-        if repo.name == 'auto_sklearn':
+        if repo.library.git_name == 'auto_sklearn':
             command[-1] += '/auto-sklearn'
 
         # Run the CLI command
-        logger.info(f'Running {tool} on {repo.name} using command: {command}')
+        logger.info(f'Running {tool} on {repo.library.git_name} using command: {command}')
         result = subprocess.run(  # nosec
             command,
             capture_output=True,
@@ -276,13 +520,13 @@ class Analysis:
         frequencies = self._parse_results_file(tool, result_path, json_file)
         return frequencies
 
-    def _read_coverage_xml(self, repo: GitRepo):
+    def _read_coverage_xml(self, repo: GitRepo) -> dict:
         """Read the coverage XML file from the repository if present.
 
         :param GitRepo repo: The Git repository object.
-        :param str pattern: The pattern to search for, defaults to 'coverage.xml'.
+        :return dict: The coverage results from the XML file.
         """
-        logger.info(f'Reading coverage XML file for {repo.name}...')
+        logger.debug(f'Reading coverage XML file for {repo.library.git_name}...')
         coverage_results: dict[str, float] = {}
         # Scan the repository for the coverage XML file
         for file_path in Path(repo.path).rglob('*'):
@@ -307,21 +551,25 @@ class Analysis:
         :param str tool: The tool to check the results file for.
         :param GitRepo repo: The Git repository object.
         :param bool skip_existing: Whether to skip existing results.
-        :return tuple: The results file, frequencies, and temporary file.
+        :return tuple: The results file, results dictionary, and temporary file (or None).
         """
-        results_file, frequencies = None, None
-        # Temporary output file. Deleted later.
-        temp_file: str | Path = f'{tool}_{repo.name}.json'
+        results_path, results = None, None
+
+        # CLI tools generate a temporary output file. Deleted later.
+        filename = f'{tool}_{repo.library.git_name}.json'
+        temp_path = Path(repo.path, filename)
 
         # File to save formatted results
         if self.output_dir:
-            results_file = Path(self.output_dir, tool, temp_file)
+            results_path = Path(self.output_dir, tool, filename)
             # Load the output from a file if possible
-            if skip_existing and results_file and results_file.exists():
-                # logger.debug(f'Output file already exists: {results_file}')
-                frequencies = json.loads(results_file.read_text(encoding='utf-8'))
-
-        return results_file, frequencies, Path(repo.path, temp_file)
+            if skip_existing and results_path and results_path.exists():
+                # logger.debug(f'Output file already exists: {results_path}')
+                if results_path.is_file() and results_path.suffix == '.json':
+                    results = json.loads(results_path.read_text(encoding='utf-8'))
+                else:
+                    raise NotImplementedError('Only JSON results files are supported')
+        return results_path, results, temp_path
 
     def _parse_results_file(self, tool: str, results_file: Path, temp_file: str | Path) -> dict:
         """Parse the results file from the specified tool.
@@ -340,16 +588,29 @@ class Analysis:
         logger.debug(f'{tool}: {frequencies}')
 
         # Save results to a file if an output directory is provided
-        if self.output_dir and results_file:
-            results_file.parent.mkdir(parents=True, exist_ok=True)
-            with open(results_file, 'w', encoding='utf-8') as f:
-                json.dump(frequencies, f, indent=4)
-            logger.info(f'{tool} output saved to {results_file}')
+        self._save_json(results_file, frequencies, tool_name=tool)
 
         # Delete the temporary file
         if Path(temp_file).is_file():
             os.remove(temp_file)
         return frequencies
+
+    def _save_json(self, results_file: Path, results: dict, tool_name: str = '') -> None:
+        """Save results to a file if an output directory is provided.
+
+        :param Path results_file: The path to the results file.
+        :param dict results: The results to save.
+        :param str tool_name: The name of the tool, defaults to ''.
+        """
+        if self.output_dir and results_file:
+            results_file.parent.mkdir(parents=True, exist_ok=True)
+            with open(results_file, 'w', encoding='utf-8') as f:
+                json.dump(results, f, indent=4)
+
+            message = f'output saved to {results_file}'
+            if tool_name and len(tool_name) > 0:
+                message = f'{tool_name} {message}'
+            logger.info(message)
 
     def _parse_json(self, tool: str, output: dict) -> dict:
         """Parse the JSON output from the specified tool.
@@ -422,6 +683,9 @@ class Analysis:
             # Count errors by tool
             tool = f'{message["source"].title()} Num. Issues'
             results[tool] = results.get(tool, 0.0) + 1.0
+            # Some message codes contain filenames, replace with 'OTHER'
+            if '.py' in message['code']:
+                message['code'] = 'OTHER'
             # Count the frequencies of each message type
             tool_error = f"{message['source']}_{message['code']}"
             results[tool_error] = results.get(tool_error, 0.0) + 1.0
@@ -542,23 +806,53 @@ class Analysis:
             raise e
         return results
 
-    def _git_analysis(self, repo: GitRepo, verbose: bool = False) -> dict:
+    def _git_analysis(self, repo: GitRepo) -> dict:
         """Analyze the Git repository.
 
         :param GitRepo repo: The Git repository object.
-        :param bool verbose: Whether to include additional information, defaults to False.
         :return dict: The analysis of the Git repository.
         """
         logger.debug(f'Git analysis of {repo.path}...')
-        analysis: dict[str, Any] = {'LoC': repo.lines_of_code, 'Num. Commits': repo.commit_count}
-        if verbose:
-            analysis = {
-                **analysis,
-                'Branches': ', '.join(repo.get_branches()),
-                'Contributors': ', '.join(repo.get_contributors()),
-                'Latest Commit': repo.get_latest_commit(),
-            }
+        analysis: dict[str, Any] = {
+            'LoC': repo.lines_of_code,
+            'Num. Branches': repo.num_branches,
+            'Num. Commits': repo.num_commits,
+            'Num. Contributors': repo.num_contributors,
+            'Num. Files': repo.num_files,
+            'Num. Forks': repo.num_forks,
+            'Num. Python Files': repo.num_files_python,
+            'Num. Releases': repo.num_releases,
+            'Num. Stars': repo.num_stars,
+            'Num. Tags': repo.num_tags,
+        }
         return analysis
+
+    def _lcom_analysis(
+        self, py_files: list[Path], repo: GitRepo, skip_existing: bool = True
+    ) -> dict:
+        """Calculate LCOM (Lack of Cohesion of Methods) for Python files.
+
+        :param list[Path] py_files: List of Python file paths.
+        :param GitRepo repo: The Git repository object.
+        :param bool skip_existing: Whether to skip existing results, defaults to True.
+        :return dict: The LCOM results.
+        """
+        results_path, results, _ = self._check_results_file('lcom', repo, skip_existing)
+        # Return the results if they already exist
+        if results and skip_existing:
+            return results
+
+        # Analyze each Python file
+        _, lcom = LCOMRunner().handle(py_files)  # type: ignore
+        results = {
+            'Total LCOM': lcom,
+            'Mean LCOM by File': lcom / len(py_files) if len(py_files) > 0 else 0,
+        }
+        logger.debug(f'LCOM Results:\n{results}')
+
+        # Save results to a file if an output directory is provided
+        self._save_json(results_path, results, tool_name='lcom')
+        return results
 
     def _parse_sonar_scanner_json(
         self, repo: GitRepo, output_dir: str | Path | None, skip_existing: bool = True
@@ -575,17 +869,19 @@ class Analysis:
 
         sonar_dir = Path(output_dir, 'sonar', Path(repo.path).name)
         if not sonar_dir.is_dir():
-            logger.debug(f'No SonarScanner output found for {repo.name}')
+            logger.debug(f'No SonarScanner output found for {repo.library.git_name}')
             return {}
 
         # Find the measures file in the SonarScanner output
         measures_file = Path(sonar_dir, 'measures.json')
         if not measures_file.is_file():
-            logger.debug(f'No measures file found for {repo.name}')
+            logger.debug(f'No measures file found for {repo.library.git_name}')
             return {}
 
         # Load and return parsed measures if available
-        parsed_measures_file = Path(output_dir, 'sonar_parsed', f'sonar_{repo.name}.json')
+        parsed_measures_file = Path(
+            output_dir, 'sonar_parsed', f'sonar_{repo.library.git_name}.json'
+        )
         if skip_existing and parsed_measures_file.exists():
             logger.debug(f'Loading parsed measures from {parsed_measures_file}')
             return json.loads(parsed_measures_file.read_text(encoding='utf-8'))

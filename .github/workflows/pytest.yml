@@ -19,4 +19,4 @@ jobs:
                     python -m pip install --upgrade pip
                     pip install .[tests,sca]
             -   name: Test with pytest
-                run: pytest -ra --durations=0 --cov --cov-append --cov-report=xml
+                run: python -m pytest -ra --durations=0 --cov --cov-append --cov-report=xml

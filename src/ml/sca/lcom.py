@@ -39,18 +39,17 @@ class ModuleReflection(Reflection):
         :param str file: File path.
         :return ModuleReflection | None: Module reflection instance or None if syntax error.
         """
-        file = file.replace('/', os.path.sep).replace('\\', os.path.sep)
-        with open(file, 'r', encoding='utf-8') as handle:
-            content = handle.read()
-
-        name = file.rsplit('.', 1)[0]
-        replacements = ((os.path.sep, '.'), ('__init__', ''), ('__main__', ''))
-        for needle, replace in replacements:
-            name = name.replace(needle, replace)
-
         try:
+            file = file.replace('/', os.path.sep).replace('\\', os.path.sep)
+            with open(file, 'r', encoding='utf-8') as handle:
+                content = handle.read()
+
+            name = file.rsplit('.', 1)[0]
+            replacements = ((os.path.sep, '.'), ('__init__', ''), ('__main__', ''))
+            for needle, replace in replacements:
+                name = name.replace(needle, replace)
             reflection = cls(name.strip('.'), ast.parse(content))
-        except SyntaxError:
+        except (UnicodeDecodeError, SyntaxError):
             reflection = None
         return reflection
 

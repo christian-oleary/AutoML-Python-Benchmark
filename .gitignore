@@ -54,6 +54,7 @@ main.tex
 *.pb
 *.index
 *variables.data-*
+*.tflite
 
 ###########################
 # Other

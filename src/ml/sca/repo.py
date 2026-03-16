@@ -61,7 +61,7 @@ class GitRepo:
         github_token: Optional[str] = None,
         pull_changes: bool = False,
         results_dir: Optional[str | Path] = None,
-        skip_existing: Optional[bool] = False,
+        skip_existing: Optional[bool] = True,
         **kwargs,
     ):
         """Initialize the GitRepo object. Clone and scrape the repository.
@@ -123,7 +123,7 @@ class GitRepo:
         github_token = kwargs.get('github_token', None)
         pull_changes = kwargs.get('pull_changes', False)
         results_dir = kwargs.get('results_dir', None)
-        skip_existing = kwargs.get('skip_existing', False)
+        skip_existing = kwargs.get('skip_existing', True)
 
         if not isinstance(self.path, Path):
             raise ValueError('Target path for cloning the repository is not set.')
@@ -335,40 +335,38 @@ class GitRepo:
             'Authorization': f'Bearer {github_token}',
         }
 
-        def count_issues():
-            """Count open and closed issues using GitHub API."""
-            counts = {'open': 0, 'closed': 0}
+        # def count_issues():
+        #     """Count open and closed issues using GitHub API."""
+        counts: dict = {'open': 0, 'closed': 0}
+        namespace = self.library.git_url.split('github.com/')[-1].replace('.git', '')
+        url: str | None = f'https://api.github.com/repos/{namespace}/issues'
+        params: dict = {'state': 'all', 'per_page': 100}
+        while url:
+            # Make the API request
+            try:
+                r = requests.get(url, headers=headers, params=params, timeout=30)
+                r.raise_for_status()
+            except requests.exceptions.HTTPError as e1:
+                logger.error(f'Error while fetching issues:\n{e1}\nTrying without token...')
+                if 'Authorization' in headers:
+                    headers.pop('Authorization', None)
+                r = requests.get(url, headers=headers, params=params, timeout=30)
+                r.raise_for_status()
 
-            namespace = self.library.git_url.split('github.com/')[-1].replace('.git', '')
-            url = f'https://api.github.com/repos/{namespace}/issues'
-            params = {'state': 'all', 'per_page': 100}
+            # Count issues
+            for item in r.json():
+                if 'pull_request' not in item:  # exclude PRs
+                    counts[item['state']] += 1
+            # Get next page from Link header
+            url = None
+            link = r.headers.get('Link')
+            if link:
+                for part in link.split(','):
+                    if 'rel="next"' in part:
+                        url = part.split(';')[0].strip('<> ')
+            sleep(1)  # To respect rate limits
 
-            while url:
-                # Make the API request
-                try:
-                    r = requests.get(url, headers=headers, params=params, timeout=30)
-                    r.raise_for_status()
-                except requests.exceptions.HTTPError as e1:
-                    logger.error(f'Error while fetching issues:\n{e1}\nTrying without token...')
-                    del headers['Authorization']  # Retry without auth
-                    r = requests.get(url, headers=headers, params=params, timeout=30)
-                    r.raise_for_status()
-
-                # Count issues
-                for item in r.json():
-                    if 'pull_request' not in item:  # exclude PRs
-                        counts[item['state']] += 1
-                # Get next page from Link header
-                url = None
-                link = r.headers.get('Link')
-                if link:
-                    for part in link.split(','):
-                        if 'rel="next"' in part:
-                            url = part.split(';')[0].strip('<> ')
-                sleep(1)  # To respect rate limits
-            return counts
-
-        counts = count_issues()
+        # counts = count_issues()
         self.issues_open = counts['open']
         self.issues_closed = counts['closed']
         self.issues_total = counts['open'] + counts['closed']
@@ -470,8 +468,20 @@ def prepare_repositories(
 
     # Join dataframes
     df_all = pd.concat(dataframes, ignore_index=True)
+
+    # Drop path and csv_path columns if they exist
+    # Update: drop updated_at which appears to be wrong?
+    df_all = df_all.drop(columns=['csv_path', 'path', 'updated_at'], errors='ignore')
+    # Rename package names to display names
+    df_all['library'] = df_all['library'].apply(
+        lambda x: all_libraries[x].display_name if x in all_libraries else x
+    )
+    # Save dataframe as CSV
     df_all.to_csv(results_dir / '1_ALL_LIBRARIES.csv', index=False)
-    # Save dataframe as tex file
+    # Save dataframe as LaTeX table with formatted column names
+    df_all.columns = [
+        col.replace('_', ' ').replace('num', 'num.').title() for col in df_all.columns
+    ]
     df_all.to_latex(results_dir / '1_ALL_LIBRARIES.tex', index=False)
     return df_all
 
@@ -489,4 +499,4 @@ if __name__ == '__main__':
         github_token=os.getenv('GITHUB_TOKEN'),
     )
 
-    logger.success(df_.drop(['csv_path', 'path'], axis=1))
+    logger.success(df_.drop(['csv_path', 'path', 'updated_at'], axis=1, errors='ignore'))

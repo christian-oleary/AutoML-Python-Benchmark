@@ -14,6 +14,7 @@ from git import Repo
 from git.exc import InvalidGitRepositoryError
 from module_coupling_metrics import metrics, reflection
 import pandas as pd
+import readability
 
 from ml import AUTOGLUON, H2O, IGNORED_LIBRARIES, all_libraries, package_names
 from ml.logs import logger
@@ -107,13 +108,13 @@ class Analysis:
     def analyze_repo(
         self,
         target_dir: str | Path,
-        skip_existing_sonar: bool = False,
+        skip_existing_sonar: bool = True,
         skip_existing_sca: bool = True,
     ) -> dict:
         """Analyze a single Git repository in the specified directory.
 
         :param str | Path target_dir: Path to the Git repository.
-        :param bool skip_existing_sonar: Whether to skip existing Sonar-Scanner results, defaults to False.
+        :param bool skip_existing_sonar: Whether to skip existing Sonar-Scanner results, defaults to True.
         :param bool skip_existing_sca: Whether to skip existing CLI SCA tool results, defaults to True.
         :return dict: The analysis of the Git repository.
         """
@@ -133,30 +134,34 @@ class Analysis:
             skip_existing=skip_existing_sca,
         )
 
-        # Find all Python files in the repository
-        py_files = self.get_all_py_files(Path(repo.path))
-
         # Run Sonar, git and Python tool analyses on the repository
-        # cohesion_results = self.cohesion_analysis(py_files, repo, skip_existing_sca)
-        cognitive_complexity_results = self.cognitive_complexity(py_files, repo, skip_existing_sca)
-        # coupling_results = self.coupling_metrics(repo)  # Requires execution in lib's env
+        # 2025 Source Code Analysis (SCA) paper:
         coverage_results = self._read_coverage_xml(repo)
-        flake8_results = self.flake8_analysis(py_files, repo, skip_existing_sca)
-        git_results = self._git_analysis(repo, verbose=False)
-        lcom_results = self._lcom_analysis(py_files, repo, skip_existing_sca)
+        git_results = self._git_analysis(repo)
         sonar_results = self._parse_sonar_scanner_json(repo, self.output_dir, skip_existing_sonar)
+        # Added 2026:
+        # py_files = self.get_all_py_files(Path(repo.path))
+        # # cohesion_results = self.cohesion_analysis(py_files, repo, skip_existing_sca)
+        # cognitive_complexity_results = self.cognitive_complexity(py_files, repo, skip_existing_sca)
+        # # coupling_results = self.coupling_metrics(repo)  # Requires execution in lib's env
+        # flake8_results = self.flake8_analysis(py_files, repo, skip_existing_sca)
+        # lcom_results = self._lcom_analysis(py_files, repo, skip_existing_sca)
+        # readability_results = self.readability_analysis(py_files, repo, skip_existing_sca)
 
         results = {
             'name': repo.library.git_name,
             'path': repo.path,
-            # **{f'cohesion__{k}': v for k, v in cohesion_results.items()},
-            **{f'complexity__{k}': v for k, v in cognitive_complexity_results.items()},
-            # **{f'coupling__{k}': v for k, v in coupling_results.items()},
+            # 2025 Source Code Analysis (SCA) paper:
             **{f'coverage__{k}': v for k, v in coverage_results.items()},
-            **{f'flake8__{k}': v for k, v in flake8_results.items()},
             **{f'git__{k}': v for k, v in git_results.items()},
-            **{f'lcom__{k}': v for k, v in lcom_results.items()},
             **{f'sonar__{k}': v for k, v in sonar_results.items()},
+            # Added 2026:
+            # # **{f'cohesion__{k}': v for k, v in cohesion_results.items()},
+            # **{f'cognitive_complexity__{k}': v for k, v in cognitive_complexity_results.items()},
+            # # **{f'coupling__{k}': v for k, v in coupling_results.items()},
+            # **{f'flake8__{k}': v for k, v in flake8_results.items()},
+            # **{f'lcom__{k}': v for k, v in lcom_results.items()},
+            # **{f'readability__{k}': v for k, v in readability_results.items()},
         }
 
         # Run other (CLI) tools on the repository
@@ -282,7 +287,7 @@ class Analysis:
             try:
                 result = file_complexity(str(py_path))
                 complexity += result.complexity
-            except ValueError:
+            except (OSError, ValueError):
                 failed += 1
 
         # Determine number of passes and fails
@@ -402,6 +407,68 @@ class Analysis:
 
         # Save results to a file if an output directory is provided
         self._save_json(results_path, results, tool_name='flake8')
+        return results
+
+    def readability_analysis(
+        self, py_files: list[Path], repo: GitRepo, skip_existing_sca: bool = True
+    ) -> dict:
+        """Readability analysis via the readability package.
+
+        See https://github.com/cdimascio/py-readability-metrics for more information.
+
+        :param list[Path] py_files: List of Python file paths.
+        :param GitRepo repo: The Git repository object.
+        :param bool skip_existing_sca: Whether to skip existing results, defaults to True.
+        :return dict: The readability analysis results.
+        """
+        results_path, results, _ = self._check_results_file('readability', repo, skip_existing_sca)
+        # Return the results if they already exist
+        if results and skip_existing_sca:
+            return results
+        logger.debug(f'Running readability analysis for {repo.library.git_name}...')
+
+        # Parse text in each python file to compute metrics
+        results = {}
+        failed = 0
+        for py_path in py_files:
+            try:
+                with open(py_path, 'r', encoding='utf-8') as f:
+                    text = f.read()
+
+                # Calculate readability metrics if text is long enough
+                if len(text.split()) <= 100:
+                    continue
+
+                r = readability.Readability(text)
+                results['flesch_kincaid'] = (
+                    results.get('flesch_kincaid', 0) + r.flesch_kincaid().score
+                )
+                results['flesch'] = results.get('flesch', 0) + r.flesch().score
+                results['gunning_fog'] = results.get('gunning_fog', 0) + r.gunning_fog().score
+                results['coleman_liau'] = results.get('coleman_liau', 0) + r.coleman_liau().score
+                results['dale_chall'] = results.get('dale_chall', 0) + r.dale_chall().score
+                results['ari'] = results.get('ari', 0) + r.ari().score
+                results['linsear_write'] = results.get('linsear_write', 0) + r.linsear_write().score
+                # results['smog'] = results.get('smog', 0) + r.smog().score  # Does not work with code
+                results['spache'] = results.get('spache', 0) + r.spache().score
+                # Include additional statistics
+                for key, value in r.statistics().items():
+                    results[key] = results.get(key, 0) + value
+            except (UnicodeDecodeError, readability.exceptions.ReadabilityException):
+                logger.warning(f'Failed to compute readability metrics for file: {py_path}')
+                failed += 1
+
+        # Average the results over all files
+        passed = len(py_files) - failed
+        if failed > 0:
+            logger.warning(f'Analyzed {passed} files. Failed to analyze {failed} files.')
+
+        for key, score in list(results.items()):
+            results[f'mean_{key}'] = score / passed if passed > 0 else 0
+        logger.debug(f'Readability Results:\n{results}')
+
+        # Save results to a file if an output directory is provided
+        self._save_json(results_path, results, tool_name='readability')
         return results
 
     def _run_cli_command(
@@ -739,11 +806,10 @@ class Analysis:
             raise e
         return results
 
-    def _git_analysis(self, repo: GitRepo, verbose: bool = False) -> dict:
+    def _git_analysis(self, repo: GitRepo) -> dict:
         """Analyze the Git repository.
 
         :param GitRepo repo: The Git repository object.
-        :param bool verbose: Whether to include additional information, defaults to False.
         :return dict: The analysis of the Git repository.
         """
         logger.debug(f'Git analysis of {repo.path}...')
@@ -759,14 +825,6 @@ class Analysis:
             'Num. Stars': repo.num_stars,
             'Num. Tags': repo.num_tags,
         }
-        if verbose:
-            analysis = {
-                **analysis,
-                'Created At': repo.created_at,
-                'Latest Commit': repo.updated_at,
-                'Branches': ', '.join(repo.get_branches()),
-                'Default Branch': repo.default_branch,
-            }
         return analysis
 
     def _lcom_analysis(

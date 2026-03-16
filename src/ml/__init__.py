@@ -178,6 +178,9 @@ IGNORED_LIBRARIES = [
     H2O.package_name,
     KATS.git_name,
     KATS.package_name,
+    # Libraries added after SCA paper:
+    FEDOT_INDUSTRIAL.git_name,  # FEDOT_INDUSTRIAL.package_name,
+    HYPER_TS.git_name,  # HYPER_TS.package_name,
 ]
 
 

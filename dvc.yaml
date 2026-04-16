@@ -1,24 +1,41 @@
-# # See README.md for instructions to run stages
+# See README.md for instructions to run stages
 
-# stages:
-#   prepare_dataset:
-#     desc: 'Prepare dataset for training'
-#     cmd: python -m ml --task prepare_data --dataset ${dataset}
-#     deps:
-#       - src/ml/__init__.py
-#       - src/ml/configuration.py
-#       - src/ml/dataset.py
-#     outs:
-#       - data/preprocessed/${dataset}/df.csv
+# Data already imported via:
+# dvc import --out ./data/SKAB https://github.com/waico/SKAB.git ./data
+# To update, run:
+# dvc update data/SKAB
 
-#   # Train time series classification model on RAVDESS
-#   # train_model:
-#   #   cmd: python -m ml --task classification --dataset ${dataset} --libraries TODO_TODO_TODO --output_dir results --n_jobs 1
-#   #   deps:
-#   #     - src/ml/__init__.py
-#   #     - src/ml/configuration.py
-#   #     - src/ml/dataset.py
-#   #     - src/ml/tasks.py
-#   #     - data/preprocessed/${dataset}/df.csv
-#   #   # outs:
-#   #   #   - models/model.joblib
+stages:
+  # ANOMALY DETECTION (AD) STAGES
+  # run_anomaly_detection:
+  #   desc: "Run anomaly detection experiments on SKAB datasets"
+  #   cmd: python -m ml.ad
+  #   deps:
+  #     - data/SKAB
+  #   outs:
+  #     - results/ad/all_metadata.json
+
+  # SOURCE CODE ANALYSIS (SCA) STAGES
+  prepare_repositories:
+    desc: "Prepare repositories for source code analysis"
+    cmd: python src/ml/sca/repo.py
+    deps:
+      - src/ml/__init__.py
+      - src/ml/sca/repo.py
+    outs:
+      - results/sca/git_analysis/1_ALL_LIBRARIES.csv
+
+  run_source_code_analysis:
+    desc: "Run source code analysis on the project"
+    cmd: |
+      python -m ml.sca repositories results
+    deps:
+      - src/ml/__init__.py
+      - src/ml/sca/__init__.py
+      - src/ml/sca/__main__.py
+      - src/ml/sca/analysis.py
+      - src/ml/sca/repo.py
+      - src/ml/sca/reporting.py
+      - results/sca/git_analysis/1_ALL_LIBRARIES.csv
+    outs:
+      - results/sca/SUMMARY/T_summary.csv

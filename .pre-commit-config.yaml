@@ -18,6 +18,7 @@ repos:
         rev: v1.5.0
         hooks:
         -   id: detect-secrets
+            exclude: ^data/.*\.dvc$
 
     # -   repo: https://github.com/iterative/dvc
     #     rev: 3.56.0

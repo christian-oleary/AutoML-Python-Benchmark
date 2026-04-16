@@ -1,0 +1,13 @@
+md5: d804913af27e3d29fd057859986a6d19
+frozen: true
+deps:
+- path: ./data
+  repo:
+    url: https://github.com/waico/SKAB.git
+    rev_lock: b2c0d46c2971dcbfe71e26087b6d231998bb91c2
+outs:
+- md5: 9b4a074f4eee7d4e78948b9fb3343156.dir
+  size: 4404815
+  nfiles: 36
+  hash: md5
+  path: SKAB

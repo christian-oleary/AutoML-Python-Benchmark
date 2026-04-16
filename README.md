@@ -13,12 +13,11 @@ This requires [Docker](https://docs.docker.com/). Primary Python version: 3.10.1
 1. [Publications](#publications)
 2. [Installation](#installation)
 3. [CUDA](#cuda)
-4. [Datasets](#datasets)
-5. [Experiments](#experiments)
-6. [Source Code Analysis of AutoML Repositories via Sonar Scanner](#source-code-analysis-of-automl-repositories-via-sonar-scanner)
-7. [Contact](#contact)
-8. [Citation](#citation)
-<!-- 7. [Development](#development) -->
+4. [Experiments](#experiments)
+5. [Source Code Analysis of AutoML Repositories via Sonar Scanner](#source-code-analysis-of-automl-repositories-via-sonar-scanner)
+6. [Contact](#contact)
+7. [Citation](#citation)
+<!-- 6. [Development](#development) -->
 
 ## Publications
 
@@ -72,33 +71,35 @@ To run code via GPUs, you will need to install CUDA for TensorFlow and PyTorch.
 - CUDA compatibilities for [TensorFlow are listed here](https://www.tensorflow.org/install/source_windows).
 - CUDA compatibilities for [PyTorch are listed here](https://pytorch.org/blog/deprecation-cuda-python-support/)
 
-## Datasets
-
-SKAB:
-
-```bash
-mkdir -p data && cd data
-git clone https://github.com/waico/SKAB.git
-cd ../
-```
-
 ## Experiments
 
-<!-- Experiments use [DVC](https://dvc.org/). -->
-<!-- dvc pull; dvc repro -->
+Experiments use [DVC](https://dvc.org/).
+
+<!-- Imported data via:
+dvc import --out ./data/SKAB https://github.com/waico/SKAB.git ./data
+-->
+
+```bash
+conda activate automl
+# Pull data
+dvc pull
+# Run experiments
+dvc repro
+```
 
 ### Source Code Analysis
 
 First see "*Source Code Analysis of AutoML Repositories via Sonar Scanner*" section below.
 
 ```bash
-./scripts/clone_or_pull.sh     # Clone repositories
 conda activate automl          # Activate environment
 pip install -e .[sca]          # Install dependencies
-python -m sca.ml repositories  # Analyze repositories
+python -m ml.sca repositories  # Analyze repositories
 ```
 
 ### Anomaly Detection
+
+Running manually:
 
 ```bash
 conda activate automl

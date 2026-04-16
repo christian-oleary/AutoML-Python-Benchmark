@@ -52,16 +52,15 @@ def load_skab(root_dir: str) -> dict[str, pd.DataFrame]:
 
 
 def prepare_data(
-    df: pd.DataFrame, target_col: str = 'anomaly', window_size: int = 5
+    df: pd.DataFrame, target_col: str = 'anomaly', window_size: int | None = None
 ) -> dict[str, Any]:
     """Prepare features, labels, and metadata for anomaly detection.
 
     :param pd.DataFrame df: The input DataFrame containing the time series data and target column.
     :param str target_col: The name of the target column to drop before creating features.
-    :param int window_size: The size of the sliding window to create features from.
+    :param int | None window_size: Sliding window  size. If None, no windows are created.
     :return dict: Dictionary of split data (X_train, y_train, X_test, y_test) and other metadata.
     """
-    # Log data info
     logger.debug(f'Input DataFrame shape: {df.shape}')
     logger.debug(f'Input DataFrame columns: {df.columns.tolist()}')
     logger.debug(f'Label counts: {df[target_col].value_counts().to_dict()}')
@@ -71,13 +70,19 @@ def prepare_data(
     logger.debug(f'Contamination (proportion of anomalies): {contamination:.4f}')
 
     # Generate features using sliding windows
-    features, labels = make_windows(df, target_col=target_col, window_size=window_size)
+    if window_size is not None:
+        features, labels = make_windows(df, target_col=target_col, window_size=window_size)
+    else:
+        labels = df[target_col].values
+        X = df[[c for c in df.columns if c != target_col]].values
+        features = pd.DataFrame(X, columns=[c for c in df.columns if c != target_col])
 
     # Deal with any date and time columns
-    dropped_cols = [
+    # Commented out as PyCaret seems to be able to handle datetime columns:
+    dropped_cols = [  # ]  # type: ignore
         c for c in features.columns if any(s in c for s in ['datetime', 'time', 'timestamp'])
     ]
-    features = features.drop(columns=dropped_cols, errors='ignore')
+    features = features[[c for c in features.columns if c not in dropped_cols]]
 
     # Split into train/test sets (75/25 split)
     split_idx = int(0.75 * len(features))
@@ -245,15 +250,15 @@ def calculate_scores(
 
 
 def save_metadata(
-    results_subdir: Path, dataset_name: str, df: pd.DataFrame, split_data: dict, window_size: int
-) -> None:
+    results_subdir: Path, dataset_name: str, df: pd.DataFrame, split_data: dict, **kwargs
+) -> dict:
     """Save metadata to a JSON file, e.g. dataset name, shapes, columns, etc.
 
     :param Path results_subdir: The directory to save the metadata file in.
     :param str dataset_name: The name of the dataset.
     :param pd.DataFrame df: The original DataFrame before splitting.
     :param dict split_data: Split data (X_train, y_train, X_test, etc.).
-    :param int window_size: The size of the sliding window used to create features.
+    :return: The metadata dictionary that was saved.
     """
     dropped_cols = split_data.get('dropped_cols', [])
     columns = [c for c in df.columns if c not in dropped_cols]
@@ -261,26 +266,30 @@ def save_metadata(
         'dataset_name': dataset_name,
         'df_shape': df.shape,
         'contamination': split_data['contamination'],
-        'window_size': window_size,
         'X_train_shape': split_data['X_train'].shape,
         'y_train_shape': split_data['y_train'].shape,
         'X_test_shape': split_data['X_test'].shape,
         'y_test_shape': split_data['y_test'].shape,
         'dropped_cols': dropped_cols,
         'columns': columns,
+        **kwargs,
     }
     results_subdir.mkdir(parents=True, exist_ok=True)
     with open(results_subdir / 'metadata.json', 'w', encoding='utf-8') as f:
         json.dump(metadata, f, indent=4)
+    return metadata
 
 
 def main():
     """Main function to run anomaly detection experiments."""
-    skab_data = load_skab('data/SKAB/data')
+    skab_data = load_skab('data/SKAB/')
     logger.info(f'Loaded {len(skab_data)} datasets.')
+    all_metadata = {}
 
-    # window_size = 2  # Size of the sliding window to create features from
-    for window_size in [2, 20, 40, 80]:
+    # Size of the sliding window to create features from
+    window_sizes = [None]
+    # window_sizes = [2, 20]
+    for window_size in window_sizes:
         # Iterate through datasets and run anomaly detection
         for name, df in skab_data.items():
             if 'valve' not in name:  # Only run on valve datasets
@@ -293,19 +302,36 @@ def main():
             df_ = skab_data[dataset_name].drop(columns=['changepoint'], errors='ignore')
             data_ = prepare_data(df_, target_col='anomaly', window_size=window_size)
 
-            # Save metadata for this window size
+            # Create results subdirectory based on dataset name and window size
             results_subdir_ = Path(
-                'results/ad',
-                dataset_name.replace(os.sep, '__').replace('.csv', ''),
-                f'window_size_{window_size}',
+                'results/ad', dataset_name.replace(os.sep, '__').replace('.csv', '')
             )
+            if window_size is not None:
+                results_subdir_ = results_subdir_ / f'window_size_{window_size}'
+            else:
+                results_subdir_ = results_subdir_ / 'original_columns'
+
+            # Save metadata
             logger.info(f'results_subdir: {results_subdir_}')
-            save_metadata(results_subdir_, dataset_name, df_, data_, window_size)
+            metadata = save_metadata(
+                results_subdir_, dataset_name, df_, data_, window_size=window_size
+            )
+
+            # Save metadata in a dictionary keyed by dataset name and window size
+            if window_size is not None:
+                all_metadata[f'{dataset_name}_window-{window_size}'] = metadata
+            else:
+                all_metadata[f'{dataset_name}_original_columns'] = metadata
 
             # Run anomaly detection
             for tool_ in ['pycaret']:
                 for _, scores_ in iterate_ad_options(tool_, results_subdir_, **data_):
                     logger.success(f'{tool_}:\n{json.dumps(scores_, indent=2)}')
+
+    # Save all metadata
+    with open('results/ad/all_metadata.json', 'w', encoding='utf-8') as f:
+        json.dump(all_metadata, f, indent=4)
+    logger.success('All experiments completed.')
 
 
 if __name__ == "__main__":

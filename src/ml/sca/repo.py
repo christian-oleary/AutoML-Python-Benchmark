@@ -61,6 +61,7 @@ class GitRepo:
         github_token: Optional[str] = None,
         pull_changes: bool = False,
         results_dir: Optional[str | Path] = None,
+        scrape_web_pages: Optional[bool] = False,
         skip_existing: Optional[bool] = True,
         **kwargs,
     ):
@@ -71,6 +72,7 @@ class GitRepo:
         :param str | None github_token: GitHub token for authentication.
         :param bool pull_changes: Pull the latest changes if the repository already exists.
         :param str | Path | None results_dir: Directory to save results to.
+        :param bool scrape_web_pages: Scrape web pages for additional information.
         :param bool skip_existing: Skip analysis if results already exist.
         """
         self.library = library
@@ -95,6 +97,7 @@ class GitRepo:
             github_token=github_token,
             pull_changes=pull_changes,
             results_dir=results_dir,
+            scrape_web_pages=scrape_web_pages,
             skip_existing=skip_existing,
             **kwargs,
         )
@@ -124,7 +127,7 @@ class GitRepo:
         pull_changes = kwargs.get('pull_changes', False)
         results_dir = kwargs.get('results_dir', None)
         skip_existing = kwargs.get('skip_existing', True)
-
+        scrape_web_pages = kwargs.get('scrape_web_pages', False)
         if not isinstance(self.path, Path):
             raise ValueError('Target path for cloning the repository is not set.')
 
@@ -148,7 +151,9 @@ class GitRepo:
 
         # Fetch GitHub statistics using PyGithub
         self._fetch_github_stats(github_token)
-        if not hasattr(self, 'issues_closed') or self.issues_closed in (None, 0):
+        if scrape_web_pages and (
+            not hasattr(self, 'issues_closed') or self.issues_closed in (None, 0)
+        ):
             logger.debug('Missing closed issues. Scraping from web page...')
             self._scrape_github_stats(github_token)
 
@@ -428,6 +433,7 @@ def prepare_repositories(
     clone_path: Path,
     results_dir: Path,
     pull_changes: bool = False,
+    scrape_web_pages: bool = False,
     skip_existing: bool = True,
     github_token: str | None = None,
 ) -> pd.DataFrame:
@@ -436,6 +442,7 @@ def prepare_repositories(
     :param Path clone_path: Directory to clone repositories into.
     :param Path results_dir: Directory to save results.
     :param bool pull_changes: Whether to pull changes for existing repositories, defaults to False
+    :param bool scrape_web_pages: Whether to scrape web pages for additional information, defaults to False
     :param bool skip_existing: Whether to skip analysis for existing repositories, defaults to True
     :param str | None github_token: GitHub token for authentication, defaults to None
     :raises EnvironmentError: If the GitHub token is not provided and not in environment.
@@ -457,6 +464,7 @@ def prepare_repositories(
             github_token=github_token,
             results_dir=results_dir,
             pull_changes=pull_changes,
+            scrape_web_pages=scrape_web_pages,
             skip_existing=skip_existing,
         )
         dataframes.append(repo.df)
@@ -495,6 +503,7 @@ if __name__ == '__main__':
         clone_path=Path('repositories/'),
         pull_changes=False,
         results_dir=Path('results/sca/git_analysis/'),
+        scrape_web_pages=False,
         skip_existing=True,
         github_token=os.getenv('GITHUB_TOKEN'),
     )

@@ -18,7 +18,7 @@ class BaseADModel:
         :param pd.DataFrame df: The input DataFrame containing the features and target column.
         :param str target_col: The name of the target column to drop before fitting.
         """
-        df = df.drop(columns=[target_col], errors='ignore')
+        df = df[[col for col in df.columns if col != target_col]]
         self._fit(df, **kwargs)
 
     def predict(self, df: pd.DataFrame):

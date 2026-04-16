@@ -190,7 +190,7 @@ IGNORED_LIBRARIES = [
     FEDOT_INDUSTRIAL.git_name,  # FEDOT_INDUSTRIAL.package_name,
     HYPER_TS.git_name,  # HYPER_TS.package_name,
     # AD only libraries:
-    # PYOD.git_name,  # PYOD.package_name,
+    PYOD.git_name,  # PYOD.package_name,
 ]
 
 

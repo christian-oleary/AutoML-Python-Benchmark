@@ -25,9 +25,12 @@ RUN python3 -m pip install --upgrade pip && pip install requests tabulate && \
     # python3 -m pip install -f http://h2o-release.s3.amazonaws.com/h2o/latest_stable_Py.html h2o && \
 
 # Fix and install test dependencies
-RUN sed -i '/pyarrow==10.0.1; python_version > '\''3.6'\''/d' test-requirements.txt && \
-    sed -i '/causalml==0.14.1; python_version > '\''3.7'\'' and python_version < '\''3.11'\''/d' test-requirements.txt && \
-    python3 -m pip install -r test-requirements.txt pytest-cov
+# RUN sed -i '/pyarrow==10.0.1; python_version > '\''3.6'\''/d' test-requirements.txt && \
+#     sed -i '/causalml==0.14.1; python_version > '\''3.7'\'' and python_version < '\''3.11'\''/d' test-requirements.txt && \
+#     python3 -m pip install -r test-requirements.txt pytest-cov
+RUN sed -i '/pyarrow==10.0.1; python_version > '\''3.6'\''/d' test-requirements.txt
+RUN sed -i '/causalml==0.14.1; python_version > '\''3.7'\'' and python_version < '\''3.11'\''/d' test-requirements.txt
+RUN python3 -m pip install -r test-requirements.txt pytest-cov
 
 RUN echo "3.46.0.6" > "/src/h2o_3/h2o-py/h2o/version.txt" && \
     echo ""        >> "/src/h2o_3/h2o-py/h2o/version.txt" && \

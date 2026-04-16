@@ -58,7 +58,7 @@ def test_analyze_repo(analysis: Analysis, tmp_path: Path, mock_library: Mock, mo
         patch.object(Analysis, '_read_coverage_xml', return_value={'lines': 1}),
         patch.object(Analysis, '_git_analysis', return_value={'lines': 1}),
         patch.object(Analysis, 'build_commands', return_value={}),
-        patch.object(Analysis, '_run_cli_command', return_value={}),
+        patch.object(Analysis, '_run_cli_tool', return_value={}),
         patch.object(
             GitRepo,
             'from_package_name',

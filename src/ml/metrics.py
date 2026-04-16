@@ -9,9 +9,10 @@ import time
 import warnings
 from pathlib import Path
 
+from emmv import emmv_scores, excess_mass, mass_volume
 import numpy as np
 import pandas as pd
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from scipy.stats import ConstantInputWarning, gmean, pearsonr, spearmanr
 from sklearn.metrics import (
     mean_absolute_error,
@@ -19,7 +20,9 @@ from sklearn.metrics import (
     mean_squared_error,
     r2_score,
 )
-from sktime.performance_metrics.forecasting import MeanAbsoluteScaledError
+from sklearn.utils import shuffle as sh
+
+# from sktime.performance_metrics.forecasting import MeanAbsoluteScaledError
 
 from ml.logs import logger
 
@@ -32,6 +35,7 @@ from ml.logs import logger
 class Result(BaseModel):
     """Class to hold the results of the evaluation metrics."""
 
+    model_config = ConfigDict(arbitrary_types_allowed=True)  # Allows NumPy arrays
     actual: np.ndarray
     predicted: np.ndarray
 
@@ -82,10 +86,10 @@ class RegressionResult(Result):
         self.mape = mean_absolute_percentage_error(
             self.actual, self.predicted, multioutput=self.multioutput
         )
-        if self.y_train is not None:
-            self.mase = MeanAbsoluteScaledError(multioutput=self.multioutput)(
-                self.actual, self.predicted, y_train=self.y_train
-            )
+        # if self.y_train is not None:
+        #     self.mase = MeanAbsoluteScaledError(multioutput=self.multioutput)(
+        #         self.actual, self.predicted, y_train=self.y_train
+        #     )
         self.me = np.mean(self.actual - self.predicted)
         self.mse = mean_squared_error(self.actual, self.predicted)
         self.rmse = math.sqrt(self.mse)
@@ -142,6 +146,71 @@ class Metrics:
             os.makedirs(scores_dir, exist_ok=True)
             # Save results to file
             Metrics.write_to_csv(os.path.join(scores_dir, f'{library_name}.csv'), scores)
+        return scores
+
+    @staticmethod
+    def emmv(model, df, scoring_func=None, method: str = 'original', **kwargs) -> dict:
+        """Calculate EMMV scores for unsupervised ML AD models.
+
+        Methods allowed: 'original' (by Goix) and 'uoms' (by Ma 2023, 10.1145/3606274.3606277).
+
+        :param model: Trained ML model with a 'decision_function' method
+        :param df: Pandas dataframe of features (X matrix)
+        :param scoring_func: Anomaly scoring function (callable)
+        :param method: EMMV calculation method, defaults to 'original'
+        :raises ValueError: If unknown EMMV method is passed
+        :return: A dictionary of two scores ('em' and 'mv')
+        """
+        if method == 'original':
+            # Goix's original EM & MV implementation
+            scores = emmv_scores(model, df, scoring_func, **kwargs)
+        elif method == 'uoms':
+            # Adapted from: https://github.com/yzhao062/uoms
+            averaging = kwargs.get('averaging', 5.0)
+            max_features = kwargs.get('max_features', 5)
+            alpha_min = kwargs.get('alpha_min', 0.9)
+            alpha_max = kwargs.get('alpha_max', 0.999)
+            n_generated = kwargs.get('n_generated', 100_000)
+            t_max = kwargs.get('t_max', 0.9)
+            em_score, mv_score, experiment_count = 0, 0, 0
+
+            while experiment_count < averaging:
+                # Randomly select features to reduce computational cost
+                features = sh(np.arange(df.shape[1]))[:max_features]  # type: ignore
+                X_ = df.iloc[:, features]
+
+                # Calculate the volume of the support of the distribution
+                lim_inf = X_.min(axis=0)
+                lim_sup = X_.max(axis=0)
+                volume = (lim_sup - lim_inf).prod()
+
+                # Only calculate EMMV if the volume of the support is greater than 0
+                if volume > 0:
+                    experiment_count += 1
+                    levels = np.arange(0, 100 / volume, 0.001 / volume)
+                    axis_alpha = np.arange(alpha_min, alpha_max, 0.001)
+                    uniform_scores = np.random.uniform(
+                        lim_inf, lim_sup, size=(n_generated, max_features)
+                    )
+                    # Fit the model and get scores for the data and uniform samples
+                    model.fit(X_)
+                    scores_original = model.decision_scores_ * -1
+                    scores_uniform = model.decision_function(uniform_scores) * -1
+
+                    # Calculate EMMV scores for this experiment and accumulate
+                    em_score += excess_mass(
+                        levels, t_max, volume, scores_uniform, scores_original, n_generated
+                    )[0]
+                    mv_score += mass_volume(
+                        axis_alpha, volume, scores_uniform, scores_original, n_generated
+                    )[0]
+
+            # Average scores over experiments
+            em_score /= averaging
+            mv_score /= averaging
+            scores = {'em': np.mean(em_score), 'mv': np.mean(mv_score)}
+        else:
+            raise ValueError(f'Unknown EMMV method: {method}')
         return scores
 
     @staticmethod

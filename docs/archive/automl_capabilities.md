@@ -32,7 +32,7 @@ Table of the capabilities of various AutoML libraries based on existing document
 | Ludwig            | Yes        | Yes            | Yes            | Yes            | No         | Yes         | Yes          | Yes          | No             | No                | No                | <https://github.com/ludwig-ai/ludwig>
 | MLBox             | Yes        | Yes            | No             | No             | No         | No          | No           | No           | No             | No                | No                | <https://mlbox.readthedocs.io/en/latest/index.html>
 | mljar-supervised  | Yes        | Yes            | No             | Yes            | No         | No          | No           | No           | No             | No                | No                | <https://supervised.mljar.com/api/>
-| PyCaret           | Yes        | Yes            | No             | Yes            | Yes        | Yes         | Yes          | No           | No             | No                | Yes (2)           | <https://pycaret.readthedocs.io/en/latest/tutorials.html>
+| PyCaret           | Yes        | Yes            | No             | Yes            | Yes        | Yes         | Yes          | No           | No             | No                | Yes (2)(11)       | <https://pycaret.readthedocs.io/en/latest/tutorials.html>
 | TPOT              | Yes        | Yes            | No             | No             | No         | No          | No           | No           | No             | No                | No                | <https://github.com/EpistasisLab/tpot>
 
 | NAMENAME          | ???        | ???            | ???            | ???            | ???        | ???         | ???          | ???          | ???            | ???               | ???               | <>
@@ -51,6 +51,8 @@ Table of the capabilities of various AutoML libraries based on existing document
     8. Point classification only ([FLAML](https://microsoft.github.io/FLAML/docs/Examples/AutoML-Time%20series%20forecast/#forecasting-discrete-variables))
     9. KATS does not have time series classification classes or functions but it does have TS feature extraction: <https://github.com/facebookresearch/Kats/blob/main/tutorials/kats_203_tsfeatures.ipynb>
     10. HyperTS is TS only but the maintainers have other projects: Hypernets, HyperGBM, HyperDT/DeepTables, HyperKeras
+    11. PyCaret anomaly detection may be removed soon: <https://github.com/pycaret/pycaret/issues/3266#issuecomment-1419121354>
+        - Removed ```tune_model``` from unsupervised: <https://github.com/pycaret/pycaret/pull/3298>
 
 ## Definitions
 

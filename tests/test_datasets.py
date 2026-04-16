@@ -1,5 +1,7 @@
 """Unit tests for the ml.datasets.py file"""
 
+# pylint: disable=redefined-outer-name,unused-argument
+
 from pathlib import Path
 
 import pandas as pd
@@ -14,7 +16,6 @@ class DummyDataset(Dataset):
     """Dummy implementation for testing Dataset abstract class."""
 
     def _init_dataset(self, **kwargs):
-        # Create a simple DataFrame for testing
         self.df = pd.DataFrame({'a': list(range(DATASET_SIZE)), 'b': list(range(DATASET_SIZE))})
         return self
 
@@ -24,7 +25,7 @@ class DummyUtils:
 
     @staticmethod
     def find_files_by_extension(data_dir, ext, recursive, absolute):
-        # Generate dummy file paths with correct stem format
+        """Mock implementation that generates file paths based on expected RAVDESS format."""
         # Format: '03-01-01-01-01-01-01.wav' (emotion=01, statement=01)
         stems = [f'03-01-0{(i%8)+1}-01-0{(i%2)+1}-01-01' for i in range(RAVDESS.expected_rows)]
         return [Path(f'/dummy/path/{stem}.wav') for stem in stems]
@@ -47,7 +48,10 @@ def test_ensure_data_empty():
     """Test ensure_data raises ValueError if df is empty."""
 
     class EmptyDataset(Dataset):
+        """Dataset subclass with empty DataFrame for testing ensure_data."""
+
         def _init_dataset(self, **kwargs):
+            self.data = None
             self.df = pd.DataFrame()
             return self
 
@@ -57,6 +61,7 @@ def test_ensure_data_empty():
 
 @pytest.fixture
 def sample_csv(tmp_path):
+    """Fixture to create a sample CSV file for testing ISEMDataset."""
     # Create a sample CSV file with 'applicable_date' column
     data = {'applicable_date': ['2020-01-01', '2020-01-02', '2020-01-03'], 'value': [100, 200, 300]}
     df = pd.DataFrame(data)
@@ -66,6 +71,7 @@ def sample_csv(tmp_path):
 
 
 def test_isem_dataset_init_reads_csv(sample_csv):
+    """Test that ISEMDataset initializes correctly and reads the CSV file."""
     ds = ISEMDataset(path=sample_csv)
     assert isinstance(ds.df, pd.DataFrame)
     assert 'value' in ds.df.columns
@@ -75,6 +81,7 @@ def test_isem_dataset_init_reads_csv(sample_csv):
 
 
 def test_isem_dataset_missing_path_raises():
+    """Test that initializing ISEMDataset without a path raises ValueError."""
     with pytest.raises(ValueError, match='No path provided for I-SEM dataset'):
         ISEMDataset(path=None)
 
@@ -88,6 +95,7 @@ def test_isem_dataset_missing_applicable_date_column(tmp_path):
 
 
 def test_isem_dataset_ensure_data(sample_csv):
+    """Test that ensure_data raises ValueError if df is empty."""
     ds = ISEMDataset(path=sample_csv)
     ds.ensure_data()  # Should not raise
     ds.df = pd.DataFrame()  # Empty DataFrame

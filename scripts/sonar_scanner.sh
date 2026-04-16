@@ -169,7 +169,8 @@ fi
 print_heading "Repositories in '${REPOSITORIES_DIR}'"
 
 repositories=$(find ./$REPOSITORIES_DIR -mindepth 1 -maxdepth 1 -type d)
-# repositories="./repositories/h2o_3"
+# repositories="./repositories/h2o-3"
+# repositories="./repositories/pyod"
 # repositories=$(echo "$repositories" | tac)
 
 print_line "Repository directories found:\n$repositories"

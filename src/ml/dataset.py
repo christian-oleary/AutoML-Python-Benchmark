@@ -70,7 +70,7 @@ class Dataset(ABC):
 
         :raises ValueError: If dataset is empty
         """
-        if self.df is None or len(self.df) == 0:
+        if getattr(self, 'data', None) is None and (self.df is None or len(self.df) == 0):
             raise ValueError('Empty dataset!')
 
     def _download_from_huggingface(self, n_jobs: int = 1) -> tuple[Path, datasets.DatasetDict]:

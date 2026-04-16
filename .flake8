@@ -5,6 +5,6 @@ max-line-length = 120
 max-complexity = 10
 
 ignore=E203,I201,H601
-ignore-names=X,X_train,X_val,X_train_val,X_test,y
+ignore-names=X,X_train,X_val,X_train_val,X_test,y,X_transpose,X_t,X_
 
 jobs=1

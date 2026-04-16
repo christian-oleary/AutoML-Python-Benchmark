@@ -14,11 +14,11 @@ This requires [Docker](https://docs.docker.com/). Primary Python version: 3.10.1
 2. [Installation](#installation)
 3. [CUDA](#cuda)
 4. [Datasets](#datasets)
-5. [Installation](#installation)
-6. [Experiments](#experiments)
-7. [Development](#development)
-8. [Contact](#contact)
-9. [Citation](#citation)
+5. [Experiments](#experiments)
+6. [Source Code Analysis of AutoML Repositories via Sonar Scanner](#source-code-analysis-of-automl-repositories-via-sonar-scanner)
+7. [Contact](#contact)
+8. [Citation](#citation)
+<!-- 7. [Development](#development) -->
 
 ## Publications
 
@@ -74,23 +74,22 @@ To run code via GPUs, you will need to install CUDA for TensorFlow and PyTorch.
 
 ## Datasets
 
-Removed. To be redrafted.
+SKAB:
 
-<!-- Before running the code, datasets and repositories must be downloaded -->
+```bash
+mkdir -p data && cd data
+git clone https://github.com/waico/SKAB.git
+cd ../
+```
 
 ## Experiments
 
-### Classification
-
-Experiments use [DVC](https://dvc.org/).
-
-```bash
-conda activate automl
-dvc pull
-dvc repro
-```
+<!-- Experiments use [DVC](https://dvc.org/). -->
+<!-- dvc pull; dvc repro -->
 
 ### Source Code Analysis
+
+First see "*Source Code Analysis of AutoML Repositories via Sonar Scanner*" section below.
 
 ```bash
 ./scripts/clone_or_pull.sh     # Clone repositories
@@ -99,16 +98,74 @@ pip install -e .[sca]          # Install dependencies
 python -m sca.ml repositories  # Analyze repositories
 ```
 
-### Forecasting
+### Anomaly Detection
 
-Removed. To be redrafted.
-<!-- After downloading repositories and datasets, you can run experiments with the following:
+```bash
+conda activate automl
+python -m ml.ad  # results should be in: results/ad/
+```
+
+<!-- ### Forecasting
+
+After downloading repositories and datasets, you can run experiments with the following:
 
 ```bash
 python run.py
 ``` -->
 
-## Development
+<!-- ### Classification
+
+```bash
+conda activate automl
+python -m ml --task classification --dataset iemocap
+``` -->
+
+## Source Code Analysis of AutoML Repositories via Sonar Scanner
+
+This requires Docker.
+
+Allow Docker containers to access GPUs:
+
+```bash
+# Required to install nvidia packages
+wget https://nvidia.github.io/nvidia-docker/gpgkey --no-check-certificate
+sudo apt-key add gpgkey
+sudo apt-get update
+
+distribution=$(. /etc/os-release;echo $ID$VERSION_ID) && curl -s -L https://nvidia.github.io/nvidia-docker/gpgkey | sudo apt-key add -
+curl -s -L https://nvidia.github.io/nvidia-docker/$distribution/nvidia-docker.list | sudo tee /etc/apt/sources.list.d/nvidia-docker.list
+sudo apt-get update
+sudo apt-get install -y nvidia-docker2
+
+# Install nvidia package
+sudo apt-get install nvidia-container-runtime nvidia-container-toolkit
+```
+
+Set up SonarQube server via docker-compose and run analysis:
+
+```bash
+# Start server
+docker-compose up --timeout 300 -d --build --force-recreate
+# Download repositories
+sh -i ./scripts/clone_or_pull.sh
+# Run sonar-scanner
+sh -i ./scripts/sonar_scanner.sh
+# Analyze results
+source_code_analysis.sh
+# Stop server:
+docker-compose down
+```
+
+Run SCA tools and analyse the results:
+
+```bash
+./scripts/clone_or_pull.sh     # Clone repositories
+conda activate automl          # Activate environment
+pip install -e .[sca]          # Install dependencies
+python -m sca.ml repositories  # Analyze repositories
+```
+
+<!-- ## Development -->
 
 <!--
 After installation and the download of repositories and datasets, you can run functional tests with:
@@ -157,42 +214,6 @@ coverage run -m pytest tests/functional_tests.py
 coverage report --omit="env/*,venv/*,.env/*,.venv/*,*AppData*,*python37*,tests/*"
 rm .coverage
 ``` -->
-
-## Source Code Analysis of AutoML Repositories with SonarQube
-
-This requires Docker.
-
-Allow Docker containers to access GPUs:
-
-```bash
-# Required to install nvidia packages
-wget https://nvidia.github.io/nvidia-docker/gpgkey --no-check-certificate
-sudo apt-key add gpgkey
-sudo apt-get update
-
-distribution=$(. /etc/os-release;echo $ID$VERSION_ID) && curl -s -L https://nvidia.github.io/nvidia-docker/gpgkey | sudo apt-key add -
-curl -s -L https://nvidia.github.io/nvidia-docker/$distribution/nvidia-docker.list | sudo tee /etc/apt/sources.list.d/nvidia-docker.list
-sudo apt-get update
-sudo apt-get install -y nvidia-docker2
-
-# Install nvidia package
-sudo apt-get install nvidia-container-runtime nvidia-container-toolkit
-```
-
-Set up SonarQube server via docker-compose and run analysis:
-
-```bash
-# Start server
-docker-compose up --timeout 300 -d --build --force-recreate
-# Download repositories
-sh -i ./scripts/clone_or_pull.sh
-# Run sonar-scanner
-sh -i ./scripts/sonar_scanner.sh
-# Analyze results
-source_code_analysis.sh
-# Stop server:
-docker-compose down
-```
 
 ## Contact
 

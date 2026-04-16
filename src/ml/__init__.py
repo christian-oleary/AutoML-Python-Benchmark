@@ -135,6 +135,12 @@ PYCARET = Library(
     git_url='https://github.com/pycaret/pycaret',
     package_name='pycaret',
 )
+PYOD = Library(
+    display_name='PyOD',
+    git_name='pyod',
+    git_url='https://github.com/yzhao062/pyod',
+    package_name='pyod',
+)
 TPOT = Library(
     display_name='TPOT',
     git_name='tpot',
@@ -162,6 +168,7 @@ all_libraries = {
     ML_BOX.package_name: ML_BOX,
     MLJAR.package_name: MLJAR,
     PYCARET.package_name: PYCARET,
+    PYOD.package_name: PYOD,
     TPOT.package_name: TPOT,
 }
 display_names = {lib.package_name: lib.display_name for lib in all_libraries.values()}
@@ -172,6 +179,7 @@ package_names = {lib.git_name: lib.package_name for lib in all_libraries.values(
 # "https://github.com/daochenzha/Meta-AAD"  # No updates
 # "https://github.com/yzhao062/MetaOD"      # No updates
 # "https://github.com/datamllab/pyodds"     # No updates since 2019
+# https://github.com/salesforce/Merlion     # Archived in 2026 by owner (Salesforce)
 
 IGNORED_LIBRARIES = [
     H2O.git_name,
@@ -181,6 +189,8 @@ IGNORED_LIBRARIES = [
     # Libraries added after SCA paper:
     FEDOT_INDUSTRIAL.git_name,  # FEDOT_INDUSTRIAL.package_name,
     HYPER_TS.git_name,  # HYPER_TS.package_name,
+    # AD only libraries:
+    # PYOD.git_name,  # PYOD.package_name,
 ]
 
 

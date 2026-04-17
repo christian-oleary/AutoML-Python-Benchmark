@@ -55,9 +55,9 @@ class PyCaretADModel(BaseADModel):
             'knn',  # k-Nearest Neighbors Detector
             'lof',  # Local Outlier Factor
             'svm',  # One-class SVM detector
-            'pca',  # Principal Component Analysis
+            # 'pca',  # Principal Component Analysis  # Unstable
             # # 'mcd',  # Minimum Covariance Determinant  # > 12 hours
-            # 'sod',  # Subspace Outlier Detection
+            # 'sod',  # Subspace Outlier Detection  # Unstable
             'sos',  # Stochastic Outlier Selection
         ]
     }
@@ -79,7 +79,6 @@ class PyCaretADModel(BaseADModel):
         :param pd.DataFrame df: The input DataFrame containing the features and target column.
         :param str target_col: The name of the target column to drop before fitting.
         """
-        logger.debug(f'Fitting PyCaret {self.model_name}...')
         self.contamination = kwargs.get('contamination', self.contamination)
         super().fit(df, target_col=target_col, **kwargs)
 
@@ -91,7 +90,6 @@ class PyCaretADModel(BaseADModel):
         """
         if self.model is None:
             raise ValueError(f"PyCaret {self.model_name} not been fitted yet.")
-        logger.debug(f'Predicting with PyCaret {self.model_name}...')
         result = predict_model(self.model, data=df)
         return result['Anomaly']
 
@@ -103,7 +101,6 @@ class PyCaretADModel(BaseADModel):
         """
         if self.model is None:
             raise ValueError(f"PyCaret {self.model_name} not been fitted yet.")
-        logger.debug(f'Getting anomaly scores with PyCaret {self.model_name}...')
         result = predict_model(self.model, data=df)
         return result['Anomaly_Score']
 

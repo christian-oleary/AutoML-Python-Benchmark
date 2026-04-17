@@ -61,13 +61,14 @@ def prepare_data(
     :param int | None window_size: Sliding window  size. If None, no windows are created.
     :return dict: Dictionary of split data (X_train, y_train, X_test, y_test) and other metadata.
     """
-    logger.debug(f'Input DataFrame shape: {df.shape}')
-    logger.debug(f'Input DataFrame columns: {df.columns.tolist()}')
-    logger.debug(f'Label counts: {df[target_col].value_counts().to_dict()}')
-
     # Calculate proportions of anomalies
     contamination = df[target_col].mean()
-    logger.debug(f'Contamination (proportion of anomalies): {contamination:.4f}')
+
+    logger.debug(
+        f'df.shape: {df.shape}; df.columns: {df.columns.tolist()}; '
+        f'label counts: {df[target_col].value_counts().to_dict()}; '
+        f'contamination: {contamination:.4f}'
+    )
 
     # Generate features using sliding windows
     if window_size is not None:
@@ -78,8 +79,7 @@ def prepare_data(
         features = pd.DataFrame(X, columns=[c for c in df.columns if c != target_col])
 
     # Deal with any date and time columns
-    # Commented out as PyCaret seems to be able to handle datetime columns:
-    dropped_cols = [  # ]  # type: ignore
+    dropped_cols = [
         c for c in features.columns if any(s in c for s in ['datetime', 'time', 'timestamp'])
     ]
     features = features[[c for c in features.columns if c not in dropped_cols]]
@@ -88,8 +88,10 @@ def prepare_data(
     split_idx = int(0.75 * len(features))
     X_train, y_train = features.iloc[:split_idx], labels[:split_idx]
     X_test, y_test = features.iloc[split_idx:], labels[split_idx:]
-    logger.debug(f'X_train: {X_train.shape}, y_train: {y_train.shape}')
-    logger.debug(f'X_test: {X_test.shape}, y_test: {y_test.shape}')
+    logger.debug(
+        f'X_train: {X_train.shape}, y_train: {y_train.shape}, '
+        f'X_test: {X_test.shape}, y_test: {y_test.shape}'
+    )
     return {
         'X_train': X_train,
         'y_train': y_train,
@@ -141,9 +143,12 @@ def invoke_ad_class(
     :param dict kwargs: Additional keyword arguments to pass to the anomaly detection class.
     :return: A tuple (estimator, train predictions, test predictions).
     """
-    logger.info(f'Running {ad_class.__name__}: contamination={contamination}')
-    if 'model_name' in kwargs:
-        logger.info(f'Model name: {kwargs["model_name"]}')
+    text = f'Running {ad_class.__name__}: contamination={contamination}'
+    for param_name, _ in ad_class.parameter_options.items():
+        param_value = kwargs.get(param_name, None)
+        text += f', {param_name}={param_value}'
+    logger.info(text)
+
     estimator = ad_class(**kwargs)
 
     # Fit models

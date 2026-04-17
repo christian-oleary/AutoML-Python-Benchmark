@@ -17,7 +17,7 @@ stages:
       md5: e388424e4410691d164501874cb0a8d9
       size: 2438
   run_source_code_analysis:
-    cmd: "python -m ml.sca repositories results\n"
+    cmd: python -m ml.sca repositories results
     deps:
     - path: results/sca/git_analysis/1_ALL_LIBRARIES.csv
       hash: md5
@@ -52,3 +52,24 @@ stages:
       hash: md5
       md5: fca039ab533e25159fd9341eab042a9c
       size: 11974
+  run_anomaly_detection:
+    cmd: python -m ml.ad
+    deps:
+    - path: data/SKAB
+      hash: md5
+      md5: 9b4a074f4eee7d4e78948b9fb3343156.dir
+      size: 4404815
+      nfiles: 36
+    - path: src/ml/ad/__main__.py
+      hash: md5
+      md5: 807301305aa5b569794bf9285e626250
+      size: 13922
+    - path: src/ml/ad/anomaly_detection.py
+      hash: md5
+      md5: 9f2534ca7c1ff979b74a2949402ce504
+      size: 5284
+    outs:
+    - path: results/ad/all_metadata.json
+      hash: md5
+      md5: daf222a3a9e80e4ca6489dd26c79d85a
+      size: 16953

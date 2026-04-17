@@ -126,8 +126,8 @@ class TestPyCaretADModelInit:
 
     def test_extra_kwargs_ignored(self):
         """Passing extra kwargs to __init__ should not raise an error."""
-        model = PyCaretADModel(model_name='pca', unknown_param='x')
-        assert model.model_name == 'pca'
+        model = PyCaretADModel(model_name='iforest', unknown_param='ignored')
+        assert model.model_name == 'iforest'
 
 
 # ---------------------------------------------------------------------------

@@ -116,9 +116,16 @@ class PyCaretADModel(BaseADModel):
         """
         model_name = kwargs.get('model_name', self.model_name)
         self.contamination = kwargs.get('contamination', self.contamination)
+
         # PyCaret setup
         logger.debug('Running PyCaret setup...')
-        setup(data=df, normalize=True, session_id=1, use_gpu=True, verbose=True)
+        kwargs = {'data': df, 'normalize': True, 'session_id': 1, 'use_gpu': True, 'verbose': True}
+        try:
+            setup(**kwargs)  # pylint: disable=unexpected-keyword-arg
+        except TypeError:
+            del kwargs['use_gpu']  # Older PyCaret versions don't support use_gpu
+            setup(**kwargs)  # pylint: disable=unexpected-keyword-arg
+
         # Train model
         logger.debug(f'Fitting {model_name}...')
         self.model = create_model(model_name, fraction=self.contamination)

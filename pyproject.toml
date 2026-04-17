@@ -70,8 +70,14 @@ dev = [
     "types-requests",     # Type hints for requests
 ]
 
-# All dependencies except SCA
+# All dependencies except AutoML frameworks
 all = ["ml[dev,docs,sca,lightgbm,tensorflow,torch,xgboost]"]
+
+# AutoML frameworks
+# pycaret = ["pycaret[full]"]
+pycaret = ["pycaret[models,tuners]"]
+# pycaret = ["pycaret==2.2.2"]
+
 
 [project.scripts]
 sca = "ml.sca:run_analysis"

@@ -1,6 +1,10 @@
-datasets==2.16.1         # Datasets
-dvc==3.43.1              # Data version control
-GitPython==3.1.44        # Git integration
+datasets==4.8.4          # Hugging Face datasets library
+# datasets==2.16.1
+dvc==3.67.1              # Data version control
+# dvc==3.43.1
+emmv==0.0.4              # Unsupervised model evaluation
+GitPython==3.1.46        # Git integration
+# GitPython==3.1.44
 librosa==0.11.0          # Audio processing
 loguru==0.7.3            # Logging
 matplotlib               # Plots
@@ -9,11 +13,15 @@ pandas==2.3.3            # Data manipulation
 # pandas==1.4.1          # Data manipulation
 pydantic==2.9.2          # Configuration validation
 pydantic-settings==2.6.1 # Configuration management
-PyGithub==2.8.1          # GitHub API
+PyGithub==2.9.1          # GitHub API
+# PyGithub==2.8.1
 pylatex                  # LaTeX generation
 scikit-learn             # Machine learning
+# scikit-learn==1.7.2
 seaborn                  # Plots
 setuptools               # Package setup
 shellcheck_py==0.10.0.1  # Shell script linting
-sktime==0.39.0           # Time series analysis
+# sktime==0.39.0           # Time series analysis
 typing_extensions        # Type hinting
+
+# pycaret==2.1.2

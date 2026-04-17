@@ -103,6 +103,8 @@ Running manually:
 
 ```bash
 conda activate automl
+dvc pull  # or:  dvc update data/SKAB.dvc   # Pull data
+pip install pycaret[model,tuners]  # Install PyCaret. Good luck...
 python -m ml.ad  # results should be in: results/ad/
 ```
 

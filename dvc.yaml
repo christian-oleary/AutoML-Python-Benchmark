@@ -7,13 +7,13 @@
 
 stages:
   # ANOMALY DETECTION (AD) STAGES
-  # run_anomaly_detection:
-  #   desc: "Run anomaly detection experiments on SKAB datasets"
-  #   cmd: python -m ml.ad
-  #   deps:
-  #     - data/SKAB
-  #   outs:
-  #     - results/ad/all_metadata.json
+  run_anomaly_detection:
+    desc: "Run anomaly detection experiments on SKAB datasets"
+    cmd: python -m ml.ad
+    deps:
+      - data/SKAB
+    outs:
+      - results/ad/all_metadata.json
 
   # SOURCE CODE ANALYSIS (SCA) STAGES
   prepare_repositories:

@@ -1,21 +1,21 @@
 # See README.md for instructions to run stages
 
 # Data already imported via:
-# dvc import --out ./data/SKAB https://github.com/waico/SKAB.git ./data
-# To update, run:
-# dvc update data/SKAB.dvc --no-update || dvc update data/SKAB.dvc
+#     dvc import --out ./data/SKAB https://github.com/waico/SKAB.git ./data
+# To pull latest data, run:
+#     dvc update data/SKAB.dvc
 
 stages:
   # ANOMALY DETECTION (AD) STAGES
-  # run_anomaly_detection:
-  #   desc: "Run anomaly detection experiments on SKAB datasets"
-  #   cmd: python -m ml.ad
-  #   deps:
-  #     - src/ml/ad/__main__.py
-  #     - src/ml/ad/anomaly_detection.py
-  #     - data/SKAB
-  #   outs:
-  #     - results/ad/all_metadata.json
+  run_anomaly_detection:
+    desc: "Run anomaly detection experiments on SKAB datasets"
+    cmd: python -m ml.ad
+    deps:
+      - src/ml/ad/__main__.py
+      - src/ml/ad/anomaly_detection.py
+      - data/SKAB
+    outs:
+      - results/ad/all_metadata.json
 
   # SOURCE CODE ANALYSIS (SCA) STAGES
   prepare_repositories:

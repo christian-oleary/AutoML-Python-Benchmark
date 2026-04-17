@@ -104,7 +104,7 @@ Running manually:
 ```bash
 conda activate automl
 # Pull data. Using update instead of pull as remote is a GitHub repository
-dvc update data/SKAB.dvc --no-update
+dvc update data/SKAB.dvc
 # Install PyCaret. Good luck...
 pip install pycaret[model,tuners]
 # results should be in: results/ad/

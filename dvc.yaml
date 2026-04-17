@@ -29,8 +29,7 @@ stages:
 
   run_source_code_analysis:
     desc: "Run source code analysis on the project"
-    cmd: |
-      python -m ml.sca repositories results
+    cmd: python -m ml.sca repositories results
     deps:
       - src/ml/__init__.py
       - src/ml/sca/__init__.py

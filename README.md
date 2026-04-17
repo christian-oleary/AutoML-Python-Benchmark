@@ -111,20 +111,9 @@ pip install pycaret[model,tuners]
 python -m ml.ad
 ```
 
-<!-- ### Forecasting
-
-After downloading repositories and datasets, you can run experiments with the following:
-
-```bash
-python run.py
-``` -->
-
-<!-- ### Classification
-
-```bash
-conda activate automl
-python -m ml --task classification --dataset iemocap
-``` -->
+<!-- Installing after main installation:
+pip uninstall numba pandas pyod shap pycaret scikit-learn coverage pyod category-encoders -y && pip install pycaret[model,tuners] && python -m ml.ad
+-->
 
 ## Source Code Analysis of AutoML Repositories via Sonar Scanner
 

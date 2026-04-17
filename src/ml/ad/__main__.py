@@ -184,13 +184,23 @@ def iterate_ad_options(class_name: str, results_subdir: Path, **kwargs):
     for param_name, options in ad_class.parameter_options.items():
         for param_value in options:
             kwargs[param_name] = param_value
+
+            # Check in results file to see if this parameter combination has already been run
+            results_file = results_subdir / f'{class_name}.csv'
+            if results_file.exists():
+                existing_scores = pd.read_csv(results_file)
+                params = {k: v for k, v in kwargs.items() if k in ad_class.parameter_options}
+                if all((existing_scores[f'param__{k}'] == v).any() for k, v in params.items()):
+                    logger.info(f'{class_name} already completed with: {params}. Skipping...')
+                    continue
+
             # Fit models and calculate scores
             results = invoke_ad_class(ad_class, **kwargs)
             scores = calculate_scores(*results, **kwargs)
 
             # Save scores
             results_subdir.mkdir(parents=True, exist_ok=True)
-            Metrics.write_to_csv(results_subdir / f'{class_name}.csv', scores)
+            Metrics.write_to_csv(results_file, scores)
             yield results[0], scores
 
     # Record completion

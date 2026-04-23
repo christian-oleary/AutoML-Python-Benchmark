@@ -12,11 +12,10 @@ from complexipy import file_complexity
 from defusedxml import ElementTree
 from git import Repo
 from git.exc import InvalidGitRepositoryError
-from module_coupling_metrics import metrics, reflection
 import pandas as pd
 import readability
 
-from ml import AUTOGLUON, H2O, IGNORED_LIBRARIES, all_libraries, package_names
+from ml import IGNORED_LIBRARIES, all_libraries, package_names
 from ml.logs import logger
 from ml.sca.lcom import LCOMRunner
 from ml.sca.repo import GitRepo
@@ -384,57 +383,6 @@ class Analysis:
 
         # Save results to a file if an output directory is provided
         self._save_json(results_path, results, tool_name='complexipy')
-        return results
-
-    def coupling_analysis(self, repo: GitRepo, skip_existing: bool = True) -> dict:
-        """Coupling metrics from module_coupling_metrics: instability, abstractness, distance.
-
-        DEPRECATED: requires execution in library's environment due to dependencies.
-
-        :param GitRepo repo: The Git repository object.
-        :param bool skip_existing: Whether to skip existing results, defaults to True
-        :raises ValueError: If no components are found for analysis.
-        :return dict: The coupling metrics results.
-        """
-        results_path, results, _ = self._check_results_file('coupling', repo, skip_existing)
-        # Return the results if they already exist
-        if results and skip_existing:
-            return results
-        logger.debug(f'Running coupling metrics analysis for {repo.library.git_name}...')
-
-        # Specify the base directory of the package in its repository
-        base_dir = Path(repo.path)
-        if repo.library.package_name not in [AUTOGLUON.package_name, H2O.package_name]:
-            base_dir = base_dir / repo.library.package_name
-
-        # Run the coupling metrics analysis using module_coupling_metrics
-        project = reflection.load_project_structure(Path(repo.path) / repo.library.package_name)
-        metrics_results = metrics.compute(project)
-
-        # Aggregate the results
-        num_components = len(metrics_results)
-        instability, abstractness, distance = 0, 0, 0
-        for component in metrics_results.values():
-            instability += component.instability
-            abstractness += component.abstractness
-            distance += component.distance_from_main_sequence
-
-        if num_components == 0:
-            raise ValueError('No components found for coupling metrics analysis')
-
-        results = {
-            'Components Analyzed': num_components,
-            'Total Abstractness': abstractness,
-            'Total Distance': distance,
-            'Total Instability': instability,
-            'Mean Abstractness': abstractness / num_components,
-            'Mean Distance': distance / num_components,
-            'Mean Instability': instability / num_components,
-        }
-        logger.debug(f'Coupling Metrics Results:\n{results}')
-
-        # Save results to a file if an output directory is provided
-        self._save_json(results_path, results, tool_name='coupling')
         return results
 
     def flake8_analysis(

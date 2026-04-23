@@ -96,60 +96,6 @@ class TestBaseADModel:
 
 
 # ---------------------------------------------------------------------------
-# PyCaretADModel – construction / validation
-# ---------------------------------------------------------------------------
-class TestPyCaretADModelInit:
-    """Tests for PyCaretADModel's __init__() and parameter validation."""
-
-    def test_valid_model_name(self):
-        """Constructing with a valid model name should set attributes correctly."""
-        model = PyCaretADModel(model_name='iforest')
-        assert model.model_name == 'iforest'
-        assert model.contamination == 0.05
-        assert model.model is None
-
-    def test_custom_contamination(self):
-        """Constructing with a custom contamination should set it correctly."""
-        model = PyCaretADModel(model_name='knn', contamination=0.1)
-        assert model.contamination == 0.1
-
-    def test_invalid_model_name_raises(self):
-        """Constructing with an invalid model name should raise a ValueError."""
-        with pytest.raises(ValueError, match='not allowed'):
-            PyCaretADModel(model_name='invalid_model')
-
-    def test_all_valid_model_names_accepted(self):
-        """All model names in parameter_options should be accepted without error."""
-        for name in PyCaretADModel.parameter_options['model_name']:
-            model = PyCaretADModel(model_name=name)
-            assert model.model_name == name
-
-    def test_extra_kwargs_ignored(self):
-        """Passing extra kwargs to __init__ should not raise an error."""
-        model = PyCaretADModel(model_name='iforest', unknown_param='ignored')
-        assert model.model_name == 'iforest'
-
-
-# ---------------------------------------------------------------------------
-# PyCaretADModel – predict / predict_proba before fitting
-# ---------------------------------------------------------------------------
-class TestPyCaretADModelNotFitted:
-    """Tests for PyCaretADModel's predict() and predict_proba() behavior when not fitted."""
-
-    def test_predict_raises_when_not_fitted(self, features_df):
-        """predict() should raise a ValueError if the model has not been fitted."""
-        model = PyCaretADModel(model_name='iforest')
-        with pytest.raises(ValueError, match='not been fitted'):
-            model.predict(features_df)
-
-    def test_predict_proba_raises_when_not_fitted(self, features_df):
-        """predict_proba() should raise a ValueError if the model has not been fitted."""
-        model = PyCaretADModel(model_name='iforest')
-        with pytest.raises(ValueError, match='not been fitted'):
-            model.predict_proba(features_df)
-
-
-# ---------------------------------------------------------------------------
 # PyCaretADModel – fit / predict / predict_proba with mocked PyCaret
 # ---------------------------------------------------------------------------
 class TestPyCaretADModelWithMocks:

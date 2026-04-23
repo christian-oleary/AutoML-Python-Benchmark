@@ -1,21 +1,32 @@
 # See README.md for instructions to run stages
 
+# https://doc.dvc.org/user-guide/project-structure/dvcyaml-files#matrix-stages
+
 # Data already imported via:
 #     dvc import --out ./data/SKAB https://github.com/waico/SKAB.git ./data
 # To pull latest data, run:
 #     dvc update data/SKAB.dvc
 
+
 stages:
   # ANOMALY DETECTION (AD) STAGES
   run_anomaly_detection:
-    desc: "Run anomaly detection experiments on SKAB datasets"
-    cmd: python -m ml.ad
-    deps:
-      - src/ml/ad/__main__.py
-      - src/ml/ad/anomaly_detection.py
-      - data/SKAB
-    outs:
-      - results/ad/known_contamination/all_metadata.json
+    foreach:
+      - contamination: None
+      - contamination: 0.1
+      - contamination: 0.2
+      - contamination: 0.3
+      - contamination: 0.4
+    do:
+      desc: "Run anomaly detection experiments on SKAB datasets"
+      cmd: python -m ml.ad --contamination ${contamination}
+      deps:
+        - src/ml/ad/__main__.py
+        - src/ml/ad/anomaly_detection.py
+        - src/ml/ad/training.py
+        - data/SKAB
+      outs:
+        - results/ad/${results_dir}/all_metadata.json
 
   # SOURCE CODE ANALYSIS (SCA) STAGES
   prepare_repositories:

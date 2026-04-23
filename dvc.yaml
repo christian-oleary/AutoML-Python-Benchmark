@@ -15,7 +15,7 @@ stages:
       - src/ml/ad/anomaly_detection.py
       - data/SKAB
     outs:
-      - results/ad/all_metadata.json
+      - results/ad/known_contamination/all_metadata.json
 
   # SOURCE CODE ANALYSIS (SCA) STAGES
   prepare_repositories:

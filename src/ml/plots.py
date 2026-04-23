@@ -42,7 +42,7 @@ class Plotter:
         Plotter.save_plot(title, save_path=save_path, **kwargs)
 
     @staticmethod
-    def save_plot(title: str, save_path: str | Path | None = None, **kwargs):
+    def save_plot(title: str, save_path: str | Path | None = None, **kwargs):  # noqa: C901
         """Apply title and axis labels to plot. Show and save to file. Clear plot.
 
         :param str title: Title for plot
@@ -52,8 +52,12 @@ class Plotter:
         :param str suptitle: Subtitle for plot
         :param str xlabel: Plot X-axis label
         :param str ylabel: Plot Y-axis label
-        :param str xscale: X-Scale ('linear' or 'log'), defaults to 'linear'
-        :param str yscale: Y-Scale ('linear' or 'log'), defaults to 'linear'
+        :param str xscale: X-Scale ('linear' or 'log')
+        :param str yscale: Y-Scale ('linear' or 'log')
+        :param int xlabel_rotation: X-axis label rotation in degrees
+        :param int ylabel_rotation: Y-axis label rotation in degrees
+        :param tuple xlim: X-axis limits as (min, max)
+        :param tuple ylim: Y-axis limits as (min, max)
         """
         # Axis labels
         if kwargs.get('xlabel'):
@@ -61,21 +65,38 @@ class Plotter:
         if kwargs.get('ylabel'):
             plt.ylabel(kwargs['ylabel'])
         # Axis scaling
-        plt.xscale(kwargs.get('xscale', 'linear'))
-        plt.yscale(kwargs.get('yscale', 'linear'))
+        if kwargs.get('xscale'):
+            plt.xscale(kwargs['xscale'])
+        if kwargs.get('yscale'):
+            plt.yscale(kwargs['yscale'])
+        # Axis label rotation
+        if kwargs.get('xlabel_rotation'):
+            plt.xticks(rotation=kwargs['xlabel_rotation'])
+        if kwargs.get('ylabel_rotation'):
+            plt.yticks(rotation=kwargs['ylabel_rotation'])
+        # Axis limits
+        if kwargs.get('xlim'):
+            plt.xlim(kwargs['xlim'])
+        if kwargs.get('ylim'):
+            plt.ylim(kwargs['ylim'])
+
         # Title and subtitle
         plt.title(title)
         plt.suptitle(kwargs.get('suptitle', ''))
+
         # Legend
         if kwargs.get('legend'):
             plt.legend(kwargs['legend'], loc='upper left')
+
         # Show plot
         if kwargs.get('show'):
             plt.show()
+
         # Save plot as file
         if save_path is not None:
             Path(save_path).parent.mkdir(parents=True, exist_ok=True)
             plt.savefig(save_path, bbox_inches='tight')
+
         # Clear for next plot
         plt.cla()
         plt.clf()

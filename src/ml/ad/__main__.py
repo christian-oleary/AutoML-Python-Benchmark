@@ -66,10 +66,7 @@ class CLIConfiguration(BaseSettings):
     def _validate_parameters(self):
         """Validate parameters after initialization."""
         # Validate contamination
-        if self.contamination == 'None':
-            self.contamination = None
-        if self.contamination is not None and not (0 < self.contamination < 1):
-            raise ValueError('Contamination must be None or a float between 0 and 1.')
+        self._validate_contamination()
 
         # Validate data_dir
         if not isinstance(self.data_dir, (str, Path)):
@@ -88,6 +85,18 @@ class CLIConfiguration(BaseSettings):
             raise ValueError('window_size must be a positive integer if provided.')
         if self.window_size is not None:
             raise NotImplementedError('window_size parameter is not tested yet.')
+
+    def _validate_contamination(self):
+        """Validate the contamination parameter."""
+        if self.contamination == 'None':
+            self.contamination = None
+        elif self.contamination is not None:
+            try:
+                self.contamination = float(self.contamination)
+            except ValueError as e:
+                raise ValueError('Contamination must be a float, "None", or None.') from e
+        if self.contamination is not None and not 0 < self.contamination < 1:
+            raise ValueError('Contamination must be None or a float between 0 and 1.')
 
 
 def load_skab(root_dir: str | Path) -> dict[str, pd.DataFrame]:

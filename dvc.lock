@@ -73,3 +73,78 @@ stages:
       hash: md5
       md5: daf222a3a9e80e4ca6489dd26c79d85a
       size: 16953
+  run_anomaly_detection@0:
+    cmd: python -m ml.ad --contamination None
+    deps:
+    - path: data/SKAB
+      hash: md5
+      md5: 9b4a074f4eee7d4e78948b9fb3343156.dir
+      size: 4404815
+      nfiles: 36
+    - path: src/ml/ad/__main__.py
+      hash: md5
+      md5: 589b169b399e30bafa9ea6f75d97ab28
+      size: 6282
+    - path: src/ml/ad/anomaly_detection.py
+      hash: md5
+      md5: 9f2534ca7c1ff979b74a2949402ce504
+      size: 5284
+    - path: src/ml/ad/training.py
+      hash: md5
+      md5: 3703727c40e1d5e52f13d8d154a39dbe
+      size: 26414
+    outs:
+    - path: results/ad/contamination_None/all_metadata.json
+      hash: md5
+      md5: cf4e3146682b4d01acca5bf668903760
+      size: 17932
+  run_anomaly_detection@1:
+    cmd: python -m ml.ad --contamination 0.1
+    deps:
+    - path: data/SKAB
+      hash: md5
+      md5: 9b4a074f4eee7d4e78948b9fb3343156.dir
+      size: 4404815
+      nfiles: 36
+    - path: src/ml/ad/__main__.py
+      hash: md5
+      md5: 589b169b399e30bafa9ea6f75d97ab28
+      size: 6282
+    - path: src/ml/ad/anomaly_detection.py
+      hash: md5
+      md5: 9f2534ca7c1ff979b74a2949402ce504
+      size: 5284
+    - path: src/ml/ad/training.py
+      hash: md5
+      md5: 3703727c40e1d5e52f13d8d154a39dbe
+      size: 26414
+    outs:
+    - path: results/ad/contamination_0.1/all_metadata.json
+      hash: md5
+      md5: 92afcc229112ce8c4f36cd8e52b58a69
+      size: 17653
+  run_anomaly_detection@2:
+    cmd: python -m ml.ad --contamination 0.2
+    deps:
+    - path: data/SKAB
+      hash: md5
+      md5: 9b4a074f4eee7d4e78948b9fb3343156.dir
+      size: 4404815
+      nfiles: 36
+    - path: src/ml/ad/__main__.py
+      hash: md5
+      md5: 589b169b399e30bafa9ea6f75d97ab28
+      size: 6282
+    - path: src/ml/ad/anomaly_detection.py
+      hash: md5
+      md5: 9f2534ca7c1ff979b74a2949402ce504
+      size: 5284
+    - path: src/ml/ad/training.py
+      hash: md5
+      md5: 3703727c40e1d5e52f13d8d154a39dbe
+      size: 26414
+    outs:
+    - path: results/ad/contamination_0.2/all_metadata.json
+      hash: md5
+      md5: c51fb90b92a7dad96000dde8667704ac
+      size: 17653

@@ -9,7 +9,7 @@
 
 
 stages:
-  # ANOMALY DETECTION (AD) STAGES
+  # ANOMALY DETECTION (AD) STAGE
   run_anomaly_detection:
     foreach:
       - contamination: None
@@ -18,15 +18,15 @@ stages:
       - contamination: 0.3
       - contamination: 0.4
     do:
-      desc: "Run anomaly detection experiments on SKAB datasets"
-      cmd: python -m ml.ad --contamination ${contamination}
+      desc: "Anomaly detection on SKAB datasets (contamination: ${item.contamination})"
+      cmd: python -m ml.ad --contamination ${item.contamination}
       deps:
         - src/ml/ad/__main__.py
         - src/ml/ad/anomaly_detection.py
         - src/ml/ad/training.py
         - data/SKAB
       outs:
-        - results/ad/${results_dir}/all_metadata.json
+        - results/ad/contamination_${item.contamination}/all_metadata.json
 
   # SOURCE CODE ANALYSIS (SCA) STAGES
   prepare_repositories:

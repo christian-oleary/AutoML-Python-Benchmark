@@ -37,8 +37,8 @@ stages:
       size: 1607
     - path: src/ml/sca/analysis.py
       hash: md5
-      md5: 111addf252f93ad8a09da14c30a85fa2
-      size: 47400
+      md5: 311f7864539b7c091b7648077b3365b2
+      size: 39501
     - path: src/ml/sca/repo.py
       hash: md5
       md5: bab375e5b87d4d0d3f966a0911cb9b35
@@ -83,8 +83,8 @@ stages:
       nfiles: 36
     - path: src/ml/ad/__main__.py
       hash: md5
-      md5: 589b169b399e30bafa9ea6f75d97ab28
-      size: 6282
+      md5: 71a825fab390521321dcb95185ad8c31
+      size: 6381
     - path: src/ml/ad/anomaly_detection.py
       hash: md5
       md5: 9f2534ca7c1ff979b74a2949402ce504
@@ -108,8 +108,8 @@ stages:
       nfiles: 36
     - path: src/ml/ad/__main__.py
       hash: md5
-      md5: 589b169b399e30bafa9ea6f75d97ab28
-      size: 6282
+      md5: 71a825fab390521321dcb95185ad8c31
+      size: 6381
     - path: src/ml/ad/anomaly_detection.py
       hash: md5
       md5: 9f2534ca7c1ff979b74a2949402ce504
@@ -133,8 +133,8 @@ stages:
       nfiles: 36
     - path: src/ml/ad/__main__.py
       hash: md5
-      md5: 589b169b399e30bafa9ea6f75d97ab28
-      size: 6282
+      md5: 71a825fab390521321dcb95185ad8c31
+      size: 6381
     - path: src/ml/ad/anomaly_detection.py
       hash: md5
       md5: 9f2534ca7c1ff979b74a2949402ce504
@@ -147,4 +147,54 @@ stages:
     - path: results/ad/contamination_0.2/all_metadata.json
       hash: md5
       md5: c51fb90b92a7dad96000dde8667704ac
+      size: 17653
+  run_anomaly_detection@3:
+    cmd: python -m ml.ad --contamination 0.3
+    deps:
+    - path: data/SKAB
+      hash: md5
+      md5: 9b4a074f4eee7d4e78948b9fb3343156.dir
+      size: 4404815
+      nfiles: 36
+    - path: src/ml/ad/__main__.py
+      hash: md5
+      md5: 71a825fab390521321dcb95185ad8c31
+      size: 6381
+    - path: src/ml/ad/anomaly_detection.py
+      hash: md5
+      md5: 9f2534ca7c1ff979b74a2949402ce504
+      size: 5284
+    - path: src/ml/ad/training.py
+      hash: md5
+      md5: 3703727c40e1d5e52f13d8d154a39dbe
+      size: 26414
+    outs:
+    - path: results/ad/contamination_0.3/all_metadata.json
+      hash: md5
+      md5: bd84ae4913e217e2de789c6c5b11d27b
+      size: 17653
+  run_anomaly_detection@4:
+    cmd: python -m ml.ad --contamination 0.4
+    deps:
+    - path: data/SKAB
+      hash: md5
+      md5: 9b4a074f4eee7d4e78948b9fb3343156.dir
+      size: 4404815
+      nfiles: 36
+    - path: src/ml/ad/__main__.py
+      hash: md5
+      md5: 71a825fab390521321dcb95185ad8c31
+      size: 6381
+    - path: src/ml/ad/anomaly_detection.py
+      hash: md5
+      md5: 9f2534ca7c1ff979b74a2949402ce504
+      size: 5284
+    - path: src/ml/ad/training.py
+      hash: md5
+      md5: 3703727c40e1d5e52f13d8d154a39dbe
+      size: 26414
+    outs:
+    - path: results/ad/contamination_0.4/all_metadata.json
+      hash: md5
+      md5: 3a46dc8e453f93b8c1429a2a54edcc22
       size: 17653

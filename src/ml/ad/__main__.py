@@ -142,7 +142,7 @@ def main():
     all_results = []
     # Iterate through datasets and run anomaly detection
     for name, df in skab_data.items():
-        if 'valve' not in name:  # Only run on valve datasets
+        if not any(k in name for k in ['valve1', 'valve2']):
             continue
         logger.info(f'DATASET: {name}, shape: {df.shape}')
 
@@ -155,6 +155,10 @@ def main():
             contamination=configuration.contamination,  # type: ignore
             window_size=configuration.window_size,
         )
+
+    if len(all_results) == 0:
+        logger.error('No results to analyze. Exiting.')
+        return
 
     logger.info('Analyzing results...')
     trainer.analyse_results(all_results, all_metadata, results_dir)

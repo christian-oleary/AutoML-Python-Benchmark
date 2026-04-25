@@ -23,101 +23,101 @@ from sklearn.metrics import (
     roc_auc_score,
 )
 
-from ml.ad.anomaly_detection import BaseADModel, PyCaretADModel
+from ml.ad.anomaly_detection import BaseADModel, LunarADModel, PyCaretADModel, TimeSeriesODModel
 from ml.metrics import Metrics
 from ml.plots import Plotter
 
 
 class SKABTrainer:
-    """Class to handle training and evaluation of anomaly detection models."""
+    """Class to handle training and evaluation of anomaly detection models.
+
+    :param str tool: The anomaly detection tool to use (e.g. PyCaretADModel, TimeSeriesODModel).
+    :param float | None contamination: The expected proportion of anomalies in the dataset.
+    :param int | None window_size: The size of the sliding window to create features from (if applicable).
+    :param Path results_dir: The base directory to save results in.
+    """
+
+    def __init__(
+        self,
+        tool: str,
+        contamination: float | str | None,
+        window_size: int | None,
+        results_dir: Path,
+    ):
+        if contamination == 'None':
+            contamination = None
+        elif isinstance(contamination, str):
+            contamination = float(contamination)
+
+        self.tool = tool
+        self.contamination = contamination
+        self.window_size = window_size
+        self.results_dir = Path(results_dir)
 
     def train_models(
         self,
         name: str,
         dataframes: dict[str, pd.DataFrame],
-        results_dir: Path,
         all_metadata: dict,
         all_results: list[dict],
-        contamination: float | None = None,
-        window_size: int | None = None,
     ) -> None:
         """Train anomaly detection models on the specified dataset and save results.
 
         :param str name: The name of the dataset to train on.
         :param dict dataframes: A dictionary mapping dataset names to DataFrames.
-        :param Path results_dir: The directory to save results in.
         :param dict all_metadata: A dictionary to store metadata for all experiments.
         :param list all_results: A list to store results for all experiments.
-        :param float | None contamination: The expected proportion of anomalies in the dataset.
-        :param int | None window_size: The size of the sliding window to create features from
         """
-        if contamination == 'None':
-            contamination = None
+        if self.contamination == 'None':
+            self.contamination = None
 
         # Process dataset and prepare features/labels
-        dataset_name = str(Path(name))
-        df_ = dataframes[dataset_name].drop(columns=['changepoint'], errors='ignore')
-        data_ = self.prepare_data(
-            df_, target_col='anomaly', window_size=window_size, contamination=contamination
-        )
+        self.dataset_name = str(Path(name))
+        df_ = dataframes[self.dataset_name].drop(columns=['changepoint'], errors='ignore')
+        data_ = self.prepare_data(df_, target_col='anomaly')
 
         # Create results subdirectory based on dataset name and window size
-        results_subdir_ = Path(
-            results_dir,
-            dataset_name.replace(os.sep, '__').replace('.csv', ''),
-            'original_columns' if window_size is None else f'window_size_{window_size}',
+        self.results_subdir = Path(
+            self.results_dir,
+            self.dataset_name.replace(os.sep, '__').replace('.csv', ''),
+            'original_columns' if self.window_size is None else f'window_size_{self.window_size}',
         )
 
         # Save metadata
-        logger.info(f'results_subdir: {results_subdir_}')
-        metadata = self._save_metadata(
-            results_subdir_, dataset_name, df_, data_, window_size=window_size
-        )
+        logger.info(f'results_subdir: {self.results_subdir}')
+        metadata = self._save_metadata(self.dataset_name, df_, data_, window_size=self.window_size)
 
         # Save metadata in a dictionary keyed by dataset name and window size
-        if window_size is not None:
-            key = f'{dataset_name}_window-{window_size}'
+        if self.window_size is not None:
+            key = f'{self.dataset_name}_window-{self.window_size}'
         else:
-            key = f'{dataset_name}_no-window'
+            key = f'{self.dataset_name}_no-window'
         all_metadata[key] = metadata
 
         # Run anomaly detection
-        for tool_ in ['pycaret']:
-            for _, scores_ in self._iterate_ad_options(
-                tool_, results_subdir_, dataset_name, window_size, **data_
-            ):
-                all_results.append(scores_)
+        for _, scores_ in self._iterate_ad_options(**data_):
+            all_results.append(scores_)
 
-    def prepare_data(
-        self,
-        df: pd.DataFrame,
-        target_col: str = 'anomaly',
-        window_size: int | None = None,
-        contamination: float | None = None,
-    ) -> dict[str, Any]:
+    def prepare_data(self, df: pd.DataFrame, target_col: str = 'anomaly') -> dict[str, Any]:
         """Prepare features, labels, and metadata for anomaly detection.
 
         :param pd.DataFrame df: The input DataFrame containing the time series data and target column.
         :param str target_col: The name of the target column to drop before creating features.
-        :param int | None window_size: Sliding window  size. If None, no windows are created.
-        :param float | None contamination: The expected proportion of anomalies in the dataset.
         :return dict: Dictionary of split data (X_train, y_train, X_test, y_test) and other metadata.
         """
-        contamination_calculated = df[target_col].mean()  # Proportion of anomalies in the dataset
-        if contamination is None:
-            contamination = contamination_calculated
+        self.contamination_calculated = df[target_col].mean()  # Proportion of anomalies
+        if self.contamination is None:
+            self.contamination = self.contamination_calculated
 
         logger.debug(
             f'df.shape: {df.shape}; df.columns: {df.columns.tolist()}; '
             f'label counts: {df[target_col].value_counts().to_dict()}; '
-            f'contamination: {contamination:.4f}'
+            f'contamination: {self.contamination:.4f}'
         )
 
         # Generate features using sliding windows
-        if window_size is not None:
-            features, labels = self._make_windows(
-                df, window_size=window_size, target_col=target_col
-            )
+        if self.window_size is not None:
+            features, labels = self._make_windows(df, target_col=target_col)
         else:
             labels = df[target_col].values
             X = df[[c for c in df.columns if c != target_col]].values
@@ -142,27 +142,27 @@ class SKABTrainer:
             'y_train': y_train,
             'X_test': X_test,
             'y_test': y_test,
-            'contamination': contamination,
-            'contamination_calculated': contamination_calculated,
             'dropped_cols': dropped_cols,
         }
 
-    def _make_windows(self, df: pd.DataFrame, window_size: int, target_col: str) -> tuple:
+    def _make_windows(self, df: pd.DataFrame, target_col: str) -> tuple:
         """Convert SKAB time series into supervised learning samples.
 
         :param pd.DataFrame df: The input DataFrame containing the time series data and target column.
-        :param int window_size: The size of the sliding window to create features from.
         :param str target_col: The name of the target column to drop before creating features.
         :return: A tuple (features_df, labels) where features_df is a DataFrame
         """
+        if self.window_size is None:
+            raise ValueError('window_size must be specified to create sliding window features.')
+
         features = [c for c in df.columns if c != target_col]
         X, y = [], []
         values = df[features].values
         labels = df[target_col].values
 
         # Create sliding windows of features and corresponding labels
-        for i in range(window_size, len(df)):
-            X.append(values[i - window_size : i].flatten())
+        for i in range(self.window_size, len(df)):
+            X.append(values[i - self.window_size : i].flatten())
             y.append(labels[i])
 
         X = np.array(X)  # type: ignore
@@ -172,11 +172,10 @@ class SKABTrainer:
         return features, y
 
     def _save_metadata(
-        self, results_subdir: Path, dataset_name: str, df: pd.DataFrame, split_data: dict, **kwargs
+        self, dataset_name: str, df: pd.DataFrame, split_data: dict, **kwargs
     ) -> dict:
         """Save metadata to a JSON file, e.g. dataset name, shapes, columns, etc.
 
-        :param Path results_subdir: The directory to save the metadata file in.
         :param str dataset_name: The name of the dataset.
         :param pd.DataFrame df: The original DataFrame before splitting.
         :param dict split_data: Split data (X_train, y_train, X_test, etc.).
@@ -187,8 +186,8 @@ class SKABTrainer:
         metadata = {
             'dataset_name': dataset_name,
             'df_shape': df.shape,
-            'contamination': split_data['contamination'],
-            'contamination_calculated': split_data['contamination_calculated'],
+            'contamination': self.contamination,
+            'contamination_calculated': self.contamination_calculated,
             'X_train_shape': split_data['X_train'].shape,
             'y_train_shape': split_data['y_train'].shape,
             'X_test_shape': split_data['X_test'].shape,
@@ -197,19 +196,12 @@ class SKABTrainer:
             'columns': columns,
             **kwargs,
         }
-        results_subdir.mkdir(parents=True, exist_ok=True)
-        with open(results_subdir / 'metadata.json', 'w', encoding='utf-8') as f:
+        self.results_subdir.mkdir(parents=True, exist_ok=True)
+        with open(self.results_subdir / 'metadata.json', 'w', encoding='utf-8') as f:
             json.dump(metadata, f, indent=4)
         return metadata
 
-    def _iterate_ad_options(
-        self,
-        class_name: str,
-        results_subdir: Path,
-        dataset_name: str,
-        window_size: int | None,
-        **kwargs,
-    ):
+    def _iterate_ad_options(self, **kwargs):
         """Iterate through different anomaly detection options.
 
         :param str class_name: The name of the anomaly detection class to invoke.
@@ -220,25 +212,30 @@ class SKABTrainer:
         :return: A generator yielding tuples of (estimator, scores) for each parameter combination.
         """
         # Determine which class to use based on the class_name
-        if class_name in ['pycaret', PyCaretADModel.__name__]:
+        if self.tool in ['pycaret', PyCaretADModel.__name__]:
             ad_class = PyCaretADModel
+        elif self.tool in ['ts_od', TimeSeriesODModel.__name__]:
+            ad_class = TimeSeriesODModel
+        elif self.tool in ['lunar', 'LunarADModel']:
+            ad_class = LunarADModel
         else:
-            raise ValueError(f'Unknown class name: {class_name}')
+            raise ValueError(f'Unknown tool: {self.tool}')
+        class_name = ad_class.__name__
 
         # File to save results for this class and dataset
-        results_file = results_subdir / f'{class_name}.csv'
+        results_file = self.results_subdir / f'{class_name}.csv'
 
         # Check if this class has already been completed for this dataset/window size
-        completion_file = results_subdir / f'{class_name}_completed.txt'
+        completion_file = self.results_subdir / f'{class_name}_completed.txt'
         if completion_file.exists():
-            logger.info(f'{class_name} already completed. Skipping...')
             # Read existing scores from CSV and yield them
             if results_file.exists():
+                logger.info(f'{class_name} already completed. Skipping...')
                 existing_scores = pd.read_csv(results_file)
                 for _, row in existing_scores.iterrows():
                     scores = row.to_dict()
-                    scores['dataset'] = dataset_name  # Ensure dataset name is included
-                    scores['window_size'] = window_size
+                    scores['dataset'] = self.dataset_name  # Ensure dataset name is included
+                    scores['window_size'] = self.window_size
                     yield None, scores
             else:
                 raise ValueError(
@@ -255,11 +252,12 @@ class SKABTrainer:
                     continue
 
                 # Fit models and calculate scores
+                kwargs['contamination'] = self.contamination
                 results = self._invoke_ad_class(ad_class, **kwargs)
-                scores = self._calculate_scores(dataset_name, window_size, *results, **kwargs)
+                scores = self._calculate_scores(self.dataset_name, *results, **kwargs)
 
                 # Save scores
-                results_subdir.mkdir(parents=True, exist_ok=True)
+                self.results_subdir.mkdir(parents=True, exist_ok=True)
                 Metrics.write_to_csv(results_file, scores)
 
                 # logger.success(f'{class_name}:\n{json.dumps(scores_, indent=2)}')
@@ -275,22 +273,21 @@ class SKABTrainer:
 
     def _invoke_ad_class(
         self,
-        ad_class: type[BaseADModel],
+        ad_class: type[BaseADModel | TimeSeriesODModel | LunarADModel],
         X_train: pd.DataFrame,
         X_test: pd.DataFrame,
-        contamination: float,
         **kwargs,
     ) -> tuple:
         """Run the specified anomaly detection class.
 
-        :param type[BaseADModel] ad_class: The anomaly detection class to invoke.
+        :param type[BaseADModel | TimeSeriesODModel | LunarADModel] ad_class: The anomaly detection class to invoke.
         :param pd.DataFrame X_train: The training features.
         :param pd.DataFrame X_test: The test features.
         :param float contamination: The proportion of anomalies in the dataset.
         :param dict kwargs: Additional keyword arguments to pass to the anomaly detection class.
         :return: A tuple (estimator, train predictions, test predictions).
         """
-        text = f'Running {ad_class.__name__}: contamination={contamination}'
+        text = f'Running {ad_class.__name__}: contamination={self.contamination}'
         for param_name, _ in ad_class.parameter_options.items():
             param_value = kwargs.get(param_name, None)
             text += f', {param_name}={param_value}'
@@ -300,7 +297,7 @@ class SKABTrainer:
 
         # Fit models
         start_time = perf_counter()
-        estimator.fit(X_train, contamination=contamination)
+        estimator.fit(X_train)
         fit_time = perf_counter() - start_time
         logger.debug(f'Fit time: {fit_time:.2f} seconds')
 
@@ -310,16 +307,21 @@ class SKABTrainer:
         predictions_test = estimator.predict(X_test)
         predict_time = perf_counter() - start_time
         logger.debug(f'Prediction time: {predict_time:.2f} seconds')
+
         return estimator, predictions_train, predictions_test, fit_time, predict_time
 
     def _combination_found(
-        self, results_file: Path, class_name: str, ad_class: type[BaseADModel], **kwargs
+        self,
+        results_file: Path,
+        class_name: str,
+        ad_class: type[BaseADModel | TimeSeriesODModel | LunarADModel],
+        **kwargs,
     ) -> bool:
         """Check if a given parameter combination has been completed for this class and dataset.
 
         :param Path results_file: The file where results are saved.
         :param str class_name: The name of the anomaly detection class.
-        :param type[BaseADModel] ad_class: The anomaly detection class to check parameters for.
+        :param type[BaseADModel | TimeSeriesODModel | LunarADModel] ad_class: The anomaly detection class.
         :param dict kwargs: The parameter combination to check.
         :return: True if the combination has already been completed, False otherwise.
         """
@@ -338,8 +340,7 @@ class SKABTrainer:
     def _calculate_scores(
         self,
         dataset_name: str,
-        window_size: int | None,
-        estimator: BaseADModel,
+        estimator: BaseADModel | TimeSeriesODModel | LunarADModel,
         predictions_train: np.ndarray,
         predictions_test: np.ndarray,
         fit_time: float,
@@ -352,7 +353,7 @@ class SKABTrainer:
 
         :param str dataset_name: The name of the dataset.
         :param int | None window_size: The size of the sliding window used for features.
-        :param BaseADModel estimator: The fitted anomaly detection model.
+        :param BaseADModel | TimeSeriesODModel | LunarADModel estimator: The fitted anomaly detection model.
         :param np.ndarray predictions_train: The training predictions.
         :param np.ndarray predictions_test: The test predictions.
         :param float fit_time: The time taken to fit the model.
@@ -363,7 +364,7 @@ class SKABTrainer:
         """
         scores = {
             'dataset': dataset_name,
-            'window_size': window_size,
+            'window_size': self.window_size,
             'model': estimator.__class__.__name__,
             'fit_time': fit_time,
             'predict_time': predict_time,
@@ -390,44 +391,47 @@ class SKABTrainer:
         for param, value in estimator.__dict__.items():
             if param == 'model':
                 continue
-            scores[f'param__{param}'] = value
+            if param in estimator.parameter_options:
+                scores[f'param__{param}'] = value
         return scores
 
     def analyse_results(
         self,
         all_results: list[dict],
         all_metadata: dict,
-        results_dir: Path,
-        plots_dir: str = 'plots',
+        plots_dir_name: str = 'plots',
     ) -> None:
         """Analyze the results of all experiments and save summary statistics and plots.
 
         :param list[dict] all_results: A list of dictionaries of results for each experiment.
         :param dict all_metadata: A dictionary containing the metadata for all experiments.
-        :param Path results_dir: The directory to save the analysis results in.
-        :param str plots_dir: The directory name to save the plots in.
+        :param str plots_dir_name: The directory name to save the plots in.
         """
-        logger.debug(f'Saving metadata and results to: {results_dir}')
+        logger.debug(f'Saving metadata and results to: {self.results_dir}')
 
         # Save all metadata to a single JSON file and to CSV
-        with open(results_dir / 'all_metadata.json', 'w', encoding='utf-8') as f:
+        with open(self.results_dir / 'all_metadata.json', 'w', encoding='utf-8') as f:
             json.dump(all_metadata, f, indent=4)
         df_metadata = pd.DataFrame(all_metadata)
-        self._save_df_csv_and_tex(df_metadata, results_dir / 'all_metadata.csv')
-        self._save_df_csv_and_tex(df_metadata.T, results_dir / 'all_metadata_T.csv')
+        # self._save_df_csv_and_tex(df_metadata, self.results_dir / 'all_metadata.csv')
+        self._save_df_csv_and_tex(df_metadata.T, self.results_dir / 'all_metadata_T.csv')
+
+        # Filter ignored/unstable models from results
+        df = pd.DataFrame(all_results)
+        if 'param__model_name' in df.columns:
+            df = df[~df['param__model_name'].isin(['pca', 'mcd', 'sod'])]
 
         # Save all results to a single CSV file
-        df = pd.DataFrame(all_results)
-        self._save_df_csv_and_tex(df.copy(), results_dir / 'all_results.csv')
+        self._save_df_csv_and_tex(df.copy(), self.results_dir / 'all_results.csv')
 
         # Save summary statistics of results to a separate CSV file
         df_info = df.describe(include='all').transpose()
-        self._save_df_csv_and_tex(df_info, results_dir / 'all_results_info.csv')
+        self._save_df_csv_and_tex(df_info, self.results_dir / 'all_results_info.csv', index=True)
 
         # Save latex table of results
-        self._save_tables(df.copy(), results_dir)
+        self._save_tables(df.copy(), self.results_dir)
         # Save box plots of test scores by the key column (e.g., dataset or model)
-        self._save_plots(df.copy(), results_dir, plots_dir)
+        self._save_plots(df.copy(), self.results_dir, plots_dir_name)
 
     def _save_tables(self, df: pd.DataFrame, results_dir: Path, min_f1_score: float = 0.5) -> None:
         """Save a LaTeX table of results to a .tex file in the results directory.
@@ -439,6 +443,12 @@ class SKABTrainer:
         cols_tex = ['dataset'] + [
             col for col in df.columns if col.startswith('test__') or col.startswith('param__')
         ]
+
+        if 'param__model_name' not in df.columns:
+            logger.info(
+                'param__model_name column not found in results. Skipping F1-score summary table.'
+            )
+            return
 
         # 1. TABLE: Mean, median, min, max, etc. of F1-score by dataset and model
         f1_summary = df.groupby(['dataset', 'param__model_name'])['test__f1_score'].agg(
@@ -479,7 +489,7 @@ class SKABTrainer:
         """Convert column names to a more readable format for plot titles and labels."""
         return col_name.replace('param__', '').replace('test__', '').replace('_', ' ').upper()
 
-    def _save_df_csv_and_tex(self, df: pd.DataFrame, csv_path: Path) -> None:
+    def _save_df_csv_and_tex(self, df: pd.DataFrame, csv_path: Path, index: bool = False) -> None:
         """Save a DataFrame to both CSV and LaTeX files in the results directory.
 
         :param pd.DataFrame df: The DataFrame to save.
@@ -495,25 +505,25 @@ class SKABTrainer:
         df.columns = [self.readable(c) for c in df.columns]
 
         # Save to CSV
-        df.to_csv(csv_path, index=False)
+        df.to_csv(csv_path, index=index)
         # Save to LaTeX
-        latex_table = df.to_latex(index=False, float_format='%.4f')
+        latex_table = df.to_latex(index=index, float_format='%.4f')
         with open(csv_path.with_suffix('.tex'), 'w', encoding='utf-8') as f:
             f.write(latex_table)
 
-    def _save_plots(self, df, results_dir: Path, plots_dir: str = 'plots') -> None:
+    def _save_plots(self, df, results_dir: Path, plots_dir_name: str) -> None:
         """Save box plots of test scores by the key column (e.g., dataset or model).
 
         :param pd.DataFrame df: The DataFrame containing the results to plot.
         :param Path results_dir: The base directory to save the plots in.
-        :param str plots_dir: The subdirectory to save the plots in.
+        :param str plots_dir_name: The subdirectory to save the plots in.
         """
         key_cols = ['dataset', 'param__model_name']
         test_score_cols = [col for col in df.columns if col.startswith('test__')]
 
         # Loop through each key column and create box plots for each test score column
         for key_col in key_cols:
-            subdir = results_dir / plots_dir / f'box_plots_by_{key_col}'
+            subdir = results_dir / plots_dir_name / f'box_plots_by_{key_col}'
             for score_col in test_score_cols:
                 self._generate_plot(subdir, 'box', df, score_col, key_col)
 
@@ -524,7 +534,7 @@ class SKABTrainer:
         # Plot by dataset again but only for the best model
         best_model = mean_f1_by_model.idxmax()
         df_best_model = df[df['param__model_name'] == best_model]
-        subdir = results_dir / plots_dir / 'box_plots_by_dataset-best_model'
+        subdir = results_dir / plots_dir_name / 'box_plots_by_dataset-best_model'
         for score_col in test_score_cols:
             self._generate_plot(
                 results_subdir=subdir,

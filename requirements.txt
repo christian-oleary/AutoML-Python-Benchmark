@@ -16,6 +16,7 @@ pydantic-settings==2.6.1 # Configuration management
 PyGithub==2.9.1          # GitHub API
 # PyGithub==2.8.1
 pylatex                  # LaTeX generation
+pyod==3.2.1              # Anomaly detection
 scikit-learn             # Machine learning
 # scikit-learn==1.7.2
 seaborn                  # Plots
@@ -25,3 +26,4 @@ shellcheck_py==0.10.0.1  # Shell script linting
 typing_extensions        # Type hinting
 
 # pycaret==2.1.2
+# scikit-learn==1.4.2

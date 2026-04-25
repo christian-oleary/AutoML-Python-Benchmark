@@ -46,6 +46,10 @@ class CLIConfiguration(BaseSettings):
     results_dir: Path | str = cli_field(
         default=Path('results/ad'), description='Base directory to save results.'
     )
+    tool: str = cli_field(
+        default='PyCaretADModel',
+        description='The anomaly detection tool to use (e.g. PyCaretADModel, TimeSeriesOD).',
+    )
     window_size: int | None = cli_field(
         default=None, description='Window size for feature engineering (if applicable).'
     )
@@ -78,13 +82,25 @@ class CLIConfiguration(BaseSettings):
         if not isinstance(self.results_dir, (str, Path)):
             raise ValueError('results_dir must be a string or Path object.')
 
+        # Validate tool
+        if self.tool.lower().strip() == 'pycaret':
+            self.tool = 'PyCaretADModel'
+        elif self.tool.lower().strip() == 'ts_od':
+            self.tool = 'TimeSeriesODModel'
+        elif self.tool.lower().strip() == 'lunar':
+            self.tool = 'LunarADModel'
+
+        valid_tools = ['PyCaretADModel', 'TimeSeriesODModel', 'LunarADModel']
+        if self.tool not in valid_tools:
+            raise ValueError(f'tool must be one of {valid_tools}.')
+
         # Validate window_size if provided
+        if self.window_size == 'None':
+            self.window_size = None
         if self.window_size is not None and (
             not isinstance(self.window_size, int) or self.window_size <= 0
         ):
             raise ValueError('window_size must be a positive integer if provided.')
-        if self.window_size is not None:
-            raise NotImplementedError('window_size parameter is not tested yet.')
 
     def _validate_contamination(self):
         """Validate the contamination parameter."""
@@ -133,10 +149,19 @@ def main():
     skab_data = load_skab(configuration.data_dir)
     logger.info(f'Loaded {len(skab_data)} datasets.')
 
-    results_dir = Path(f'{configuration.results_dir}/contamination_{configuration.contamination}')
+    results_dir = Path(
+        configuration.results_dir,
+        configuration.tool,
+        f'contamination_{configuration.contamination}',
+    )
     results_dir.mkdir(parents=True, exist_ok=True)
 
-    trainer = SKABTrainer()
+    trainer = SKABTrainer(
+        tool=configuration.tool,
+        contamination=configuration.contamination,
+        window_size=configuration.window_size,
+        results_dir=results_dir,
+    )
 
     all_metadata = {}
     all_results = []
@@ -145,15 +170,8 @@ def main():
         if not any(k in name for k in ['valve1', 'valve2']):
             continue
         logger.info(f'DATASET: {name}, shape: {df.shape}')
-
         trainer.train_models(
-            name=name,
-            dataframes=skab_data,
-            results_dir=results_dir,
-            all_metadata=all_metadata,
-            all_results=all_results,
-            contamination=configuration.contamination,  # type: ignore
-            window_size=configuration.window_size,
+            name=name, dataframes=skab_data, all_metadata=all_metadata, all_results=all_results
         )
 
     if len(all_results) == 0:
@@ -161,7 +179,7 @@ def main():
         return
 
     logger.info('Analyzing results...')
-    trainer.analyse_results(all_results, all_metadata, results_dir)
+    trainer.analyse_results(all_results, all_metadata)
     logger.success(
         f'Completed experiments for contamination={configuration.contamination}. '
         f'Results saved to: {results_dir}'

@@ -50,8 +50,8 @@ class CLIConfiguration(BaseSettings):
         default='PyCaretADModel',
         description='The anomaly detection tool to use (e.g. PyCaretADModel, TimeSeriesOD).',
     )
-    window_size: int | None = cli_field(
-        default=None, description='Window size for feature engineering (if applicable).'
+    window_size: int | str | None = cli_field(
+        default='auto', description='Window size for feature engineering (if applicable).'
     )
 
     # Pydantic parameters
@@ -95,12 +95,7 @@ class CLIConfiguration(BaseSettings):
             raise ValueError(f'tool must be one of {valid_tools}.')
 
         # Validate window_size if provided
-        if self.window_size == 'None':
-            self.window_size = None
-        if self.window_size is not None and (
-            not isinstance(self.window_size, int) or self.window_size <= 0
-        ):
-            raise ValueError('window_size must be a positive integer if provided.')
+        self._validate_window_size()
 
     def _validate_contamination(self):
         """Validate the contamination parameter."""
@@ -113,6 +108,30 @@ class CLIConfiguration(BaseSettings):
                 raise ValueError('Contamination must be a float, "None", or None.') from e
         if self.contamination is not None and not 0 < self.contamination < 1:
             raise ValueError('Contamination must be None or a float between 0 and 1.')
+
+    def _validate_window_size(self):
+        """Validate the window_size parameter."""
+        if self.window_size == 'None':
+            self.window_size = None
+        elif self.window_size == 'auto':
+            if self.tool in ['TimeSeriesODModel', 'LunarADModel']:
+                self.window_size = 50  # Default for time series models
+            else:
+                self.window_size = None  # AutoML should handle this
+        else:
+            try:
+                self.window_size = int(self.window_size)  # type: ignore
+            except (ValueError, TypeError):
+                raise ValueError(
+                    f'window_size must be a positive integer or None. Got: {self.window_size}'
+                )
+
+        if self.window_size is not None and (
+            not isinstance(self.window_size, int) or self.window_size <= 0
+        ):
+            raise ValueError(
+                f'window_size must be a positive integer or None. Got: {self.window_size}'
+            )
 
 
 def load_skab(root_dir: str | Path) -> dict[str, pd.DataFrame]:

@@ -115,6 +115,15 @@ class SKABTrainer:
             f'contamination: {self.contamination:.4f}'
         )
 
+        # Deal with any date and time columns
+        if self.tool in ['pycaret', PyCaretADModel.__name__]:
+            dropped_cols = []
+        else:
+            dropped_cols = [
+                c for c in df.columns if any(s in c for s in ['datetime', 'time', 'timestamp'])
+            ]
+            df = df[[c for c in df.columns if c not in dropped_cols]]
+
         # Generate features using sliding windows
         if self.window_size is not None:
             features, labels = self._make_windows(df, target_col=target_col)
@@ -122,12 +131,6 @@ class SKABTrainer:
             labels = df[target_col].values
             X = df[[c for c in df.columns if c != target_col]].values
             features = pd.DataFrame(X, columns=[c for c in df.columns if c != target_col])
-
-        # Deal with any date and time columns
-        dropped_cols = [
-            c for c in features.columns if any(s in c for s in ['datetime', 'time', 'timestamp'])
-        ]
-        features = features[[c for c in features.columns if c not in dropped_cols]]
 
         # Split into train/test sets (75/25 split)
         split_idx = int(0.75 * len(features))

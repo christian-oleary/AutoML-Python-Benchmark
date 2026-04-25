@@ -125,7 +125,7 @@ class SKABTrainer:
             df = df[[c for c in df.columns if c not in dropped_cols]]
 
         # Generate features using sliding windows
-        if self.window_size is not None:
+        if self.window_size is not None and self.tool in ['pycaret', PyCaretADModel.__name__]:
             features, labels = self._make_windows(df, target_col=target_col)
         else:
             labels = df[target_col].values

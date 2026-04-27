@@ -54,8 +54,8 @@ sca = [
 
 # Machine learning
 lightgbm = ["lightgbm"]
-tensorflow = ["tensorflow==2.10.1", "protobuf==3.19.5"]
-torch = ["torch==2.3.1"]
+tensorflow = ["tensorflow==2.10.1", "protobuf==5.29.6"]
+torch = ["torch==2.8.0"]
 xgboost = ["xgboost"]
 ai = ["ml[lightgbm,tensorflow,torch,xgboost]"]
 
@@ -63,7 +63,7 @@ ai = ["ml[lightgbm,tensorflow,torch,xgboost]"]
 dev = [
     "setuptools",
     "coverage==7.4.4",    # Code coverage
-    "pytest==8.2.2",      # Testing
+    "pytest==9.0.3",      # Testing
     "pytest-cov==5.0.0",  # Pytest with Coverage
     "pytest-mock",        # Pytest mocking support
     "pre-commit==3.7.1",  # Git hooks

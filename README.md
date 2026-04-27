@@ -103,23 +103,17 @@ Running manually:
 
 ```bash
 conda activate automl
-python -m ml.ad  # results should be in: results/ad/
+# Pull data. Using update instead of pull as remote is a GitHub repository
+dvc update data/SKAB.dvc
+# Install PyCaret. Good luck...
+pip install pycaret[model,tuners]
+# results should be in: results/ad/
+python -m ml.ad
 ```
 
-<!-- ### Forecasting
-
-After downloading repositories and datasets, you can run experiments with the following:
-
-```bash
-python run.py
-``` -->
-
-<!-- ### Classification
-
-```bash
-conda activate automl
-python -m ml --task classification --dataset iemocap
-``` -->
+<!-- Installing after main installation:
+pip uninstall numba pandas pyod shap pycaret scikit-learn coverage pyod category-encoders -y && pip install pycaret[model,tuners] && python -m ml.ad
+-->
 
 ## Source Code Analysis of AutoML Repositories via Sonar Scanner
 

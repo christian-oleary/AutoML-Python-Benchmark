@@ -8,15 +8,12 @@ import sys
 from pathlib import Path
 from typing import Any
 
-from complexipy import file_complexity
 from defusedxml import ElementTree
 from git import Repo
 from git.exc import InvalidGitRepositoryError
-from module_coupling_metrics import metrics, reflection
 import pandas as pd
-import readability
 
-from ml import AUTOGLUON, H2O, IGNORED_LIBRARIES, all_libraries, package_names
+from ml import IGNORED_LIBRARIES, all_libraries, package_names
 from ml.logs import logger
 from ml.sca.lcom import LCOMRunner
 from ml.sca.repo import GitRepo
@@ -145,11 +142,8 @@ class Analysis:
         # Added 2026:
         # py_files = self.get_all_py_files(Path(repo.path))
         # # cohesion_results = self.cohesion_analysis(py_files, repo, skip_existing_sca)
-        # cognitive_complexity_results = self.cognitive_complexity(py_files, repo, skip_existing_sca)
-        # # coupling_results = self.coupling_metrics(repo)  # Requires execution in lib's env
         # flake8_results = self.flake8_analysis(py_files, repo, skip_existing_sca)
         # lcom_results = self._lcom_analysis(py_files, repo, skip_existing_sca)
-        # readability_results = self.readability_analysis(py_files, repo, skip_existing_sca)
 
         results = {
             'name': repo.library.git_name,
@@ -160,11 +154,8 @@ class Analysis:
             **{f'sonar__{k}': v for k, v in sonar_results.items()},
             # Added 2026:
             # # **{f'cohesion__{k}': v for k, v in cohesion_results.items()},
-            # **{f'cognitive_complexity__{k}': v for k, v in cognitive_complexity_results.items()},
-            # # **{f'coupling__{k}': v for k, v in coupling_results.items()},
             # **{f'flake8__{k}': v for k, v in flake8_results.items()},
             # **{f'lcom__{k}': v for k, v in lcom_results.items()},
-            # **{f'readability__{k}': v for k, v in readability_results.items()},
         }
 
         # Run other (CLI) tools on the repository
@@ -344,99 +335,6 @@ class Analysis:
         self._save_json(results_path, results, tool_name='complexipy')
         return results
 
-    def cognitive_complexity(
-        self, py_files: list[Path], repo: GitRepo, skip_existing: bool = True
-    ) -> dict:
-        """Calculate cognitive complexity for Python files.
-
-        :param list[Path] py_files: List of Python file paths.
-        :param GitRepo repo: The Git repository object.
-        :param bool skip_existing: Whether to skip existing results, defaults to True.
-        :return dict: The cognitive complexity results.
-        """
-        results_path, results, _ = self._check_results_file('complexipy', repo, skip_existing)
-        # Return the results if they already exist
-        if results and skip_existing:
-            return results
-
-        logger.debug(f'Running cognitive complexity analysis for {repo.library.git_name}...')
-        # Analyze each Python file
-        complexity, failed = 0, 0
-        for py_path in py_files:
-            try:
-                result = file_complexity(str(py_path))
-                complexity += result.complexity
-            except (OSError, ValueError):
-                failed += 1
-
-        # Determine number of passes and fails
-        passed = len(py_files) - failed
-        if failed > 0:
-            logger.warning(f'Analyzed {passed} files. Failed to analyze {failed} files.')
-
-        results = {
-            'Total Cognitive Complexity': complexity,
-            'Mean Cognitive Complexity': complexity / passed if passed > 0 else 0,
-            'Files Analyzed': passed,
-            'Files Failed': failed,
-        }
-        logger.debug(f'Cognitive Complexity Results:\n{results}')
-
-        # Save results to a file if an output directory is provided
-        self._save_json(results_path, results, tool_name='complexipy')
-        return results
-
-    def coupling_analysis(self, repo: GitRepo, skip_existing: bool = True) -> dict:
-        """Coupling metrics from module_coupling_metrics: instability, abstractness, distance.
-
-        DEPRECATED: requires execution in library's environment due to dependencies.
-
-        :param GitRepo repo: The Git repository object.
-        :param bool skip_existing: Whether to skip existing results, defaults to True
-        :raises ValueError: If no components are found for analysis.
-        :return dict: The coupling metrics results.
-        """
-        results_path, results, _ = self._check_results_file('coupling', repo, skip_existing)
-        # Return the results if they already exist
-        if results and skip_existing:
-            return results
-        logger.debug(f'Running coupling metrics analysis for {repo.library.git_name}...')
-
-        # Specify the base directory of the package in its repository
-        base_dir = Path(repo.path)
-        if repo.library.package_name not in [AUTOGLUON.package_name, H2O.package_name]:
-            base_dir = base_dir / repo.library.package_name
-
-        # Run the coupling metrics analysis using module_coupling_metrics
-        project = reflection.load_project_structure(Path(repo.path) / repo.library.package_name)
-        metrics_results = metrics.compute(project)
-
-        # Aggregate the results
-        num_components = len(metrics_results)
-        instability, abstractness, distance = 0, 0, 0
-        for component in metrics_results.values():
-            instability += component.instability
-            abstractness += component.abstractness
-            distance += component.distance_from_main_sequence
-
-        if num_components == 0:
-            raise ValueError('No components found for coupling metrics analysis')
-
-        results = {
-            'Components Analyzed': num_components,
-            'Total Abstractness': abstractness,
-            'Total Distance': distance,
-            'Total Instability': instability,
-            'Mean Abstractness': abstractness / num_components,
-            'Mean Distance': distance / num_components,
-            'Mean Instability': instability / num_components,
-        }
-        logger.debug(f'Coupling Metrics Results:\n{results}')
-
-        # Save results to a file if an output directory is provided
-        self._save_json(results_path, results, tool_name='coupling')
-        return results
-
     def flake8_analysis(
         self, files: list[Path], repo: GitRepo, skip_existing: bool = True, **style_kwargs
     ) -> dict:
@@ -486,68 +384,6 @@ class Analysis:
 
         # Save results to a file if an output directory is provided
         self._save_json(results_path, results, tool_name='flake8')
-        return results
-
-    def readability_analysis(
-        self, py_files: list[Path], repo: GitRepo, skip_existing_sca: bool = True
-    ) -> dict:
-        """Readability analysis via the readability package.
-
-        See https://github.com/cdimascio/py-readability-metrics for more information.
-
-        :param list[Path] py_files: List of Python file paths.
-        :param GitRepo repo: The Git repository object.
-        :param bool skip_existing_sca: Whether to skip existing results, defaults to True.
-        :return dict: The readability analysis results.
-        """
-        results_path, results, _ = self._check_results_file('readability', repo, skip_existing_sca)
-        # Return the results if they already exist
-        if results and skip_existing_sca:
-            return results
-        logger.debug(f'Running readability analysis for {repo.library.git_name}...')
-
-        # Parse text in each python file to compute metrics
-        results = {}
-        failed = 0
-        for py_path in py_files:
-            try:
-                with open(py_path, 'r', encoding='utf-8') as f:
-                    text = f.read()
-
-                # Calculate readability metrics if text is long enough
-                if len(text.split()) <= 100:
-                    continue
-
-                r = readability.Readability(text)
-                results['flesch_kincaid'] = (
-                    results.get('flesch_kincaid', 0) + r.flesch_kincaid().score
-                )
-                results['flesch'] = results.get('flesch', 0) + r.flesch().score
-                results['gunning_fog'] = results.get('gunning_fog', 0) + r.gunning_fog().score
-                results['coleman_liau'] = results.get('coleman_liau', 0) + r.coleman_liau().score
-                results['dale_chall'] = results.get('dale_chall', 0) + r.dale_chall().score
-                results['ari'] = results.get('ari', 0) + r.ari().score
-                results['linsear_write'] = results.get('linsear_write', 0) + r.linsear_write().score
-                # results['smog'] = results.get('smog', 0) + r.smog().score  # Does not work with code
-                results['spache'] = results.get('spache', 0) + r.spache().score
-                # Include additional statistics
-                for key, value in r.statistics().items():
-                    results[key] = results.get(key, 0) + value
-            except (UnicodeDecodeError, readability.exceptions.ReadabilityException):
-                logger.warning(f'Failed to compute readability metrics for file: {py_path}')
-                failed += 1
-
-        # Average the results over all files
-        passed = len(py_files) - failed
-        if failed > 0:
-            logger.warning(f'Analyzed {passed} files. Failed to analyze {failed} files.')
-
-        for key, score in list(results.items()):
-            results[f'mean_{key}'] = score / passed if passed > 0 else 0
-        logger.debug(f'Readability Results:\n{results}')
-
-        # Save results to a file if an output directory is provided
-        self._save_json(results_path, results, tool_name='readability')
         return results
 
     def _run_cli_tool(

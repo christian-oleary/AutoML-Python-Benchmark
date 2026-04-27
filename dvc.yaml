@@ -1,19 +1,28 @@
 # See README.md for instructions to run stages
 
+# https://doc.dvc.org/user-guide/project-structure/dvcyaml-files#matrix-stages
+
 # Data already imported via:
-# dvc import --out ./data/SKAB https://github.com/waico/SKAB.git ./data
-# To update, run:
-# dvc update data/SKAB
+#     dvc import --out ./data/SKAB https://github.com/waico/SKAB.git ./data
+# To pull latest data, run:
+#     dvc update data/SKAB.dvc
+
 
 stages:
-  # ANOMALY DETECTION (AD) STAGES
+  # ANOMALY DETECTION (AD) STAGE
   run_anomaly_detection:
-    desc: "Run anomaly detection experiments on SKAB datasets"
-    cmd: python -m ml.ad
+    desc: "SKAB anomaly detection (contamination: ${item.contamination}, tool: ${item.tool})"
+    matrix:
+      contamination: [None, 0.1, 0.2, 0.3, 0.4]
+      tool: [LunarADModel, PyCaretADModel, TimeSeriesODModel]
+    cmd: python -m ml.ad --contamination ${item.contamination} --tool ${item.tool} --verbosity 1 --plots skip_existing
     deps:
+      - src/ml/ad/__main__.py
+      - src/ml/ad/anomaly_detection.py
+      - src/ml/ad/training.py
       - data/SKAB
     outs:
-      - results/ad/all_metadata.json
+      - results/ad/${item.tool}/contamination_${item.contamination}/all_metadata.json
 
   # SOURCE CODE ANALYSIS (SCA) STAGES
   prepare_repositories:
@@ -27,8 +36,7 @@ stages:
 
   run_source_code_analysis:
     desc: "Run source code analysis on the project"
-    cmd: |
-      python -m ml.sca repositories results
+    cmd: python -m ml.sca repositories results
     deps:
       - src/ml/__init__.py
       - src/ml/sca/__init__.py

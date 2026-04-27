@@ -64,7 +64,7 @@ class PyCaretADModel(BaseADModel):
         ]
     }
 
-    def __init__(self, model_name: str, contamination: float = 0.05, **_):
+    def __init__(self, model_name: str, contamination: float = 0.05, **kwargs):
         # Validate model name
         if model_name not in self.parameter_options['model_name']:
             raise ValueError(
@@ -73,6 +73,7 @@ class PyCaretADModel(BaseADModel):
             )
         self.model_name = model_name
         self.contamination = contamination
+        self.verbose = kwargs.get('verbosity', 1)
         self.model = None
 
     def fit(self, df: pd.DataFrame, target_col: str = 'anomaly', **kwargs):
@@ -118,7 +119,13 @@ class PyCaretADModel(BaseADModel):
 
         # PyCaret setup
         logger.debug('Running PyCaret setup...')
-        kwargs = {'data': df, 'normalize': True, 'session_id': 1, 'use_gpu': True, 'verbose': True}
+        kwargs = {
+            'data': df,
+            'normalize': True,
+            'session_id': 1,
+            'use_gpu': True,
+            'verbose': (self.verbose - 1) > 1,  # PyCaret expects a boolean
+        }
         try:
             setup(**kwargs)  # pylint: disable=unexpected-keyword-arg
         except TypeError:
@@ -127,7 +134,7 @@ class PyCaretADModel(BaseADModel):
 
         # Train model
         logger.debug(f'Fitting {model_name}...')
-        self.model = create_model(model_name, fraction=self.contamination)
+        self.model = create_model(model_name, fraction=self.contamination, verbose=self.verbose > 1)
 
 
 class TimeSeriesODModel(TimeSeriesOD):
@@ -197,12 +204,12 @@ class LunarADModel(TimeSeriesOD):
         self.model_name = model_name
         n_epochs = int(self.model_name.split('_')[0].split('-')[1])
         n_neighbours = int(self.model_name.split('_')[1].split('-')[1])
+        kwargs['verbose'] = kwargs.get('verbosity', 1) - 1
         lunar_model = LUNAR(
             model_type=model_type,
             n_neighbours=n_neighbours,
             n_epochs=n_epochs,
             contamination=contamination,
-            verbose=0,
             **kwargs,
         )
         super().__init__(

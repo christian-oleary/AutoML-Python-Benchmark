@@ -209,23 +209,24 @@ stages:
       nfiles: 36
     - path: src/ml/ad/__main__.py
       hash: md5
-      md5: c24d9d4e4520427cf36105a559e8dd4b
-      size: 10378
+      md5: 344a9f60561e7e323fc088b38bd4e6eb
+      size: 10376
     - path: src/ml/ad/anomaly_detection.py
       hash: md5
-      md5: 6520ff9026b84f50d0dfe44bcc58849f
-      size: 9153
+      md5: 21d0c7158b8a309f3e06201b18552bed
+      size: 9612
     - path: src/ml/ad/training.py
       hash: md5
-      md5: b6481a0525521b2f8bedf98114b01f00
-      size: 19212
+      md5: 8d31cd31bf468b925bb9dcdb2afd540e
+      size: 19017
     outs:
     - path: results/ad/LunarADModel/contamination_None/all_metadata.json
       hash: md5
       md5: db489f8371d05f0230ce2fb650bc8b82
       size: 17933
   run_anomaly_detection@None-TimeSeriesODModel:
-    cmd: python -m ml.ad --contamination None --tool TimeSeriesODModel
+    cmd: python -m ml.ad --contamination None --tool TimeSeriesODModel --verbosity
+      1 --plots skip_existing
     deps:
     - path: data/SKAB
       hash: md5
@@ -234,23 +235,24 @@ stages:
       nfiles: 36
     - path: src/ml/ad/__main__.py
       hash: md5
-      md5: 52ec243e56abdce06263d117bb885d08
-      size: 8766
+      md5: 344a9f60561e7e323fc088b38bd4e6eb
+      size: 10376
     - path: src/ml/ad/anomaly_detection.py
       hash: md5
-      md5: 457b014813bec20e51123f771fbb6a97
-      size: 9117
+      md5: 21d0c7158b8a309f3e06201b18552bed
+      size: 9612
     - path: src/ml/ad/training.py
       hash: md5
-      md5: 596e4068f4c9bc4cfb44bca7e539d0c0
-      size: 27289
+      md5: 8d31cd31bf468b925bb9dcdb2afd540e
+      size: 19017
     outs:
     - path: results/ad/TimeSeriesODModel/contamination_None/all_metadata.json
       hash: md5
       md5: db489f8371d05f0230ce2fb650bc8b82
       size: 17933
   run_anomaly_detection@0.1-LunarADModel:
-    cmd: python -m ml.ad --contamination 0.1 --tool LunarADModel
+    cmd: python -m ml.ad --contamination 0.1 --tool LunarADModel --verbosity 1 --plots
+      skip_existing
     deps:
     - path: data/SKAB
       hash: md5
@@ -259,23 +261,24 @@ stages:
       nfiles: 36
     - path: src/ml/ad/__main__.py
       hash: md5
-      md5: 52ec243e56abdce06263d117bb885d08
-      size: 8766
+      md5: 344a9f60561e7e323fc088b38bd4e6eb
+      size: 10376
     - path: src/ml/ad/anomaly_detection.py
       hash: md5
-      md5: 457b014813bec20e51123f771fbb6a97
-      size: 9117
+      md5: 21d0c7158b8a309f3e06201b18552bed
+      size: 9612
     - path: src/ml/ad/training.py
       hash: md5
-      md5: d0cd5bc9822ab9522ccc748b95ec2ef1
-      size: 27289
+      md5: 8d31cd31bf468b925bb9dcdb2afd540e
+      size: 19017
     outs:
     - path: results/ad/LunarADModel/contamination_0.1/all_metadata.json
       hash: md5
       md5: f23c983b21d835a5b308671478497394
       size: 17613
   run_anomaly_detection@0.1-TimeSeriesODModel:
-    cmd: python -m ml.ad --contamination 0.1 --tool TimeSeriesODModel
+    cmd: python -m ml.ad --contamination 0.1 --tool TimeSeriesODModel --verbosity
+      1 --plots skip_existing
     deps:
     - path: data/SKAB
       hash: md5
@@ -284,23 +287,24 @@ stages:
       nfiles: 36
     - path: src/ml/ad/__main__.py
       hash: md5
-      md5: b6fde518b7c605f9e4bff0cb066f170a
-      size: 8767
+      md5: 344a9f60561e7e323fc088b38bd4e6eb
+      size: 10376
     - path: src/ml/ad/anomaly_detection.py
       hash: md5
-      md5: 457b014813bec20e51123f771fbb6a97
-      size: 9117
+      md5: 21d0c7158b8a309f3e06201b18552bed
+      size: 9612
     - path: src/ml/ad/training.py
       hash: md5
-      md5: 47e73466e00fcc067f72183baf51b519
-      size: 27290
+      md5: 8d31cd31bf468b925bb9dcdb2afd540e
+      size: 19017
     outs:
     - path: results/ad/TimeSeriesODModel/contamination_0.1/all_metadata.json
       hash: md5
       md5: f23c983b21d835a5b308671478497394
       size: 17613
   run_anomaly_detection@0.2-LunarADModel:
-    cmd: python -m ml.ad --contamination 0.2 --tool LunarADModel
+    cmd: python -m ml.ad --contamination 0.2 --tool LunarADModel --verbosity 1 --plots
+      skip_existing
     deps:
     - path: data/SKAB
       hash: md5
@@ -309,23 +313,24 @@ stages:
       nfiles: 36
     - path: src/ml/ad/__main__.py
       hash: md5
-      md5: b6fde518b7c605f9e4bff0cb066f170a
-      size: 8767
+      md5: 344a9f60561e7e323fc088b38bd4e6eb
+      size: 10376
     - path: src/ml/ad/anomaly_detection.py
       hash: md5
-      md5: 457b014813bec20e51123f771fbb6a97
-      size: 9117
+      md5: 21d0c7158b8a309f3e06201b18552bed
+      size: 9612
     - path: src/ml/ad/training.py
       hash: md5
-      md5: 47e73466e00fcc067f72183baf51b519
-      size: 27290
+      md5: 8d31cd31bf468b925bb9dcdb2afd540e
+      size: 19017
     outs:
     - path: results/ad/LunarADModel/contamination_0.2/all_metadata.json
       hash: md5
       md5: f7a6a28a775e9a4dde97ca101c6783e9
       size: 17613
   run_anomaly_detection@0.2-TimeSeriesODModel:
-    cmd: python -m ml.ad --contamination 0.2 --tool TimeSeriesODModel
+    cmd: python -m ml.ad --contamination 0.2 --tool TimeSeriesODModel --verbosity
+      1 --plots skip_existing
     deps:
     - path: data/SKAB
       hash: md5
@@ -334,23 +339,24 @@ stages:
       nfiles: 36
     - path: src/ml/ad/__main__.py
       hash: md5
-      md5: 6ebf4fb4b0dceeb625589b4dc1aa614d
-      size: 7740
+      md5: 344a9f60561e7e323fc088b38bd4e6eb
+      size: 10376
     - path: src/ml/ad/anomaly_detection.py
       hash: md5
-      md5: 6c461dd1f6db43a1fb55ca8768594a78
-      size: 8887
+      md5: 21d0c7158b8a309f3e06201b18552bed
+      size: 9612
     - path: src/ml/ad/training.py
       hash: md5
-      md5: 0423787bd88c74b97d9fec4a9050ef67
-      size: 27146
+      md5: 8d31cd31bf468b925bb9dcdb2afd540e
+      size: 19017
     outs:
     - path: results/ad/TimeSeriesODModel/contamination_0.2/all_metadata.json
       hash: md5
-      md5: 997e08f8ffd600b4e09d5122fc0c5ee0
+      md5: f7a6a28a775e9a4dde97ca101c6783e9
       size: 17613
   run_anomaly_detection@None-PyCaretADModel:
-    cmd: python -m ml.ad --contamination None --tool PyCaretADModel
+    cmd: python -m ml.ad --contamination None --tool PyCaretADModel --verbosity 1
+      --plots skip_existing
     deps:
     - path: data/SKAB
       hash: md5
@@ -359,23 +365,24 @@ stages:
       nfiles: 36
     - path: src/ml/ad/__main__.py
       hash: md5
-      md5: 52ec243e56abdce06263d117bb885d08
-      size: 8766
+      md5: 344a9f60561e7e323fc088b38bd4e6eb
+      size: 10376
     - path: src/ml/ad/anomaly_detection.py
       hash: md5
-      md5: 457b014813bec20e51123f771fbb6a97
-      size: 9117
+      md5: 21d0c7158b8a309f3e06201b18552bed
+      size: 9612
     - path: src/ml/ad/training.py
       hash: md5
-      md5: 756970702fa2772e715a0917ea24cb28
-      size: 27289
+      md5: 8d31cd31bf468b925bb9dcdb2afd540e
+      size: 19017
     outs:
     - path: results/ad/PyCaretADModel/contamination_None/all_metadata.json
       hash: md5
       md5: f799efe8e9f8ca98ba93c5c9d04f4211
       size: 17793
   run_anomaly_detection@0.1-PyCaretADModel:
-    cmd: python -m ml.ad --contamination 0.1 --tool PyCaretADModel
+    cmd: python -m ml.ad --contamination 0.1 --tool PyCaretADModel --verbosity 1 --plots
+      skip_existing
     deps:
     - path: data/SKAB
       hash: md5
@@ -384,18 +391,70 @@ stages:
       nfiles: 36
     - path: src/ml/ad/__main__.py
       hash: md5
-      md5: 52ec243e56abdce06263d117bb885d08
-      size: 8766
+      md5: 344a9f60561e7e323fc088b38bd4e6eb
+      size: 10376
     - path: src/ml/ad/anomaly_detection.py
       hash: md5
-      md5: 457b014813bec20e51123f771fbb6a97
-      size: 9117
+      md5: 21d0c7158b8a309f3e06201b18552bed
+      size: 9612
     - path: src/ml/ad/training.py
       hash: md5
-      md5: 47e73466e00fcc067f72183baf51b519
-      size: 27290
+      md5: 8d31cd31bf468b925bb9dcdb2afd540e
+      size: 19017
     outs:
     - path: results/ad/PyCaretADModel/contamination_0.1/all_metadata.json
       hash: md5
       md5: 1ca2c0f33663bc5091852e58d595ee61
       size: 17473
+  run_anomaly_detection@0.2-PyCaretADModel:
+    cmd: python -m ml.ad --contamination 0.2 --tool PyCaretADModel --verbosity 1 --plots
+      skip_existing
+    deps:
+    - path: data/SKAB
+      hash: md5
+      md5: 9b4a074f4eee7d4e78948b9fb3343156.dir
+      size: 4404815
+      nfiles: 36
+    - path: src/ml/ad/__main__.py
+      hash: md5
+      md5: 344a9f60561e7e323fc088b38bd4e6eb
+      size: 10376
+    - path: src/ml/ad/anomaly_detection.py
+      hash: md5
+      md5: 21d0c7158b8a309f3e06201b18552bed
+      size: 9612
+    - path: src/ml/ad/training.py
+      hash: md5
+      md5: 8d31cd31bf468b925bb9dcdb2afd540e
+      size: 19017
+    outs:
+    - path: results/ad/PyCaretADModel/contamination_0.2/all_metadata.json
+      hash: md5
+      md5: 7f3a8d2019b1c0e09b28a83987f201c5
+      size: 17473
+  run_anomaly_detection@0.3-LunarADModel:
+    cmd: python -m ml.ad --contamination 0.3 --tool LunarADModel --verbosity 1 --plots
+      skip_existing
+    deps:
+    - path: data/SKAB
+      hash: md5
+      md5: 9b4a074f4eee7d4e78948b9fb3343156.dir
+      size: 4404815
+      nfiles: 36
+    - path: src/ml/ad/__main__.py
+      hash: md5
+      md5: 344a9f60561e7e323fc088b38bd4e6eb
+      size: 10376
+    - path: src/ml/ad/anomaly_detection.py
+      hash: md5
+      md5: 21d0c7158b8a309f3e06201b18552bed
+      size: 9612
+    - path: src/ml/ad/training.py
+      hash: md5
+      md5: 8d31cd31bf468b925bb9dcdb2afd540e
+      size: 19017
+    outs:
+    - path: results/ad/LunarADModel/contamination_0.3/all_metadata.json
+      hash: md5
+      md5: 10c5f1e62f49e1eb7529bd451ae6df82
+      size: 17613

@@ -210,11 +210,11 @@ def main():
         level=level_mapping.get(configuration.verbosity, 'INFO'),
         colorize=True,
         format=(
-            '|<green>{time:YYYY-MM-DD HH:mm:ss}</green>|<level>{level: <8}</level>'
+            '|<green>{time:YYYY-MM-DD HH:mm:ss}</green>|<level>{level: <7}</level>'
             '|<cyan>{file.path}</cyan>:<cyan>{line: <3}</cyan>| <level>{message}</level>'
         ),
     )
-    logger.info(f'Configuration:\n{json.dumps(configuration.model_dump(mode="json"), indent=2)}')
+    logger.debug(f'Configuration:\n{json.dumps(configuration.model_dump(mode="json"), indent=2)}')
 
     # Load SKAB dataset
     skab_data = load_skab(configuration.data_dir)
@@ -248,7 +248,7 @@ def main():
             name=name, dataframes=skab_data, all_metadata=all_metadata, all_results=all_results
         )
 
-    logger.info('Analyzing results...')
+    logger.debug('Analyzing results...')
     analysis = Analysis(
         results_dir, plots=configuration.plots, test_set_size=configuration.test_set_size
     )

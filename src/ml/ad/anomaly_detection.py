@@ -20,22 +20,23 @@ class BaseADModel:
         :param pd.DataFrame df: The input DataFrame containing the features and target column.
         :param str target_col: The name of the target column to drop before fitting.
         """
-        df = df[[col for col in df.columns if col != target_col]]
+        if isinstance(df, pd.DataFrame) and target_col in df.columns:
+            df = df[[col for col in df.columns if col != target_col]]
         self._fit(df, **kwargs)
-
-    def predict(self, df: pd.DataFrame):
-        """Predict anomalies in the data."""
-        raise NotImplementedError
-
-    def predict_proba(self, df: pd.DataFrame):
-        """Get anomaly scores for the data."""
-        raise NotImplementedError
 
     def decision_function(self, df: pd.DataFrame):
         """Get anomaly scores for the data."""
         return self.predict_proba(df)
 
-    def _fit(self, df: pd.DataFrame, **kwargs) -> None:
+    def predict(self, X: pd.DataFrame) -> pd.Series:
+        """Predict anomalies in the data."""
+        raise NotImplementedError
+
+    def predict_proba(self, X: pd.DataFrame) -> pd.Series:
+        """Get anomaly scores for the data."""
+        raise NotImplementedError
+
+    def _fit(self, X: pd.DataFrame, **kwargs) -> None:
         """Run PyCaret's unsupervised anomaly detection."""
         raise NotImplementedError
 
@@ -85,32 +86,34 @@ class PyCaretADModel(BaseADModel):
         self.contamination = kwargs.get('contamination', self.contamination)
         super().fit(df, target_col=target_col, **kwargs)
 
-    def predict(self, df: pd.DataFrame) -> pd.Series:
+    def predict(self, X: pd.DataFrame) -> pd.Series:
         """Predict anomalies using the fitted PyCaret model.
 
-        :param pd.DataFrame df: The input DataFrame containing the features to predict on.
+        :param pd.DataFrame X: The input DataFrame containing the features to predict on.
         :return pd.Series: A Series containing the predicted anomaly labels.
         """
         if self.model is None:
             raise ValueError(f'PyCaret {self.model_name} not been fitted yet.')
-        result = predict_model(self.model, data=df)
+        result = predict_model(self.model, data=X)
+        self.decision_scores_ = result['Anomaly_Score']
         return result['Anomaly']
 
-    def predict_proba(self, df: pd.DataFrame) -> pd.Series:
+    def predict_proba(self, X: pd.DataFrame) -> pd.Series:
         """Get anomaly scores for the data.
 
-        :param pd.DataFrame df: The input DataFrame containing the features to predict on.
+        :param pd.DataFrame X: The input DataFrame containing the features to predict on.
         :return: A Series containing the anomaly scores.
         """
         if self.model is None:
             raise ValueError(f'PyCaret {self.model_name} not been fitted yet.')
-        result = predict_model(self.model, data=df)
+        result = predict_model(self.model, data=X)
+        self.decision_scores_ = result['Anomaly_Score']
         return result['Anomaly_Score']
 
-    def _fit(self, df, **kwargs) -> None:
+    def _fit(self, X: pd.DataFrame, **kwargs) -> None:
         """Run PyCaret's unsupervised anomaly detection.
 
-        :param pd.DataFrame df: The input DataFrame.
+        :param pd.DataFrame X: The input DataFrame.
         :param str model_name: The name of the PyCaret anomaly detection model to use.
         :param float contamination: The proportion of anomalies in the dataset.
         """
@@ -120,7 +123,7 @@ class PyCaretADModel(BaseADModel):
         # PyCaret setup
         logger.debug('Running PyCaret setup...')
         kwargs = {
-            'data': df,
+            'data': X,
             'normalize': True,
             'session_id': 1,
             'use_gpu': True,
@@ -160,6 +163,11 @@ class TimeSeriesODModel(TimeSeriesOD):
     ):
         self.model_name = model_name
         super().__init__(model_name, window_size, step, score_aggregation, contamination)
+
+    def decision_function(self, X):
+        """Get anomaly scores for the data."""
+        self.decision_scores_ = self.detector.decision_function(X)
+        return self.decision_scores_
 
 
 class LunarADModel(TimeSeriesOD):
@@ -202,8 +210,13 @@ class LunarADModel(TimeSeriesOD):
         self, model_name='LUNAR', contamination=0.1, model_type='SCORE', window_size=50, **kwargs
     ):
         self.model_name = model_name
-        n_epochs = int(self.model_name.split('_')[0].split('-')[1])
-        n_neighbours = int(self.model_name.split('_')[1].split('-')[1])
+        if model_name == 'LUNAR':
+            n_epochs = 10
+            n_neighbours = 5
+        else:
+            n_epochs = int(self.model_name.split('_')[0].split('-')[1])
+            n_neighbours = int(self.model_name.split('_')[1].split('-')[1])
+
         kwargs['verbose'] = kwargs.get('verbosity', 1) - 1
         lunar_model = LUNAR(
             model_type=model_type,
@@ -217,3 +230,8 @@ class LunarADModel(TimeSeriesOD):
             window_size=window_size,
             contamination=contamination,
         )
+
+    def decision_function(self, X):
+        """Get anomaly scores for the data."""
+        self.decision_scores_ = self.detector.decision_function(X)
+        return self.decision_scores_

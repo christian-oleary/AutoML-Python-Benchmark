@@ -164,6 +164,11 @@ class TimeSeriesODModel(TimeSeriesOD):
         self.model_name = model_name
         super().__init__(model_name, window_size, step, score_aggregation, contamination)
 
+    def fit(self, X, y=None, **kwargs):
+        """Fit the LUNAR model."""
+        super().fit(X, y, **kwargs)
+        self.decision_scores_ = self.detector.decision_function(X)
+
     def decision_function(self, X):
         """Get anomaly scores for the data."""
         self.decision_scores_ = self.detector.decision_function(X)
@@ -230,6 +235,11 @@ class LunarADModel(TimeSeriesOD):
             window_size=window_size,
             contamination=contamination,
         )
+
+    def fit(self, X, y=None, **kwargs):
+        """Fit the LUNAR model."""
+        super().fit(X, y, **kwargs)
+        self.decision_scores_ = self.detector.decision_function(X)
 
     def decision_function(self, X):
         """Get anomaly scores for the data."""

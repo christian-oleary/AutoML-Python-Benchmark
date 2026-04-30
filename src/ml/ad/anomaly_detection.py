@@ -200,14 +200,10 @@ class LunarADModel(TimeSeriesOD):
             'E-4_N-5',  # 4 epochs, 5 neighbours
             'E-8_N-5',  # 8 epochs, 5 neighbours
             'E-16_N-5',  # 16 epochs, 5 neighbours
-            'E-4_N-1',  # 4 epochs, 1 neighbour
             'E-4_N-2',  # 4 epochs, 2 neighbours
             'E-4_N-4',  # 4 epochs, 4 neighbours
             'E-4_N-8',  # 4 epochs, 8 neighbours
             'E-4_N-16',  # 4 epochs, 16 neighbours
-            'E-1_N-1',  # 1 epoch, 1 neighbour
-            'E-2_N-1',  # 2 epochs, 1 neighbour
-            'E-8_N-1',  # 8 epochs, 1 neighbour
         ]
     }
 

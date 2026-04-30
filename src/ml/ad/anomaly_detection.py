@@ -167,6 +167,8 @@ class TimeSeriesODModel(TimeSeriesOD):
     def fit(self, X, y=None, **kwargs):
         """Fit the LUNAR model."""
         super().fit(X, y, **kwargs)
+        if not hasattr(self, 'detector') and hasattr(self, 'detector_'):
+            self.detector = self.detector_
         self.decision_scores_ = self.detector.decision_function(X)
 
     def decision_function(self, X):
@@ -235,7 +237,9 @@ class LunarADModel(TimeSeriesOD):
     def fit(self, X, y=None, **kwargs):
         """Fit the LUNAR model."""
         super().fit(X, y, **kwargs)
-        self.decision_scores_ = self.detector.decision_function(X)
+        if hasattr(self, 'detector') and hasattr(self, 'detector_'):
+            self.detector = self.detector_
+        self.decision_scores_ = self.detector.decision_scores_
 
     def decision_function(self, X):
         """Get anomaly scores for the data."""

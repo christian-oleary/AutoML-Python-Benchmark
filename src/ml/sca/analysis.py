@@ -76,6 +76,8 @@ class Analysis:
 
     def run(self) -> list[dict]:
         """Run the static code analysis."""
+        # self.df_results = pd.read_csv(Path(self.output_dir, 'SUMMARY', 'csv', 'results.csv'))
+        # Reporting.save_results(self.df_results, self.output_dir, IGNORED_COLS)
         if self.is_git_repo(self.input_dir):
             # Check if the directory is a Git repository
             self.results = [self.analyze_repo(self.input_dir)]
@@ -98,7 +100,6 @@ class Analysis:
         # Save the results to a file if an output directory is provided
         if self.output_dir:
             self.df_results = pd.DataFrame(self.results)
-            # self.df_results = pd.read_csv(Path(self.output_dir, 'SUMMARY', 'csv', 'results.csv'))
             Reporting.save_results(self.df_results, self.output_dir, IGNORED_COLS)
         return self.results
 

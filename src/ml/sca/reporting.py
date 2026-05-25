@@ -1258,15 +1258,16 @@ class Reporting:
 
                 # Format p-value string
                 significance = 'bold' if p_value < p_value_threshold else 'normal'
+                fontdict = {'fontsize': fontsize, 'weight': significance, 'color': 'black'}
                 if large_matrix:
                     if p_value > p_value_threshold:  # Skip annotation in large matrices
                         continue
                     text = f'{p_value:.3f}'.replace('0.', '.')
-                    fontdict = {'fontsize': fontsize, 'weight': significance, 'color': 'black'}
                     x, y = row + 0.5, col + 0.5
                 else:
-                    text = f'p={p_value:.4f}'
-                    fontdict = {'fontsize': fontsize - 1, 'weight': significance, 'color': 'black'}
+                    text = f'$\it{{p}}={p_value:.4f}$'  # italicize p; breaks font weight...
+                    # text = f'p={p_value:.4f}'  # does not italicize p; font weight works
+                    fontdict['fontsize'] = fontsize - 1
                     x, y = row + 0.5, col + 0.8
 
                 # Add p-value annotation

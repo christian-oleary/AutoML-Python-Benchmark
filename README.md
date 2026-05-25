@@ -44,18 +44,12 @@ conda info --envs | grep automl || conda create -n automl -y python=3.10.14
 conda activate automl
 
 # Install dependencies. Pick at least one:
-pip install -e .             # Bare minimum. Includes sklearn.
-
-pip install -e .[lightgbm]   # LightGBM
+pip install -e .             # Bare minimum
+pip install -e .[all]        # Everything
+pip install -e .[sca]        # Source Code Analysis
+pip install -e .[dev,docs] # Unit tests, docs
 pip install -e .[tensorflow] # TensorFlow
 pip install -e .[torch]      # PyTorch
-pip install -e .[xgboost]    # XGBoost
-pip install -e .[ai]         # All ML libraries
-
-pip install -e .[tests,docs] # Unit tests, docs
-pip install -e .[sca]        # Source Code Analysis
-
-pip install -e .[all]        # Everything
 
 # For source code analysis:
 conda install gh -y
@@ -110,6 +104,8 @@ pip install pycaret[model,tuners]
 # results should be in: results/ad/
 python -m ml.ad
 ```
+<!-- # Install PyCaret
+pip install pycaret[models,tuners] -->
 
 <!-- Installing after main installation:
 pip uninstall numba pandas pyod shap pycaret scikit-learn coverage pyod category-encoders -y && pip install pycaret[model,tuners] && python -m ml.ad

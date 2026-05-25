@@ -7,8 +7,8 @@ from pyod.models.ts_od import TimeSeriesOD
 
 try:  # PyCaret
     from pycaret.anomaly import create_model, predict_model, setup
-except ImportError:
-    logger.warning('PyCaret is not installed.')
+except ImportError as e:
+    logger.warning(f'PyCaret is not installed: {e}')
 
 
 class BaseADModel:

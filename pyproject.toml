@@ -21,24 +21,20 @@ classifiers = [
 [project.optional-dependencies]
 # Documentation
 docs = [
-    "Sphinx==5.3.0",            # Documentation generator
-    "sphinx_mdinclude==0.6.0",  # Markdown include for Sphinx
-    "sphinx-rtd-theme==2.0.0",  # Read the Docs theme
-    "docxbuilder==1.2.0",       # Word document builder
+    "Sphinx>=5.3.0",            # Documentation generator
+    "sphinx_mdinclude",  # Markdown include for Sphinx
+    "sphinx-rtd-theme",  # Read the Docs theme
+    "docxbuilder",       # Word document builder
     "docxbuilder[math]",        # Math support
 ]
 
 # Source code analysis.
 sca = [
     "bandit",             # Security checks
-    "cohesion",           # Class cohesion
-    "complexipy",         # Cognitive complexity
     "coverage",           # Code coverage
     "defusedxml==0.7.1",  # XML security
     "radon[toml]",        # Code metrics
     "ruff",               # Code formatting
-    "safety",             # Security checks
-    # "tox",              # To be considered
     "tables", "tabulate", # pandas export to tex
     # Linting
     "flake8", "flake8-bugbear",
@@ -46,36 +42,37 @@ sca = [
     "pylint", "pylint-celery", "pylint-django",
     "pylint-flask", "pylint-mccabe", "pylint-pytest",
     ##############
+    # "cohesion",    # Class cohesion
+    # "complexipy",  # Cognitive complexity
+    # "safety",      # Security checks
+    # "tox",         # To be considered
+    ##############
     # Deprecated: frosted, pydocstyle (and therefore "flake8-docstrings")
     # Redundant: autoflake, hacking, lizard, mccabe, pep8, pycodestyle, pyflakes, unimport, zimports
     # Lacking CLI scores reporting: autopep8, black, dead, doc8, docformatter, it, rope, uncalled, vulture, "yapf"
 ]
-
-# Machine learning
-lightgbm = ["lightgbm"]
-tensorflow = ["tensorflow==2.10.1", "protobuf==3.19.5"]
-torch = ["torch==2.3.1"]
-xgboost = ["xgboost"]
-ai = ["ml[lightgbm,tensorflow,torch,xgboost]"]
-
 # Development dependencies
 dev = [
     "setuptools",
-    "coverage==7.4.4",    # Code coverage
-    "pytest==8.2.2",      # Testing
-    "pytest-cov==5.0.0",  # Pytest with Coverage
+    "coverage",    # Code coverage
+    "pytest",      # Testing
+    "pytest-cov",  # Pytest with Coverage
     "pytest-mock",        # Pytest mocking support
     "pre-commit==3.7.1",  # Git hooks
     "types-requests",     # Type hints for requests
 ]
+# Machine learning
+tensorflow = ["tensorflow==2.10.1", "protobuf==3.19.5"]
+torch = ["torch==2.3.1"]
+
 
 # All dependencies except AutoML frameworks
-all = ["ml[dev,docs,sca,lightgbm,tensorflow,torch,xgboost]"]
+all = ["ml[dev,docs,sca,tensorflow,torch]"]
 
 # AutoML frameworks
 # pycaret = ["pycaret[full]"]
 pycaret = ["pycaret[models,tuners]"]
-# pycaret = ["pycaret==2.2.2"]
+
 
 
 [project.scripts]

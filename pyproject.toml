@@ -62,8 +62,8 @@ dev = [
     "types-requests",     # Type hints for requests
 ]
 # Machine learning
-tensorflow = ["tensorflow==2.10.1", "protobuf==3.19.5"]
-torch = ["torch==2.3.1"]
+tensorflow = ["tensorflow==2.10.1", "protobuf==5.29.6"]
+torch = ["torch==2.8.0"]
 
 
 # All dependencies except AutoML frameworks

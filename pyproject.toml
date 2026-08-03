@@ -97,7 +97,7 @@ exclude = ["*_test.py", "*test_*", "data/*.dvc", "archived/*"]
 skip-string-normalization = true
 line-length = 100
 target-version = ['py39', 'py310']
-exclude = "/(archived|docs|repositories)/"
+exclude = "/(./**/archived|docs|repositories)/"
 
 ################################################################################
 # COVERAGE
@@ -154,7 +154,7 @@ disable = [
     "W0201", # attribute-defined-outside-init
     "W1203", # logging-fstring-interpolation
 ]
-ignore = ["tests", "**/TSForecasting/*", "archived", "docs", "repositories"]
+ignore = ["tests", "**/TSForecasting/*", "archived",  "**/archived", "docs", "repositories"]
 ignore-comments = false
 ignore-docstrings = false
 ignore-imports = false

@@ -1,7 +1,7 @@
 pycaret==3.0.0
 # pycaret[full] # PyCaret recommend avoiding: https://github.com/pycaret/pycaret/issues/3330
 sktime==0.17.0
-lightgbm==3.1
+lightgbm==4.6.0
 
 
 # Analysis

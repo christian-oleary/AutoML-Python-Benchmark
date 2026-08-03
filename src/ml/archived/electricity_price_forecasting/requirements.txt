@@ -1,7 +1,7 @@
 lightgbm
 matplotlib
 pandas==1.4.1
-protobuf==3.19
+protobuf==5.29.6
 seaborn
 sktime==0.18.0
 tensorflow==2.10.0

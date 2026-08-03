@@ -41,13 +41,13 @@ repos:
     #     -   id: flake8
     #         args: ["--jobs=1", "--select=E9,F63,F7,F82", "--show-source", "--statistics"]
 
-    # -   repo: https://github.com/pre-commit/mirrors-mypy
-    #     rev: v1.8.0
-    #     hooks:
-    #     -   id: mypy
-    #         args: ["--config-file=pyproject.toml"]
-    #         exclude: ^src/ml/archived/|docs/|repositories/|tests/|ignore/|TSForecasting/
-    #         additional_dependencies: [types-requests]
+    -   repo: https://github.com/pre-commit/mirrors-mypy
+        rev: v1.8.0
+        hooks:
+        -   id: mypy
+            args: ["--config-file=pyproject.toml"]
+            exclude: ^src/ml/archived/|docs/|repositories/|tests/|ignore/|TSForecasting/
+            additional_dependencies: [types-requests]
 
     -   repo: https://github.com/kynan/nbstripout
         rev: 0.7.1

@@ -49,28 +49,28 @@ repos:
     #         exclude: ^src/ml/archived/|docs/|repositories/|tests/|ignore/|TSForecasting/
     #         additional_dependencies: [types-requests]
 
-    # -   repo: https://github.com/kynan/nbstripout
-    #     rev: 0.7.1
-    #     hooks:
-    #     -   id: nbstripout
+    -   repo: https://github.com/kynan/nbstripout
+        rev: 0.7.1
+        hooks:
+        -   id: nbstripout
 
-    # -   repo: https://github.com/pre-commit/pre-commit-hooks
-    #     rev: v3.2.0
-    #     hooks:
-    #     -   id: check-added-large-files
-    #     -   id: check-ast
-    #     -   id: check-docstring-first
-    #     -   id: check-executables-have-shebangs
-    #     -   id: check-merge-conflict
-    #     -   id: check-toml
-    #     -   id: check-xml
-    #     -   id: check-yaml
-    #     -   id: debug-statements
-    #     -   id: detect-private-key
-    #     -   id: end-of-file-fixer
-    #     -   id: mixed-line-ending
-    #     -   id: requirements-txt-fixer
-    #     -   id: trailing-whitespace
+    -   repo: https://github.com/pre-commit/pre-commit-hooks
+        rev: v3.2.0
+        hooks:
+        -   id: check-added-large-files
+        -   id: check-ast
+        -   id: check-docstring-first
+        -   id: check-executables-have-shebangs
+        -   id: check-merge-conflict
+        -   id: check-toml
+        -   id: check-xml
+        -   id: check-yaml
+        -   id: debug-statements
+        -   id: detect-private-key
+        -   id: end-of-file-fixer
+        -   id: mixed-line-ending
+        -   id: requirements-txt-fixer
+        -   id: trailing-whitespace
 
     -   repo: https://github.com/pre-commit/pygrep-hooks
         rev: v1.10.0

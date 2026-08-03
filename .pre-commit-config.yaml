@@ -84,11 +84,11 @@ repos:
         -   id: ruff
             args: ["--fix"]
 
-    # -   repo: https://github.com/PyCQA/pylint
-    #     rev: v2.17.5
-    #     hooks:
-    #     -   id: pylint
-    #         args: ["--rcfile=pyproject.toml"]
+    -   repo: https://github.com/PyCQA/pylint
+        rev: v2.17.5
+        hooks:
+        -   id: pylint
+            args: ["--rcfile=pyproject.toml"]
 
     -   repo: local
         hooks:

@@ -97,7 +97,7 @@ exclude = ["*_test.py", "*test_*", "data/*.dvc", "archived/*"]
 skip-string-normalization = true
 line-length = 100
 target-version = ['py39', 'py310']
-exclude = "/(./**/archived|docs|repositories)/"
+exclude = "/(./**/archived|archived|docs|repositories)/"
 
 ################################################################################
 # COVERAGE

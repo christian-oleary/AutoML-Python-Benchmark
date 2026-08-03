@@ -78,11 +78,11 @@ repos:
         -   id: python-check-blanket-noqa
         -   id: python-use-type-annotations
 
-    # -   repo: https://github.com/astral-sh/ruff-pre-commit
-    #     rev: v0.2.1
-    #     hooks:
-    #     -   id: ruff
-    #         args: ["--fix"]
+    -   repo: https://github.com/astral-sh/ruff-pre-commit
+        rev: v0.2.1
+        hooks:
+        -   id: ruff
+            args: ["--fix"]
 
     # -   repo: https://github.com/PyCQA/pylint
     #     rev: v2.17.5

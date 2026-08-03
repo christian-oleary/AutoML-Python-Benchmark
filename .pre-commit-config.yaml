@@ -49,10 +49,10 @@ repos:
     #         exclude: ^src/ml/archived/|docs/|repositories/|tests/|ignore/|TSForecasting/
     #         additional_dependencies: [types-requests]
 
-    # -   repo: https://github.com/kynan/nbstripout
-    #     rev: 0.7.1
-    #     hooks:
-    #     -   id: nbstripout
+    -   repo: https://github.com/kynan/nbstripout
+        rev: 0.7.1
+        hooks:
+        -   id: nbstripout
 
     # -   repo: https://github.com/pre-commit/pre-commit-hooks
     #     rev: v3.2.0
@@ -72,11 +72,11 @@ repos:
     #     -   id: requirements-txt-fixer
     #     -   id: trailing-whitespace
 
-    # -   repo: https://github.com/pre-commit/pygrep-hooks
-    #     rev: v1.10.0
-    #     hooks:
-    #     -   id: python-check-blanket-noqa
-    #     -   id: python-use-type-annotations
+    -   repo: https://github.com/pre-commit/pygrep-hooks
+        rev: v1.10.0
+        hooks:
+        -   id: python-check-blanket-noqa
+        -   id: python-use-type-annotations
 
     # -   repo: https://github.com/astral-sh/ruff-pre-commit
     #     rev: v0.2.1

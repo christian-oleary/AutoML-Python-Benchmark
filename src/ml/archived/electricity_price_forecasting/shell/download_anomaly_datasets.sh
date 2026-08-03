@@ -39,7 +39,7 @@ if cd ./data/anomaly_detection/HAI; then git pull && cd ../../../; else git clon
 
 # 3W dataset - CC BY 4.0, commerical, credit
 # https://www.kaggle.com/datasets/afrniomelo/3w-dataset
-# Each of the 8 directories is a seperate dataset
+# Each of the 8 directories is a separate dataset
 mkdir -p ./data/anomaly_detection/3W
 mkdir -p ./data/anomaly_detection/3W/dataset
 if cd ./data/repositories/3W; then git pull && cd ../../../; else git clone https://github.com/petrobras/3W.git ./data/repositories/3W; fi

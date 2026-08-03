@@ -4,7 +4,7 @@ sh ./shell/pull_repos.sh
 
 echo "Python lines-of-code counting..."
 
-cd repositories
+cd repositories || exit
 
 echo "adanet" >> line_counts.txt && cd adanet && git ls-files | grep '\.py' | xargs wc -l | grep total >> ../line_counts.txt && cd .. && \
 echo "autogluon" >> line_counts.txt && cd autogluon && git ls-files | grep '\.py' | xargs wc -l | grep total >> ../line_counts.txt && cd .. && \

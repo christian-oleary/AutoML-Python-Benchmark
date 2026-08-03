@@ -475,8 +475,13 @@ class Reporting:
             position_float='raggedleft',
         )
 
+        if 'program size' in category.lower():
+            fontsize -= 1  # smaller font for size metrics
+            df_ranked['Sonar: CLD'] = df_ranked['Sonar: Comment Lines Density']
+            del df_ranked['Sonar: Comment Lines Density']
+
         # Plot heatmap
-        size = 2 + int(len(df_ranked.columns) * 0.75)  # size based on number of columns
+        size = 2 + int(len(df_ranked.columns) * 0.8)  # size based on number of columns
         show_tool = 'maintainability' not in category.lower()
         cls.plot_libraries(
             df_ranked, 'spearman', category, output_dir, (size, size), fontsize, show_tool
@@ -996,6 +1001,7 @@ class Reporting:
         path = Path(output_dir, 'plots', f'{file_name}.svg')
         path.parent.mkdir(parents=True, exist_ok=True)
         plt.savefig(path, bbox_inches='tight', dpi=300)
+        plt.savefig(path.with_suffix('.png'), bbox_inches='tight', dpi=300)
         # plt.show()
         # Close plot
         plt.cla()

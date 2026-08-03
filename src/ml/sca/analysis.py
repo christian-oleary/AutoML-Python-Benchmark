@@ -168,6 +168,8 @@ class Analysis:
     def generate_uml_diagram(self, repo: GitRepo, package_name: str) -> None:
         """Generate UML (via pyreverse) and flow (via code2flow) diagrams.
 
+        These diagrams proved highly error-prone during generation.
+
         :param GitRepo repo: The Git repository object.
         :param str package_name: The name of the package.
         """

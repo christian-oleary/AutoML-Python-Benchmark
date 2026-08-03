@@ -1,0 +1,5 @@
+fedot==0.6.1
+# fedot==0.7.2
+fedot[extra]
+
+# Note: cuDF is supported only on Linux, and with Python versions 3.9 and later.

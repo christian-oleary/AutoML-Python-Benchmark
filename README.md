@@ -4,9 +4,7 @@
 [![linting: pylint](https://github.com/christian-oleary/AutoML-Python-Benchmark/actions/workflows/pylint.yml/badge.svg)](https://github.com/christian-oleary/AutoML-Python-Benchmark/actions/workflows/pylint.yml)
 [![testing: pytest](https://github.com/christian-oleary/AutoML-Python-Benchmark/actions/workflows/pytest.yml/badge.svg)](https://github.com/christian-oleary/AutoML-Python-Benchmark/actions/workflows/pytest.yml)
 
-Benchmarks of AutoML Frameworks for time series forecasting, anomaly detection and classification.
-
-This requires [Docker](https://docs.docker.com/). Primary Python version: 3.10.14
+Benchmarks of AutoML Frameworks for time series forecasting and anomaly detection.
 
 ## Table of Contents
 
@@ -21,18 +19,22 @@ This requires [Docker](https://docs.docker.com/). Primary Python version: 3.10.1
 
 ## Publications
 
-- An Empirical Study of Static Code Analysis in Python Automated Machine Learning Libraries (2025) - (awaiting review)
+- [An Empirical Study of Static Code Analysis in Python Automated Machine Learning Libraries (2025)](https://reference-global.com/article/10.2478/acss-2026-0009)
 
   - [Tag](https://github.com/christian-oleary/AutoML-Python-Benchmark/releases/tag/source_code_analysis)
   - [Code](https://github.com/christian-oleary/AutoML-Python-Benchmark/tree/2fc678f77ce4dae8da7541f49e3e216ac48d3153)
+    - Code also included in ```src/ml/sca/```
 
 - [A Comparative Analysis of Automated Machine Learning Libraries for Electricity Price Forecasting (2024)](https://sciendo.com/article/10.2478/acss-2024-0020)
 
   - [Tag](https://github.com/christian-oleary/AutoML-Python-Benchmark/releases/tag/electricity_price_forecasting)
   - [Code](https://github.com/christian-oleary/AutoML-Python-Benchmark/tree/c436f3f83e6872ab8a4bb430923fc5aaf64f5ade)
+    - Code also included in ```src/ml/archived/electricity_price_forecasting```
   - These experiments are run with Python 3.9 and CUDA versions 11.2 and 11.7.
 
 ## Installation
+
+> Note: The following instructions are still valid for the SCA benchmark, but the electricity price forecasting benchmark is now archived (`src/ml/archived/electricity_price_forecasting`). The anomaly detection benchmark is also archived (`src/ml/archived/TSB-AD`) as this was based on the TSB-AD repository.
 
 - Step 1: Install conda via Miniconda or Anaconda. Then create environment with:
 
@@ -67,19 +69,11 @@ To run code via GPUs, you will need to install CUDA for TensorFlow and PyTorch.
 
 ## Experiments
 
-Experiments use [DVC](https://dvc.org/).
+<!-- Experiments use [DVC](https://dvc.org/). -->
+<!-- <!-- Imported data via: dvc import --out ./data/SKAB https://github.com/waico/SKAB.git ./data -->
+<!-- ```bash conda activate automl; dvc pull; dvc repro ``` -->
 
-<!-- Imported data via:
-dvc import --out ./data/SKAB https://github.com/waico/SKAB.git ./data
--->
-
-```bash
-conda activate automl
-# Pull data
-dvc pull
-# Run experiments
-dvc repro
-```
+This requires [Docker](https://docs.docker.com/). Primary Python version: 3.10.14
 
 ### Source Code Analysis
 
@@ -93,29 +87,19 @@ python -m ml.sca repositories  # Analyze repositories
 
 ### Anomaly Detection
 
-Running manually:
+<!-- Running manually: ```bash conda activate automl; dvc update data/SKAB.dvc # Pull data. Using update instead of pull as remote is a GitHub repository; pip install pycaret[model,tuners] # Install PyCaret. Good luck...; python -m ml.ad # results should be in: results/ad/; ``` -->
 
-```bash
-conda activate automl
-# Pull data. Using update instead of pull as remote is a GitHub repository
-dvc update data/SKAB.dvc
-# Install PyCaret. Good luck...
-pip install pycaret[model,tuners]
-# results should be in: results/ad/
-python -m ml.ad
-```
-<!-- # Install PyCaret
-pip install pycaret[models,tuners] -->
+Anomaly detection is done using the [TSB-AD](https://github.com/thedatumorg/TSB-AD) benchmark. A stripped-down, simplified version of the TSB-AD repository is located in the [src/ml/archived/TSB-AD](./src/ml/archived/TSB-AD) folder. See the README file in that directory.
 
-<!-- Installing after main installation:
-pip uninstall numba pandas pyod shap pycaret scikit-learn coverage pyod category-encoders -y && pip install pycaret[model,tuners] && python -m ml.ad
--->
+### Electricity Price Forecasting
+
+Code used in the 2023/24 forecasting benchmark can be viewed in the `src/ml/archived/electricity_price_forecasting/` folder. Note that this used older AutoML library versions.
 
 ## Source Code Analysis of AutoML Repositories via Sonar Scanner
 
-This requires Docker.
+[SonarQube](https://docs.sonarsource.com/what-is-sonarqube) is a open-source platform for continuous inspection of code quality. [Sonar scanner](https://docs.sonarsource.com/sonarqube-server/analyzing-source-code/scanners/sonarscanner) is a tool for static code analysis developed by SonarSource.
 
-Allow Docker containers to access GPUs:
+This requires Docker. These instruction should work on Windows (using WSL) and Linux. Allow Docker containers to access GPUs:
 
 ```bash
 # Required to install nvidia packages
@@ -132,7 +116,7 @@ sudo apt-get install -y nvidia-docker2
 sudo apt-get install nvidia-container-runtime nvidia-container-toolkit
 ```
 
-Set up SonarQube server via docker-compose and run analysis:
+Set up SonarQube server via [docker-compose](https://docs.docker.com/compose/) and run analysis:
 
 ```bash
 # Start server

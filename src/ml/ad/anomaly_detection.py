@@ -2,12 +2,12 @@
 
 from loguru import logger
 import pandas as pd
+from pyod.models.embedding import _DETECTOR_SHORTCUTS  # Names of PyOD models for TimeSeriesOD
 from pyod.models.lunar import LUNAR
 from pyod.models.ts_od import TimeSeriesOD
-from pyod.models.embedding import _DETECTOR_SHORTCUTS  # Names of PyOD models for TimeSeriesOD
 
 # try:  # PyCaret
-from pycaret.anomaly import create_model, predict_model, setup
+from pycaret.anomaly import create_model, predict_model, setup  # noqa: I100
 
 # except ImportError as e:
 #     logger.warning(f'PyCaret is not installed: {e}')

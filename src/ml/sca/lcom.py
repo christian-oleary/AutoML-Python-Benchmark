@@ -1,6 +1,9 @@
 """Lack of Cohesion of Methods (LCOM) metric calculation.
 
 Adapted from https://github.com/potfur/lcom/
+
+This code was not used in the SCA benchmark of this PhD thesis, but it is
+included here for reference and potential future use.
 """
 
 from __future__ import annotations

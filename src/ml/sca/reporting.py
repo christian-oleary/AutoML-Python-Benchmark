@@ -552,7 +552,9 @@ class Reporting:
                 cls.format_tex_table(df, tex_path, sort_index)
             # Record metric names with bold formatting
             with open(Path(output_dir, 'tex', tex_path.stem + '.tex'), 'w', encoding='utf-8') as f:
-                col_names = [col[1].strip() for col in df.columns if col[1] not in '(\%)']
+                col_names = [
+                    col[1].strip() for col in df.columns if col[1] not in '(\%)'  # noqa: W605
+                ]
                 f.write(', '.join(['\\textit{' + name + '}' for name in col_names]))
         return df
 
@@ -1271,8 +1273,10 @@ class Reporting:
                     text = f'{p_value:.3f}'.replace('0.', '.')
                     x, y = row + 0.5, col + 0.5
                 else:
-                    text = f'$\it{{p}}={p_value:.4f}$'  # italicize p; breaks font weight...
-                    # text = f'p={p_value:.4f}'  # does not italicize p; font weight works
+                    # italicize p; breaks font weight...
+                    text = f'$\it{{p}}={p_value:.4f}$'  # noqa: W605
+                    # does not italicize p; font weight works
+                    # text = f'p={p_value:.4f}'
                     fontdict['fontsize'] = fontsize - 1
                     x, y = row + 0.5, col + 0.8
 

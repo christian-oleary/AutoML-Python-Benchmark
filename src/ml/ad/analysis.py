@@ -1,4 +1,9 @@
-"""Anomaly detection analysis module for summarizing and plotting results of experiments."""
+"""Anomaly detection analysis module for summarizing and plotting results of experiments.
+
+This file was originally implemented to run anomaly detection experiments on the
+SKAB dataset using PyCaret and PyOD. It has been, however, replaced by the TSB-AD
+module making this file redundant. It is kept for reference and debugging.
+"""
 
 from __future__ import annotations
 

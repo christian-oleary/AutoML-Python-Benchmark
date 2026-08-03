@@ -89,7 +89,7 @@ exclude = ["archive", "archived", "docs", "repositories", "tests", "**/TSForecas
 exclude_dirs = ["archive", "archived", "docs", "repositories", "tests", "**/TSForecasting/*"]
 
 [tool.bandit.scripts]
-exclude = ["*_test.py", "*test_*", "data/*.dvc"]
+exclude = ["*_test.py", "*test_*", "data/*.dvc", "archived/*"]
 
 ################################################################################
 # BLACK
@@ -97,6 +97,7 @@ exclude = ["*_test.py", "*test_*", "data/*.dvc"]
 skip-string-normalization = true
 line-length = 100
 target-version = ['py39', 'py310']
+exclude = "/(archived|docs|repositories)/"
 
 ################################################################################
 # COVERAGE
@@ -153,7 +154,7 @@ disable = [
     "W0201", # attribute-defined-outside-init
     "W1203", # logging-fstring-interpolation
 ]
-ignore = ["tests", "**/TSForecasting/*"]
+ignore = ["tests", "**/TSForecasting/*", "archived", "docs", "repositories"]
 ignore-comments = false
 ignore-docstrings = false
 ignore-imports = false
@@ -180,12 +181,12 @@ log_cli_date_format = "%Y-%m-%d %H:%M:%S"
 console_output_style = "progress"
 filterwarnings = "ignore::DeprecationWarning"
 testpaths = [ "tests" ]
-ignore = ["**/archived/*", "docs", "**/TSForecasting/*"]
+ignore = ["**/archived/*", "docs", "**/TSForecasting/*", "repositories"]
 
 ################################################################################
 # RUFF
 [tool.ruff]
-exclude = ["**/archived/*", "docs", "**/TSForecasting/*"]
+exclude = ["**/archived/*", "docs", "**/TSForecasting/*", "repositories"]
 output-format = "full"
 
 [tool.ruff.format]

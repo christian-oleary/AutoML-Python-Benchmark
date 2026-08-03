@@ -1,0 +1,25 @@
+__pycache__
+*.egg-info
+build
+run_scripts
+Datasets/TSB-AD-Datasets
+TSB_AD/models/NormA.py
+lightning_logs
+
+# ADDED:
+backups
+results
+.vscode
+.pytest_cache
+*.zip
+*.csv
+*.log
+*.npy
+*.txt
+
+benchmark_exp/eval
+
+autogluon
+lag_llama
+lag-llama
+lag-llama.ckpt

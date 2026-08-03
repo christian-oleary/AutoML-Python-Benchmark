@@ -1,4 +1,8 @@
-"""Call the main function of the module from the command line."""
+"""Call the main function of the module from the command line.
+
+This code was an entry point for the module when it was run as a script. It is
+no longer used, but is kept for reference.
+"""
 
 from __future__ import annotations
 

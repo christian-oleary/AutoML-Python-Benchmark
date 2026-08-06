@@ -4,7 +4,9 @@
 [![linting: pylint](https://github.com/christian-oleary/AutoML-Python-Benchmark/actions/workflows/pylint.yml/badge.svg)](https://github.com/christian-oleary/AutoML-Python-Benchmark/actions/workflows/pylint.yml)
 [![testing: pytest](https://github.com/christian-oleary/AutoML-Python-Benchmark/actions/workflows/pytest.yml/badge.svg)](https://github.com/christian-oleary/AutoML-Python-Benchmark/actions/workflows/pytest.yml)
 
-Benchmarks of AutoML Frameworks for time series forecasting and anomaly detection.
+Benchmarks of AutoML Frameworks for time series forecasting, source code analysis, and anomaly detection.
+
+See the [src/ml/README.md](./src/ml/README.md) for more information on the AutoML library benchmarking code.
 
 ## Table of Contents
 
@@ -182,7 +184,7 @@ Christian O'Leary (2026) AutoML Python Benchmark.
 @software{AutoML-Python-Benchmark,
 author = {Christian O'Leary},
 title = {AutoML Python Benchmark},
-doi = {10.5281/zenodo.13133203},
+doi = {10.5281/zenodo.13133202},
 howpublished = {\url{https://github.com/christian-oleary/AutoML-Python-Benchmark}},
 year = {2026}
 }

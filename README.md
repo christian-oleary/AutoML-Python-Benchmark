@@ -34,7 +34,7 @@ Benchmarks of AutoML Frameworks for time series forecasting and anomaly detectio
 
 ## Installation
 
-> Note: The following instructions are still valid for the SCA benchmark, but the electricity price forecasting benchmark is now archived (`src/ml/archived/electricity_price_forecasting`). The anomaly detection benchmark is also archived (`src/ml/archived/TSB-AD`) as this was based on the TSB-AD repository.
+> Note: The following instructions are still valid for the SCA benchmark, but the electricity price forecasting benchmark is now archived (`src/ml/archived/electricity_price_forecasting`). The anomaly detection benchmark is also archived (`src/ml/archived/TSB-AD`) as this was based on the TSB-AD repository. Follow the installation instructions in the relevant README files in those directories for the archived experiments.
 
 - Step 1: Install conda via Miniconda or Anaconda. Then create environment with:
 
@@ -49,15 +49,12 @@ conda activate automl
 pip install -e .             # Bare minimum
 pip install -e .[all]        # Everything
 pip install -e .[sca]        # Source Code Analysis
-pip install -e .[dev,docs] # Unit tests, docs
-pip install -e .[tensorflow] # TensorFlow
-pip install -e .[torch]      # PyTorch
+pip install -e .[dev,docs]   # Unit tests, docs
+pip install -e .[tensorflow] # TensorFlow (no longer required for SCA benchmark)
+pip install -e .[torch]      # PyTorch    (no longer required for SCA benchmark)
 
 # For source code analysis:
 conda install gh -y
-
-# Optionally, for development:
-conda install pre-commit -y
 ```
 
 ## CUDA
@@ -98,6 +95,14 @@ Code used in the 2023/24 forecasting benchmark can be viewed in the `src/ml/arch
 ## Source Code Analysis of AutoML Repositories via Sonar Scanner
 
 [SonarQube](https://docs.sonarsource.com/what-is-sonarqube) is a open-source platform for continuous inspection of code quality. [Sonar scanner](https://docs.sonarsource.com/sonarqube-server/analyzing-source-code/scanners/sonarscanner) is a tool for static code analysis developed by SonarSource.
+
+<!-- ```bash
+# 1. Run server
+docker run -d --name sonarqube -e SONAR_ES_BOOTSTRAP_CHECKS_DISABLE=true -p 9000:9000 sonarqube:latest
+# 2. (Create a project and token on the server at http://localhost:9000)
+# 3. Run scanner
+sonar-scanner -D"sonar.projectKey=PROJECT_NAME" -D"sonar.sources=." -D"sonar.host.url=http://localhost:9000" -D"sonar.token=GENERATED_TOKEN"
+``` -->
 
 This requires Docker. These instruction should work on Windows (using WSL) and Linux. Allow Docker containers to access GPUs:
 
@@ -140,55 +145,30 @@ pip install -e .[sca]          # Install dependencies
 python -m sca.ml repositories  # Analyze repositories
 ```
 
-<!-- ## Development -->
+## Development
 
-<!--
-After installation and the download of repositories and datasets, you can run functional tests with:
-
-```bash
-pip install -r ./tests/requirements.txt
-python -m pytest tests/functional_tests.py
-```
-
-Linting:
+[Pre-commit](https://pre-commit.com/) setup:
 
 ```bash
-pip install -r ./tests/requirements.txt
-python -m pylint src
-python -m pylint src --disable=all --enable=W0102
+conda install pre-commit -y # Install pre-commit
+pre-commit install          # Install pre-commit hooks
 ```
 
-Check if TensorFlow/PyTorch can access GPUs:
+Run tests:
+
+```bash
+conda activate automl
+pip install -e .[dev]
+pytest -sx --failed-first
+```
+
+<!-- Check if TensorFlow/PyTorch can access GPUs:
 
 ```bash
 python ./tests/gpu_test.py
-```
-
-SonarQube:
-
-```bash
-# 1. Run server
-docker run -d --name sonarqube -e SONAR_ES_BOOTSTRAP_CHECKS_DISABLE=true -p 9000:9000 sonarqube:latest
-# 2. (Create a project and token on the server at http://localhost:9000)
-# 3. Run scanner
-sonar-scanner -D"sonar.projectKey=PROJECT_NAME" -D"sonar.sources=." -D"sonar.host.url=http://localhost:9000" -D"sonar.token=GENERATED_TOKEN"
-```
-
-Profiling:
-
-```bash
-python -m cProfile -s time run.py > profile_verbose.txt
-cat profile_verbose.txt | grep -e dataset_formatting.py -e forecasting.py -e util.py -e cumtime | grep -v "(<" > profile_summary.txt
-```
-
-Coverage report:
-
-```bash
-pip install -r ./tests/requirements.txt
-coverage run -m pytest tests/functional_tests.py
-coverage report --omit="env/*,venv/*,.env/*,.venv/*,*AppData*,*python37*,tests/*"
-rm .coverage
 ``` -->
+
+<!-- Profiling: ```bash python -m cProfile -s time run.py > profile_verbose.txt; cat profile_verbose.txt | grep -e dataset_formatting.py -e forecasting.py -e util.py -e cumtime | grep -v "(<" > profile_summary.txt ``` -->
 
 ## Contact
 
@@ -196,7 +176,7 @@ Please feel free to get in touch at <christian.oleary@mtu.ie>
 
 ## Citation
 
-Christian O'Leary (2025) AutoML Python Benchmark.
+Christian O'Leary (2026) AutoML Python Benchmark.
 
 ```latex
 @software{AutoML-Python-Benchmark,
@@ -204,6 +184,6 @@ author = {Christian O'Leary},
 title = {AutoML Python Benchmark},
 doi = {10.5281/zenodo.13133203},
 howpublished = {\url{https://github.com/christian-oleary/AutoML-Python-Benchmark}},
-year = {2025}
+year = {2026}
 }
 ```

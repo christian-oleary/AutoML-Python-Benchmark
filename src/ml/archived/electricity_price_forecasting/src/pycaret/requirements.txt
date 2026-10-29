@@ -1,7 +1,7 @@
 pycaret==3.0.0
 # pycaret[full] # PyCaret recommend avoiding: https://github.com/pycaret/pycaret/issues/3330
 sktime==0.17.0
-lightgbm==3.1
+lightgbm==4.6.0
 
 
 # Analysis
@@ -10,7 +10,7 @@ interpret>=0.2.7
 umap-learn>=0.5.2
 ydata-profiling>=4.3.1
 explainerdashboard>=0.3.8  # For dashboard method
-Flask==2.2.3  # https://github.com/oegedijk/explainerdashboard/issues/259
+Flask==3.1.3  # https://github.com/oegedijk/explainerdashboard/issues/259
 bokeh<3.0.0  # For autoviz
 autoviz>=0.1.36  # For EDA method
 fairlearn==0.7.0  # For check_fairness method
@@ -33,7 +33,7 @@ optuna>=3.0.0
 scikit-optimize>=0.9.0
 
 # MLOps
-mlflow>=1.24.0,<2.0.0
+mlflow>=3.17.2,<4.0.0
 gradio>=2.8.10
 boto3>=1.24.56  # For deploy_model method
 fastapi>=0.75.0  # For web api
@@ -43,6 +43,6 @@ evidently>=0.1.45.dev0,<0.3  # for drift reporting
 
 # Parallel
 fugue>=0.8.0
-flask>=2.0.3
+flask>=3.1.3
 
 prophet>=1.0.1
